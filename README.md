@@ -59,7 +59,7 @@ spring:
     password: your-password
 ```
 
-当前 starter 提供 `MessagePublishService`、`MessageDispatchService`、`TransactionalMessageCleanupService`、`ConsumeIdempotentService`、`ConsumedMessageArchiveService` 等 Bean。派发任务、事务消息主表清理任务和消费记录归档任务目前由业务系统自行用定时任务或线程池调用，后续可以继续扩展为 starter 内置调度。
+当前 starter 提供 `MessagePublishService`、`MessageDispatchService`、`TransactionalMessageCleanupService`、`ConsumeIdempotentService`、`ConsumedMessageCleanupService` 等 Bean。事务消息主表清理任务和已消费消息主表清理任务已由 starter 内置定时调度；派发任务目前仍由业务系统自行用定时任务或线程池调用。
 
 ## 发送消息
 

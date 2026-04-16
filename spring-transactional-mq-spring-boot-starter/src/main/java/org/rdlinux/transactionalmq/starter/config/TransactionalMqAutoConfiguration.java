@@ -7,7 +7,7 @@ import org.rdlinux.transactionalmq.core.mq.MqProducerAdapter;
 import org.rdlinux.transactionalmq.core.repository.ConsumedMessageRepository;
 import org.rdlinux.transactionalmq.core.repository.MessageSendLogRepository;
 import org.rdlinux.transactionalmq.core.repository.TransactionalMessageRepository;
-import org.rdlinux.transactionalmq.core.service.ConsumedMessageArchiveService;
+import org.rdlinux.transactionalmq.core.service.ConsumedMessageCleanupService;
 import org.rdlinux.transactionalmq.core.service.ConsumeIdempotentService;
 import org.rdlinux.transactionalmq.core.service.MessageDispatchService;
 import org.rdlinux.transactionalmq.core.service.MessagePublishService;
@@ -30,6 +30,7 @@ import org.springframework.boot.context.properties.EnableConfigurationProperties
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.ApplicationContext;
+import org.springframework.scheduling.annotation.EnableScheduling;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 
@@ -42,6 +43,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
  * 若容器里没有 `ObjectMapper`，则提供一个最小默认实例供消息序列化使用。</p>
  */
 @Configuration
+@EnableScheduling
 @EnableConfigurationProperties(TransactionalMqProperties.class)
 @AutoConfigureAfter(RabbitAutoConfiguration.class)
 @ConditionalOnProperty(prefix = "transactional.mq", name = "enabled", havingValue = "true", matchIfMissing = true)
@@ -102,10 +104,18 @@ public class TransactionalMqAutoConfiguration {
 
     @Bean
     @ConditionalOnBean(ConsumedMessageRepository.class)
-    @ConditionalOnMissingBean(ConsumedMessageArchiveService.class)
-    public ConsumedMessageArchiveService consumedMessageArchiveService(
+    @ConditionalOnMissingBean(ConsumedMessageCleanupService.class)
+    public ConsumedMessageCleanupService consumedMessageCleanupService(
             ConsumedMessageRepository consumedMessageRepository) {
-        return new ConsumedMessageArchiveService(consumedMessageRepository);
+        return new ConsumedMessageCleanupService(consumedMessageRepository);
+    }
+
+    @Bean
+    @ConditionalOnBean(ConsumedMessageCleanupService.class)
+    @ConditionalOnMissingBean(ConsumedMessageCleanupScheduler.class)
+    public ConsumedMessageCleanupScheduler consumedMessageCleanupScheduler(
+            ConsumedMessageCleanupService consumedMessageCleanupService, TransactionalMqProperties properties) {
+        return new ConsumedMessageCleanupScheduler(consumedMessageCleanupService, properties);
     }
 
     @Bean
@@ -114,6 +124,15 @@ public class TransactionalMqAutoConfiguration {
     public TransactionalMessageCleanupService transactionalMessageCleanupService(
             TransactionalMessageRepository transactionalMessageRepository) {
         return new TransactionalMessageCleanupService(transactionalMessageRepository);
+    }
+
+    @Bean
+    @ConditionalOnBean(TransactionalMessageCleanupService.class)
+    @ConditionalOnMissingBean(TransactionalMessageCleanupScheduler.class)
+    public TransactionalMessageCleanupScheduler transactionalMessageCleanupScheduler(
+            TransactionalMessageCleanupService transactionalMessageCleanupService,
+            TransactionalMqProperties properties) {
+        return new TransactionalMessageCleanupScheduler(transactionalMessageCleanupService, properties);
     }
 
     @Bean

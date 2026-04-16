@@ -1,18 +1,11 @@
 package org.rdlinux.transactionalmq.store.ezmybatis.repository;
 
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.Date;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-
-import javax.annotation.Resource;
-
+import org.rdlinux.ezmybatis.core.EzDelete;
 import org.rdlinux.ezmybatis.core.EzQuery;
 import org.rdlinux.ezmybatis.core.dao.EzDao;
 import org.rdlinux.ezmybatis.core.sqlstruct.Select;
 import org.rdlinux.ezmybatis.core.sqlstruct.table.EntityTable;
+import org.rdlinux.transactionalmq.common.entity.BaseEntity;
 import org.rdlinux.transactionalmq.common.enums.ConsumeStatus;
 import org.rdlinux.transactionalmq.core.model.ConsumedMessageRecord;
 import org.rdlinux.transactionalmq.core.repository.ConsumedMessageRepository;
@@ -21,6 +14,9 @@ import org.rdlinux.transactionalmq.store.ezmybatis.entity.ConsumedMessageHistory
 import org.springframework.dao.DuplicateKeyException;
 import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
+
+import javax.annotation.Resource;
+import java.util.*;
 
 /**
  * 基于 ez-mybatis 的消费消息仓储实现。
@@ -36,11 +32,11 @@ public class EzMybatisConsumedMessageRepository implements ConsumedMessageReposi
     @Override
     @Transactional(rollbackFor = Exception.class)
     public boolean saveIfAbsent(ConsumedMessageRecord record) {
-        ConsumedMessageEntity entity = toEntity(record);
+        ConsumedMessageEntity entity = this.toEntity(record);
         try {
             this.ezDao.insert(entity);
-            applyGeneratedIdentity(record, entity);
-            this.ezDao.insert(toHistoryEntity(record, new Date()));
+            this.applyGeneratedIdentity(record, entity);
+            this.ezDao.insert(this.toHistoryEntity(record, new Date()));
             return true;
         } catch (DuplicateKeyException ex) {
             return false;
@@ -53,18 +49,17 @@ public class EzMybatisConsumedMessageRepository implements ConsumedMessageReposi
             return Collections.emptyList();
         }
         EzQuery<ConsumedMessageEntity> query = EzQuery.builder(ConsumedMessageEntity.class)
-            .from(TABLE)
-            .select(Select.EzSelectBuilder::addAll)
-            .where(w -> w
-                .add(TABLE.field(ConsumedMessageEntity.Fields.consumeStatus), ConsumeStatus.SUCCESS)
-                .add(TABLE.field(ConsumedMessageEntity.Fields.consumeTime).le(archiveBefore)))
-            .orderBy(o -> o.add(TABLE.field(ConsumedMessageEntity.Fields.consumeTime)))
-            .page(1, limit)
-            .build();
+                .from(TABLE)
+                .select(Select.EzSelectBuilder::addAll)
+                .where(w -> w
+                        .add(TABLE.field(ConsumedMessageEntity.Fields.consumeStatus), ConsumeStatus.SUCCESS)
+                        .add(TABLE.field(ConsumedMessageEntity.Fields.consumeTime).le(archiveBefore)))
+                .page(1, limit)
+                .build();
         List<ConsumedMessageEntity> entities = this.ezDao.query(query);
-        List<ConsumedMessageRecord> records = new ArrayList<ConsumedMessageRecord>(entities.size());
+        List<ConsumedMessageRecord> records = new ArrayList<>(entities.size());
         for (ConsumedMessageEntity entity : entities) {
-            records.add(toRecord(entity));
+            records.add(this.toRecord(entity));
         }
         return records;
     }
@@ -75,13 +70,17 @@ public class EzMybatisConsumedMessageRepository implements ConsumedMessageReposi
         if (records == null || records.isEmpty()) {
             return 0;
         }
-        List<ConsumedMessageEntity> sourceEntities = new ArrayList<ConsumedMessageEntity>(records.size());
-        for (ConsumedMessageRecord record : records) {
-            ConsumedMessageEntity source = toEntity(record);
-            sourceEntities.add(source);
+        List<ConsumedMessageRecord> orderedRecords = new ArrayList<>(records);
+        orderedRecords.sort(Comparator.comparing(BaseEntity::getId));
+        int deleted = 0;
+        for (ConsumedMessageRecord record : orderedRecords) {
+            deleted += this.ezDao.ezDelete(EzDelete.delete(TABLE)
+                    .where(w -> w
+                            .add(TABLE.field(BaseEntity.Fields.id).eq(record.getId()))
+                            .add(TABLE.field(ConsumedMessageEntity.Fields.consumeStatus).eq(ConsumeStatus.SUCCESS)))
+                    .build());
         }
-        this.ezDao.batchDeleteByTable(TABLE, sourceEntities);
-        return records.size();
+        return deleted;
     }
 
     private ConsumedMessageEntity toEntity(ConsumedMessageRecord record) {
@@ -91,13 +90,13 @@ public class EzMybatisConsumedMessageRepository implements ConsumedMessageReposi
         Date now = new Date();
         ConsumedMessageEntity entity = new ConsumedMessageEntity();
         entity.setId(TransactionalMessageEntityMapper.resolvePrimaryKey(record.getId()));
-        entity.setCreateTime(defaultDate(record.getCreateTime(), now));
-        entity.setUpdateTime(defaultDate(record.getUpdateTime(), entity.getCreateTime()));
+        entity.setCreateTime(this.defaultDate(record.getCreateTime(), now));
+        entity.setUpdateTime(this.defaultDate(record.getUpdateTime(), entity.getCreateTime()));
         entity.setMessageKey(record.getMessageKey());
         entity.setConsumerCode(record.getConsumerCode());
         entity.setBizKey(record.getBizKey());
-        entity.setConsumeStatus(defaultConsumeStatus(record.getConsumeStatus()));
-        entity.setConsumeTime(defaultDate(record.getConsumeTime(), now));
+        entity.setConsumeStatus(this.defaultConsumeStatus(record.getConsumeStatus()));
+        entity.setConsumeTime(this.defaultDate(record.getConsumeTime(), now));
         return entity;
     }
 
@@ -105,14 +104,14 @@ public class EzMybatisConsumedMessageRepository implements ConsumedMessageReposi
         Date now = new Date();
         ConsumedMessageHistoryEntity entity = new ConsumedMessageHistoryEntity();
         entity.setId(TransactionalMessageEntityMapper.resolvePrimaryKey(record.getId()));
-        entity.setCreateTime(defaultDate(record.getCreateTime(), now));
-        entity.setUpdateTime(defaultDate(record.getUpdateTime(), entity.getCreateTime()));
+        entity.setCreateTime(this.defaultDate(record.getCreateTime(), now));
+        entity.setUpdateTime(this.defaultDate(record.getUpdateTime(), entity.getCreateTime()));
         entity.setMessageKey(record.getMessageKey());
         entity.setConsumerCode(record.getConsumerCode());
         entity.setBizKey(record.getBizKey());
-        entity.setConsumeStatus(defaultConsumeStatus(record.getConsumeStatus()));
-        entity.setConsumeTime(defaultDate(record.getConsumeTime(), now));
-        entity.setArchiveTime(defaultDate(archiveTime, now));
+        entity.setConsumeStatus(this.defaultConsumeStatus(record.getConsumeStatus()));
+        entity.setConsumeTime(this.defaultDate(record.getConsumeTime(), now));
+        entity.setArchiveTime(this.defaultDate(archiveTime, now));
         return entity;
     }
 

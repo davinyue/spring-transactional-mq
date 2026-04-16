@@ -49,11 +49,20 @@ public interface TransactionalMessageRepository {
     void markDispatchFailed(List<TransactionalMessageRecord> records);
 
     /**
-     * 归档并删除已发送成功的事务消息主表记录。
+     * 查询待归档的成功消息。
      *
      * @param cleanupBefore 清理阈值时间
-     * @param limit 最大清理条数
+     * @param limit 最大读取条数
+     * @return 成功消息候选列表
+     */
+    List<TransactionalMessageRecord> findSuccessCleanupCandidates(Date cleanupBefore, int limit);
+
+    /**
+     * 归档并删除单条已发送成功的事务消息主表记录。
+     *
+     * @param record 成功消息记录
+     * @param cleanupBefore 清理阈值时间
      * @return 归档并删除条数
      */
-    int deleteSuccessMessages(Date cleanupBefore, int limit);
+    int archiveSuccessMessage(TransactionalMessageRecord record, Date cleanupBefore);
 }

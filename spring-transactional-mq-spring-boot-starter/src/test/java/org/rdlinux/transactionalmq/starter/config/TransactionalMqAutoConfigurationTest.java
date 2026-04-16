@@ -8,6 +8,7 @@ import org.junit.Assert;
 import org.junit.Test;
 import org.rdlinux.ezmybatis.core.dao.EzDao;
 import org.rdlinux.transactionalmq.api.serialize.MessagePayloadSerializer;
+import org.rdlinux.transactionalmq.core.service.ConsumedMessageCleanupService;
 import org.rdlinux.transactionalmq.core.service.MessagePublishService;
 import org.rdlinux.transactionalmq.rabbitmq.RabbitMqProducerAdapter;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
@@ -37,6 +38,9 @@ public class TransactionalMqAutoConfigurationTest {
                 Assert.assertTrue(context.containsBean("transactionalMessageRepository"));
                 Assert.assertTrue(context.containsBean("consumedMessageRepository"));
                 Assert.assertTrue(context.containsBean("messageSendLogRepository"));
+                Assert.assertTrue(context.containsBean("consumedMessageCleanupService"));
+                Assert.assertTrue(context.containsBean("consumedMessageCleanupScheduler"));
+                Assert.assertNotNull(context.getBean(ConsumedMessageCleanupService.class));
                 TransactionalMqProperties properties = context.getBean(TransactionalMqProperties.class);
                 Assert.assertTrue(properties.isEnabled());
                 Assert.assertEquals(23, properties.getDispatchBatchSize());

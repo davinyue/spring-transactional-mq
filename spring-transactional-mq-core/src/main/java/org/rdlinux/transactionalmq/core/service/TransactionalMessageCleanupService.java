@@ -1,7 +1,10 @@
 package org.rdlinux.transactionalmq.core.service;
 
 import java.util.Date;
+import java.util.Comparator;
+import java.util.List;
 
+import org.rdlinux.transactionalmq.core.model.TransactionalMessageRecord;
 import org.rdlinux.transactionalmq.core.repository.TransactionalMessageRepository;
 
 /**
@@ -28,6 +31,13 @@ public class TransactionalMessageCleanupService {
      * @return 归档并清理条数
      */
     public int cleanupSuccessMessages(Date cleanupBefore, int limit) {
-        return this.transactionalMessageRepository.deleteSuccessMessages(cleanupBefore, limit);
+        List<TransactionalMessageRecord> candidates =
+            this.transactionalMessageRepository.findSuccessCleanupCandidates(cleanupBefore, limit);
+        candidates.sort(Comparator.comparing(TransactionalMessageRecord::getId));
+        int archived = 0;
+        for (TransactionalMessageRecord candidate : candidates) {
+            archived += this.transactionalMessageRepository.archiveSuccessMessage(candidate, cleanupBefore);
+        }
+        return archived;
     }
 }

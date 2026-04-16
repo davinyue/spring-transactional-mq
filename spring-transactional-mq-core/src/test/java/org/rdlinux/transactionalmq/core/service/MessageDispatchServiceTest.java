@@ -119,7 +119,12 @@ public class MessageDispatchServiceTest {
         }
 
         @Override
-        public int deleteSuccessMessages(Date cleanupBefore, int limit) {
+        public List<TransactionalMessageRecord> findSuccessCleanupCandidates(Date cleanupBefore, int limit) {
+            return java.util.Collections.emptyList();
+        }
+
+        @Override
+        public int archiveSuccessMessage(TransactionalMessageRecord record, Date cleanupBefore) {
             return 0;
         }
     }

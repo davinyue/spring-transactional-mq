@@ -28,12 +28,17 @@ public class TransactionalMessageCleanupServiceTest {
         Assert.assertEquals(3, deleted);
         Assert.assertSame(cleanupBefore, repository.cleanupBefore);
         Assert.assertEquals(100, repository.limit);
+        Assert.assertEquals(3, repository.archivedRecords.size());
+        Assert.assertEquals("a-1", repository.archivedRecords.get(0).getId());
+        Assert.assertEquals("b-1", repository.archivedRecords.get(1).getId());
+        Assert.assertEquals("c-1", repository.archivedRecords.get(2).getId());
     }
 
     private static final class CapturingTransactionalMessageRepository implements TransactionalMessageRepository {
 
         private Date cleanupBefore;
         private int limit;
+        private final List<TransactionalMessageRecord> archivedRecords = new java.util.ArrayList<TransactionalMessageRecord>();
 
         @Override
         public TransactionalMessageRecord save(TransactionalMessageRecord record) {
@@ -59,10 +64,20 @@ public class TransactionalMessageCleanupServiceTest {
         }
 
         @Override
-        public int deleteSuccessMessages(Date cleanupBefore, int limit) {
+        public List<TransactionalMessageRecord> findSuccessCleanupCandidates(Date cleanupBefore, int limit) {
             this.cleanupBefore = cleanupBefore;
             this.limit = limit;
-            return 3;
+            List<TransactionalMessageRecord> candidates = new java.util.ArrayList<TransactionalMessageRecord>();
+            candidates.add(new TransactionalMessageRecord().setId("c-1"));
+            candidates.add(new TransactionalMessageRecord().setId("a-1"));
+            candidates.add(new TransactionalMessageRecord().setId("b-1"));
+            return candidates;
+        }
+
+        @Override
+        public int archiveSuccessMessage(TransactionalMessageRecord record, Date cleanupBefore) {
+            this.archivedRecords.add(record);
+            return 1;
         }
     }
 }
