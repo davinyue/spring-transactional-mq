@@ -19,7 +19,6 @@ import org.rdlinux.ezmybatis.core.EzQuery;
 import org.rdlinux.ezmybatis.core.EzUpdate;
 import org.rdlinux.ezmybatis.core.dao.EzDao;
 import org.rdlinux.ezmybatis.core.mapper.EzMapper;
-import org.rdlinux.transactionalmq.api.model.SendResult;
 import org.rdlinux.transactionalmq.api.model.TransactionalMessage;
 import org.rdlinux.transactionalmq.common.enums.MessageStatus;
 import org.rdlinux.transactionalmq.common.enums.MqType;
@@ -71,13 +70,11 @@ public class TransactionalMqMainChainIntegrationTest {
                     .setPayload("payload-8")
                     .setBizKey("biz-8");
 
-                SendResult sendResult = publishService.publish(message);
+                String messageId = publishService.send(message);
 
-                assertTrue(sendResult.isAccepted());
-                assertNotNull(sendResult.getId());
-                assertEquals("message-key-8", sendResult.getMessageKey());
+                assertNotNull(messageId);
                 assertEquals(1, ezDao.getTransactionalMessageCount());
-                assertEquals(sendResult.getId(), ezDao.getTransactionalMessage(0).getId());
+                assertEquals(messageId, ezDao.getTransactionalMessage(0).getId());
                 assertEquals(MessageStatus.INIT, ezDao.getTransactionalMessage(0).getMessageStatus());
                 assertEquals(0, ezDao.getTransactionalMessageHistoryCount());
 
@@ -93,7 +90,7 @@ public class TransactionalMqMainChainIntegrationTest {
                 assertEquals(1, deleted);
                 assertEquals(0, ezDao.getTransactionalMessageCount());
                 assertEquals(1, ezDao.getTransactionalMessageHistoryCount());
-                assertEquals(sendResult.getId(), ezDao.getTransactionalMessageHistory(0).getId());
+                assertEquals(messageId, ezDao.getTransactionalMessageHistory(0).getId());
             });
     }
 

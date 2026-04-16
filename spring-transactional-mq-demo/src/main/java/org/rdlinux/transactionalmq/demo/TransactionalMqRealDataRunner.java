@@ -3,7 +3,6 @@ package org.rdlinux.transactionalmq.demo;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
-import org.rdlinux.transactionalmq.api.model.SendResult;
 import org.rdlinux.transactionalmq.api.model.TransactionalMessage;
 import org.rdlinux.transactionalmq.common.enums.MqType;
 import org.rdlinux.transactionalmq.core.service.MessageDispatchService;
@@ -53,10 +52,10 @@ public class TransactionalMqRealDataRunner implements ApplicationRunner {
                 .setBizKey(messageKey)
                 .setPayload(this.buildPayload(messageKey));
 
-        SendResult sendResult = this.messagePublishService.publish(message);
+        String messageId = this.messagePublishService.send(message);
         int dispatched = this.messageDispatchService.dispatchPendingMessages(1);
-        LOGGER.info("Transactional MQ real demo finished, id={}, messageKey={}, accepted={}, dispatched={}",
-                sendResult.getId(), sendResult.getMessageKey(), sendResult.isAccepted(), dispatched);
+        LOGGER.info("Transactional MQ real demo finished, id={}, messageKey={}, dispatched={}",
+                messageId, message.getMessageKey(), dispatched);
     }
 
     private Map<String, Object> buildPayload(String messageKey) {

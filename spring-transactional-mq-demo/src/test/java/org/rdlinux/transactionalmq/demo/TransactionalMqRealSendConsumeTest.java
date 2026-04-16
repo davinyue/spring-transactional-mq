@@ -15,7 +15,6 @@ import org.rdlinux.ezmybatis.core.sqlstruct.Select;
 import org.rdlinux.ezmybatis.core.sqlstruct.table.EntityTable;
 import org.rdlinux.transactionalmq.api.consumer.TransactionalMessageConsumer;
 import org.rdlinux.transactionalmq.api.model.ConsumeContext;
-import org.rdlinux.transactionalmq.api.model.SendResult;
 import org.rdlinux.transactionalmq.api.model.TransactionalMessage;
 import org.rdlinux.transactionalmq.api.serialize.MessagePayloadSerializer;
 import org.rdlinux.transactionalmq.common.entity.BaseEntity;
@@ -119,15 +118,15 @@ public class TransactionalMqRealSendConsumeTest {
                 .setBizKey(messageKey)
                 .setPayload(this.buildPayload(messageKey));
 
-        SendResult sendResult = this.messagePublishService.publish(message);
+        String messageId = this.messagePublishService.send(message);
         int dispatched = this.messageDispatchService.dispatchPendingMessages(1);
         Message rabbitMessage = this.rabbitTemplate.receive(this.properties.getQueueName(), 10000);
 
-        Assertions.assertTrue(sendResult.isAccepted());
+        Assertions.assertNotNull(messageId);
         Assertions.assertEquals(1, dispatched);
         Assertions.assertNotNull(rabbitMessage, "RabbitMQ should receive dispatched message");
 
-        ConsumeContext context = this.buildConsumeContext(rabbitMessage, sendResult);
+        ConsumeContext context = this.buildConsumeContext(rabbitMessage, messageId, messageKey);
         Map<?, ?> payload = this.messagePayloadSerializer.deserialize(
                 RabbitMqPayloadCodec.decode(rabbitMessage.getBody(),
                         rabbitMessage.getMessageProperties().getContentEncoding()),
@@ -166,12 +165,12 @@ public class TransactionalMqRealSendConsumeTest {
         return payload;
     }
 
-    private ConsumeContext buildConsumeContext(Message rabbitMessage, SendResult sendResult) {
+    private ConsumeContext buildConsumeContext(Message rabbitMessage, String messageId, String messageKey) {
         MessageProperties messageProperties = rabbitMessage.getMessageProperties();
-        Object messageKey = messageProperties.getHeaders().get("messageKey");
+        Object headerMessageKey = messageProperties.getHeaders().get("messageKey");
         return new ConsumeContext()
-                .setId(messageProperties.getMessageId())
-                .setMessageKey(messageKey == null ? sendResult.getMessageKey() : String.valueOf(messageKey))
+                .setId(messageProperties.getMessageId() == null ? messageId : messageProperties.getMessageId())
+                .setMessageKey(headerMessageKey == null ? messageKey : String.valueOf(headerMessageKey))
                 .setConsumerCode(TEST_CONSUMER_CODE);
     }
 

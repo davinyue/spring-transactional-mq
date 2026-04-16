@@ -1,5 +1,6 @@
 package org.rdlinux.transactionalmq.core.service;
 
+import java.lang.reflect.Method;
 import java.util.Collections;
 import java.util.Date;
 import java.util.List;
@@ -7,12 +8,12 @@ import java.lang.reflect.Type;
 
 import org.junit.Assert;
 import org.junit.Test;
-import org.rdlinux.transactionalmq.api.model.SendResult;
 import org.rdlinux.transactionalmq.api.model.TransactionalMessage;
 import org.rdlinux.transactionalmq.api.serialize.MessagePayloadSerializer;
 import org.rdlinux.transactionalmq.common.enums.MqType;
 import org.rdlinux.transactionalmq.core.model.TransactionalMessageRecord;
 import org.rdlinux.transactionalmq.core.repository.TransactionalMessageRepository;
+import org.springframework.transaction.annotation.Transactional;
 
 /**
  * 消息发布服务测试。
@@ -46,12 +47,9 @@ public class MessagePublishServiceTest {
             .setPayload("payload-value")
             .setBizKey("biz-1");
 
-        SendResult result = service.publish(message);
+        String messageId = service.send(message);
 
-        Assert.assertTrue(result.isAccepted());
-        Assert.assertEquals(SendResult.RESULT_CODE_ACCEPTED, result.getResultCode());
-        Assert.assertEquals("507f1f77bcf86cd799439011", result.getId());
-        Assert.assertEquals("message-key-1", result.getMessageKey());
+        Assert.assertEquals("507f1f77bcf86cd799439011", messageId);
         Assert.assertNotNull(repository.savedRecord);
         Assert.assertEquals("507f1f77bcf86cd799439011", repository.savedRecord.getId());
         Assert.assertEquals("serialized-payload-value", repository.savedRecord.getPayloadText());
@@ -80,6 +78,13 @@ public class MessagePublishServiceTest {
         Assert.assertEquals("tag-a", record.getRoute());
         Assert.assertEquals("order-2", record.getShardingKey());
         Assert.assertEquals("serialized", record.getPayloadText());
+    }
+
+    @Test
+    public void sendShouldBeTransactional() throws Exception {
+        Method method = MessagePublishService.class.getMethod("send", TransactionalMessage.class);
+
+        Assert.assertNotNull(method.getAnnotation(Transactional.class));
     }
 
     private static class CapturingTransactionalMessageRepository implements TransactionalMessageRepository {

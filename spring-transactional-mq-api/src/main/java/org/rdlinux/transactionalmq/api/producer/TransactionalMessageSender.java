@@ -1,6 +1,5 @@
 package org.rdlinux.transactionalmq.api.producer;
 
-import org.rdlinux.transactionalmq.api.model.SendResult;
 import org.rdlinux.transactionalmq.api.model.TransactionalMessage;
 
 /**
@@ -13,7 +12,7 @@ public interface TransactionalMessageSender {
      *
      * @param message 事务消息
      * @param <T> 消息负载类型
-     * @return 发送结果
+     * @return 消息 id
      */
-    <T> SendResult send(TransactionalMessage<T> message);
+    <T> String send(TransactionalMessage<T> message);
 }
