@@ -1,0 +1,32 @@
+spring:
+  rabbitmq:
+    host: 192.168.1.33
+    port: 30820
+    virtual-host: yulei
+    username: admin
+    password: Ynyc@2022
+  datasource:
+    driverClassName: oracle.jdbc.OracleDriver
+    url: jdbc:oracle:thin:@192.168.1.6:1521/dev0104
+    username: ykt_25
+    password: a
+    hikari:
+      jdbc-url: jdbc:oracle:thin:@192.168.1.6:1521/dev0104
+  sql:
+    init:
+      mode: always
+      schema-locations: classpath:sql/ORACLE.sql
+      continue-on-error: true
+
+ez-mybatis:
+  db-type: ORACLE
+
+demo:
+  transactional-mq:
+    run-on-startup: true
+    destination: spring.transactional.mq.demo
+    auto-declare-queue: true
+    queue-name: spring.transactional.mq.demo
+    enable-demo-consumer: true
+    consumer-min-concurrency: 1
+    consumer-max-concurrency: 2

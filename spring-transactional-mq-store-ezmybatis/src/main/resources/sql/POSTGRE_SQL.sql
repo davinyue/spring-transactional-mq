@@ -1,0 +1,153 @@
+CREATE TABLE IF NOT EXISTS TXN_MESSAGE (
+    id VARCHAR(24) PRIMARY KEY,
+    create_time TIMESTAMP NOT NULL,
+    update_time TIMESTAMP NOT NULL,
+    message_key VARCHAR(128) NOT NULL,
+    producer_code VARCHAR(64) NOT NULL,
+    mq_type VARCHAR(32) NOT NULL,
+    destination VARCHAR(256) NOT NULL,
+    route VARCHAR(256) NULL,
+    sharding_key VARCHAR(128) NULL,
+    payload_text TEXT NOT NULL,
+    headers_json TEXT NOT NULL,
+    biz_key VARCHAR(128) NULL,
+    message_status VARCHAR(32) NOT NULL,
+    next_dispatch_time TIMESTAMP NULL,
+    dispatch_owner VARCHAR(128) NULL,
+    dispatch_token VARCHAR(24) NULL,
+    dispatch_expire_time TIMESTAMP NULL
+);
+
+CREATE TABLE IF NOT EXISTS TXN_MESSAGE_HISTORY (
+    id VARCHAR(24) PRIMARY KEY,
+    create_time TIMESTAMP NOT NULL,
+    update_time TIMESTAMP NOT NULL,
+    message_key VARCHAR(128) NOT NULL,
+    producer_code VARCHAR(64) NOT NULL,
+    mq_type VARCHAR(32) NOT NULL,
+    destination VARCHAR(256) NOT NULL,
+    route VARCHAR(256) NULL,
+    sharding_key VARCHAR(128) NULL,
+    payload_text TEXT NOT NULL,
+    headers_json TEXT NOT NULL,
+    biz_key VARCHAR(128) NULL,
+    message_status VARCHAR(32) NOT NULL,
+    next_dispatch_time TIMESTAMP NULL,
+    dispatch_owner VARCHAR(128) NULL,
+    dispatch_token VARCHAR(24) NULL,
+    dispatch_expire_time TIMESTAMP NULL
+);
+
+CREATE TABLE IF NOT EXISTS TXN_CONSUMED_MESSAGE (
+    id VARCHAR(24) PRIMARY KEY,
+    create_time TIMESTAMP NOT NULL,
+    update_time TIMESTAMP NOT NULL,
+    message_key VARCHAR(128) NOT NULL,
+    consumer_code VARCHAR(64) NOT NULL,
+    biz_key VARCHAR(128) NULL,
+    consume_status VARCHAR(32) NOT NULL,
+    consume_time TIMESTAMP NOT NULL,
+    UNIQUE (id, consumer_code)
+);
+
+CREATE TABLE IF NOT EXISTS TXN_CONSUMED_MESSAGE_HISTORY (
+    id VARCHAR(24) PRIMARY KEY,
+    create_time TIMESTAMP NOT NULL,
+    update_time TIMESTAMP NOT NULL,
+    message_key VARCHAR(128) NOT NULL,
+    consumer_code VARCHAR(64) NOT NULL,
+    biz_key VARCHAR(128) NULL,
+    consume_status VARCHAR(32) NOT NULL,
+    consume_time TIMESTAMP NOT NULL,
+    archive_time TIMESTAMP NOT NULL,
+    UNIQUE (id, consumer_code)
+);
+
+CREATE TABLE IF NOT EXISTS TXN_MESSAGE_SEND_LOG (
+    id VARCHAR(24) PRIMARY KEY,
+    create_time TIMESTAMP NOT NULL,
+    update_time TIMESTAMP NOT NULL,
+    message_key VARCHAR(128) NOT NULL,
+    producer_code VARCHAR(64) NOT NULL,
+    mq_type VARCHAR(32) NOT NULL,
+    send_status VARCHAR(32) NOT NULL,
+    retry_count INT NOT NULL,
+    last_send_time TIMESTAMP NOT NULL,
+    description VARCHAR(512) NULL
+);
+
+CREATE INDEX IF NOT EXISTS idx_txn_message_status_dispatch
+    ON TXN_MESSAGE (message_status, next_dispatch_time, id);
+CREATE INDEX IF NOT EXISTS idx_txn_message_status_update
+    ON TXN_MESSAGE (message_status, update_time, id);
+
+COMMENT ON TABLE TXN_MESSAGE IS '事务消息表';
+COMMENT ON COLUMN TXN_MESSAGE.id IS '主键';
+COMMENT ON COLUMN TXN_MESSAGE.create_time IS '创建时间';
+COMMENT ON COLUMN TXN_MESSAGE.update_time IS '更新时间';
+COMMENT ON COLUMN TXN_MESSAGE.message_key IS '消息键';
+COMMENT ON COLUMN TXN_MESSAGE.producer_code IS '生产者编码';
+COMMENT ON COLUMN TXN_MESSAGE.mq_type IS 'MQ 类型';
+COMMENT ON COLUMN TXN_MESSAGE.destination IS '目标';
+COMMENT ON COLUMN TXN_MESSAGE.route IS '路由信息';
+COMMENT ON COLUMN TXN_MESSAGE.sharding_key IS '分片键';
+COMMENT ON COLUMN TXN_MESSAGE.payload_text IS '消息体文本';
+COMMENT ON COLUMN TXN_MESSAGE.headers_json IS '消息头 JSON';
+COMMENT ON COLUMN TXN_MESSAGE.biz_key IS '业务键';
+COMMENT ON COLUMN TXN_MESSAGE.message_status IS '消息状态';
+COMMENT ON COLUMN TXN_MESSAGE.next_dispatch_time IS '下次派发时间';
+COMMENT ON COLUMN TXN_MESSAGE.dispatch_owner IS '派发实例标识';
+COMMENT ON COLUMN TXN_MESSAGE.dispatch_token IS '派发令牌';
+COMMENT ON COLUMN TXN_MESSAGE.dispatch_expire_time IS '派发租约过期时间';
+
+COMMENT ON TABLE TXN_MESSAGE_HISTORY IS '事务消息历史表';
+COMMENT ON COLUMN TXN_MESSAGE_HISTORY.id IS '主键';
+COMMENT ON COLUMN TXN_MESSAGE_HISTORY.create_time IS '创建时间';
+COMMENT ON COLUMN TXN_MESSAGE_HISTORY.update_time IS '更新时间';
+COMMENT ON COLUMN TXN_MESSAGE_HISTORY.message_key IS '消息键';
+COMMENT ON COLUMN TXN_MESSAGE_HISTORY.producer_code IS '生产者编码';
+COMMENT ON COLUMN TXN_MESSAGE_HISTORY.mq_type IS 'MQ 类型';
+COMMENT ON COLUMN TXN_MESSAGE_HISTORY.destination IS '目标';
+COMMENT ON COLUMN TXN_MESSAGE_HISTORY.route IS '路由信息';
+COMMENT ON COLUMN TXN_MESSAGE_HISTORY.sharding_key IS '分片键';
+COMMENT ON COLUMN TXN_MESSAGE_HISTORY.payload_text IS '消息体文本';
+COMMENT ON COLUMN TXN_MESSAGE_HISTORY.headers_json IS '消息头 JSON';
+COMMENT ON COLUMN TXN_MESSAGE_HISTORY.biz_key IS '业务键';
+COMMENT ON COLUMN TXN_MESSAGE_HISTORY.message_status IS '消息状态';
+COMMENT ON COLUMN TXN_MESSAGE_HISTORY.next_dispatch_time IS '下次派发时间';
+COMMENT ON COLUMN TXN_MESSAGE_HISTORY.dispatch_owner IS '派发实例标识';
+COMMENT ON COLUMN TXN_MESSAGE_HISTORY.dispatch_token IS '派发令牌';
+COMMENT ON COLUMN TXN_MESSAGE_HISTORY.dispatch_expire_time IS '派发租约过期时间';
+
+COMMENT ON TABLE TXN_CONSUMED_MESSAGE IS '已消费消息主表';
+COMMENT ON COLUMN TXN_CONSUMED_MESSAGE.id IS '主键';
+COMMENT ON COLUMN TXN_CONSUMED_MESSAGE.create_time IS '创建时间';
+COMMENT ON COLUMN TXN_CONSUMED_MESSAGE.update_time IS '更新时间';
+COMMENT ON COLUMN TXN_CONSUMED_MESSAGE.message_key IS '消息键';
+COMMENT ON COLUMN TXN_CONSUMED_MESSAGE.consumer_code IS '消费者编码';
+COMMENT ON COLUMN TXN_CONSUMED_MESSAGE.biz_key IS '业务键';
+COMMENT ON COLUMN TXN_CONSUMED_MESSAGE.consume_status IS '消费状态';
+COMMENT ON COLUMN TXN_CONSUMED_MESSAGE.consume_time IS '消费时间';
+
+COMMENT ON TABLE TXN_CONSUMED_MESSAGE_HISTORY IS '已消费消息历史表';
+COMMENT ON COLUMN TXN_CONSUMED_MESSAGE_HISTORY.id IS '主键';
+COMMENT ON COLUMN TXN_CONSUMED_MESSAGE_HISTORY.create_time IS '创建时间';
+COMMENT ON COLUMN TXN_CONSUMED_MESSAGE_HISTORY.update_time IS '更新时间';
+COMMENT ON COLUMN TXN_CONSUMED_MESSAGE_HISTORY.message_key IS '消息键';
+COMMENT ON COLUMN TXN_CONSUMED_MESSAGE_HISTORY.consumer_code IS '消费者编码';
+COMMENT ON COLUMN TXN_CONSUMED_MESSAGE_HISTORY.biz_key IS '业务键';
+COMMENT ON COLUMN TXN_CONSUMED_MESSAGE_HISTORY.consume_status IS '消费状态';
+COMMENT ON COLUMN TXN_CONSUMED_MESSAGE_HISTORY.consume_time IS '消费时间';
+COMMENT ON COLUMN TXN_CONSUMED_MESSAGE_HISTORY.archive_time IS '归档时间';
+
+COMMENT ON TABLE TXN_MESSAGE_SEND_LOG IS '消息发送日志表';
+COMMENT ON COLUMN TXN_MESSAGE_SEND_LOG.id IS '主键';
+COMMENT ON COLUMN TXN_MESSAGE_SEND_LOG.create_time IS '创建时间';
+COMMENT ON COLUMN TXN_MESSAGE_SEND_LOG.update_time IS '更新时间';
+COMMENT ON COLUMN TXN_MESSAGE_SEND_LOG.message_key IS '消息键';
+COMMENT ON COLUMN TXN_MESSAGE_SEND_LOG.producer_code IS '生产者编码';
+COMMENT ON COLUMN TXN_MESSAGE_SEND_LOG.mq_type IS 'MQ 类型';
+COMMENT ON COLUMN TXN_MESSAGE_SEND_LOG.send_status IS '发送状态';
+COMMENT ON COLUMN TXN_MESSAGE_SEND_LOG.retry_count IS '重试次数';
+COMMENT ON COLUMN TXN_MESSAGE_SEND_LOG.last_send_time IS '最后发送时间';
+COMMENT ON COLUMN TXN_MESSAGE_SEND_LOG.description IS '结果描述';

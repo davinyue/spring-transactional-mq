@@ -1,0 +1,13 @@
+spring:
+  application:
+    name: spring-transactional-mq-demo
+
+demo:
+  transactional-mq:
+    run-on-startup: false
+    destination: spring.transactional.mq.demo
+    auto-declare-queue: true
+    queue-name: spring.transactional.mq.demo
+    enable-demo-consumer: true
+    consumer-min-concurrency: 1
+    consumer-max-concurrency: 2
