@@ -65,6 +65,8 @@ public class EzMybatisMessageSendLogRepository implements MessageSendLogReposito
         entity.setMessageKey(record.getMessageKey());
         entity.setProducerCode(record.getProducerCode());
         entity.setMqType(record.getMqType());
+        entity.setParentId(record.getParentId());
+        entity.setRootId(record.getRootId());
         entity.setSendStatus(record.getSendStatus());
         entity.setRetryCount(record.getRetryCount());
         entity.setLastSendTime(defaultDate(record.getLastSendTime(), now));
@@ -86,6 +88,8 @@ public class EzMybatisMessageSendLogRepository implements MessageSendLogReposito
         record.setMessageKey(entity.getMessageKey());
         record.setProducerCode(entity.getProducerCode());
         record.setMqType(entity.getMqType());
+        record.setParentId(entity.getParentId());
+        record.setRootId(entity.getRootId());
         record.setSendStatus(entity.getSendStatus());
         record.setRetryCount(entity.getRetryCount());
         record.setLastSendTime(entity.getLastSendTime());

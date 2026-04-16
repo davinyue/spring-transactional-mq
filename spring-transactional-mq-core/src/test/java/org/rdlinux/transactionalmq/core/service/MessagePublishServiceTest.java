@@ -8,6 +8,7 @@ import java.lang.reflect.Type;
 
 import org.junit.Assert;
 import org.junit.Test;
+import org.rdlinux.transactionalmq.api.model.ConsumeContext;
 import org.rdlinux.transactionalmq.api.model.TransactionalMessage;
 import org.rdlinux.transactionalmq.api.serialize.MessagePayloadSerializer;
 import org.rdlinux.transactionalmq.common.enums.MqType;
@@ -49,9 +50,11 @@ public class MessagePublishServiceTest {
 
         String messageId = service.send(message);
 
-        Assert.assertEquals("507f1f77bcf86cd799439011", messageId);
+        Assert.assertNotNull(messageId);
         Assert.assertNotNull(repository.savedRecord);
-        Assert.assertEquals("507f1f77bcf86cd799439011", repository.savedRecord.getId());
+        Assert.assertEquals(messageId, repository.savedRecord.getId());
+        Assert.assertEquals(messageId, repository.savedRecord.getRootId());
+        Assert.assertNull(repository.savedRecord.getParentId());
         Assert.assertEquals("serialized-payload-value", repository.savedRecord.getPayloadText());
         Assert.assertEquals("producer-1", repository.savedRecord.getProducerCode());
         Assert.assertEquals("demo.exchange", repository.savedRecord.getDestination());
@@ -78,6 +81,40 @@ public class MessagePublishServiceTest {
         Assert.assertEquals("tag-a", record.getRoute());
         Assert.assertEquals("order-2", record.getShardingKey());
         Assert.assertEquals("serialized", record.getPayloadText());
+        Assert.assertNull(record.getParentId());
+        Assert.assertNull(record.getRootId());
+    }
+
+    @Test
+    public void sendWithParentShouldPropagateParentAndRootIdentifiers() {
+        CapturingTransactionalMessageRepository repository = new CapturingTransactionalMessageRepository();
+        MessagePayloadSerializer serializer = new MessagePayloadSerializer() {
+            @Override
+            public String serialize(Object payload) {
+                return "serialized-" + payload;
+            }
+
+            @Override
+            public <T> T deserialize(String payloadText, Type targetType) {
+                return null;
+            }
+        };
+        MessagePublishService service = new MessagePublishService(repository, serializer);
+        TransactionalMessage<String> message = new TransactionalMessage<String>()
+            .setMessageKey("message-key-3")
+            .setPayload("payload-value-3");
+        ConsumeContext parentContext = new ConsumeContext()
+            .setId("parent-1")
+            .setRootId("root-1")
+            .setMessageKey("message-key-parent")
+            .setConsumerCode("consumer-1");
+
+        String childId = service.sendWithParent(message, parentContext);
+
+        Assert.assertNotNull(childId);
+        Assert.assertEquals(childId, repository.savedRecord.getId());
+        Assert.assertEquals("parent-1", repository.savedRecord.getParentId());
+        Assert.assertEquals("root-1", repository.savedRecord.getRootId());
     }
 
     @Test
@@ -93,7 +130,6 @@ public class MessagePublishServiceTest {
 
         @Override
         public TransactionalMessageRecord save(TransactionalMessageRecord record) {
-            record.setId("507f1f77bcf86cd799439011");
             this.savedRecord = record;
             return record;
         }

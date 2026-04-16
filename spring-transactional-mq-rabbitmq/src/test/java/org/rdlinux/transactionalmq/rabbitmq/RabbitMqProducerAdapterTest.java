@@ -114,6 +114,8 @@ public class RabbitMqProducerAdapterTest {
         message.setShardingKey("order-2");
         message.setPayloadText("hello");
         message.setBizKey("biz-2");
+        message.setParentId("parent-2");
+        message.setRootId("root-2");
 
         Map<String, String> headers = new HashMap<String, String>();
         headers.put("messageKey", "shadow-key");
@@ -147,6 +149,8 @@ public class RabbitMqProducerAdapterTest {
         assertEquals("biz-2", processed.getMessageProperties().getHeaders().get("bizKey"));
         assertEquals("route.demo", processed.getMessageProperties().getHeaders().get("route"));
         assertEquals("order-2", processed.getMessageProperties().getHeaders().get("shardingKey"));
+        assertEquals("parent-2", processed.getMessageProperties().getHeaders().get("parentId"));
+        assertEquals("root-2", processed.getMessageProperties().getHeaders().get("rootId"));
         assertEquals("trace-2", processed.getMessageProperties().getHeaders().get("traceId"));
     }
 }

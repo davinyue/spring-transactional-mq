@@ -186,6 +186,8 @@ RabbitMQ 适配器优先使用新写法：
 
 `TXN_MESSAGE` 派发状态目前包括初始化、发送中、重试中、成功和归档中等状态。派发线程先批量查询候选消息，再按 `id` 稳定排序，逐条通过数据库条件更新抢占消息；只有成功把记录更新为 `SENDING` 并写入 `dispatch_token` 的实例才会发送该消息。发送完成后按 `id + dispatch_token` 批量落成功或失败状态，避免旧线程在租约过期后误更新新线程抢占的消息。`SENDING` 会设置锁超时时间，实例宕机后消息可在超时后重新领取。`TransactionalMessageCleanupService` 会把达到清理阈值的成功消息抢占为 `ARCHIVING`，写入 `TXN_MESSAGE_HISTORY` 后删除主表记录。
 
+当消费者处理完一条消息后，如果需要基于当前消息重新组织新的 payload 再次发送到队列，可以调用 `sendWithParent(message, parentContext)`。框架会为新消息生成新的 `id`，同时自动续接 `parentId` 和 `rootId`，便于后续沿着整条消息派生链路排查问题。
+
 ## 投递语义
 
 当前实现提供“至少一次投递”语义。它可以避免多实例并发时同时抢到同一条待发送记录，但如果实例已经把消息发送到 MQ，随后在标记数据库 `SUCCESS` 前宕机，锁超时后仍可能再次发送。因此消费者侧必须保持幂等，建议始终使用 `ConsumeIdempotentService` 记录消费。

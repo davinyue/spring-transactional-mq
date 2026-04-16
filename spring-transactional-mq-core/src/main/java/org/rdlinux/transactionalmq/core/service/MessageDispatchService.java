@@ -1,11 +1,6 @@
 package org.rdlinux.transactionalmq.core.service;
 
-import java.util.List;
-import java.util.Date;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.Comparator;
-
+import org.rdlinux.transactionalmq.common.entity.BaseEntity;
 import org.rdlinux.transactionalmq.common.enums.SendStatus;
 import org.rdlinux.transactionalmq.core.model.DispatchMessage;
 import org.rdlinux.transactionalmq.core.model.MessageSendLogRecord;
@@ -13,6 +8,11 @@ import org.rdlinux.transactionalmq.core.model.TransactionalMessageRecord;
 import org.rdlinux.transactionalmq.core.mq.MqProducerAdapter;
 import org.rdlinux.transactionalmq.core.repository.MessageSendLogRepository;
 import org.rdlinux.transactionalmq.core.repository.TransactionalMessageRepository;
+
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.Date;
+import java.util.List;
 
 /**
  * 事务消息派发服务骨架。
@@ -29,10 +29,10 @@ public class MessageDispatchService {
      * 构造消息派发服务。
      *
      * @param transactionalMessageRepository 事务消息仓储
-     * @param mqProducerAdapter MQ 适配器
+     * @param mqProducerAdapter              MQ 适配器
      */
     public MessageDispatchService(TransactionalMessageRepository transactionalMessageRepository,
-            MqProducerAdapter mqProducerAdapter) {
+                                  MqProducerAdapter mqProducerAdapter) {
         this(transactionalMessageRepository, mqProducerAdapter, null);
     }
 
@@ -40,11 +40,11 @@ public class MessageDispatchService {
      * 构造消息派发服务。
      *
      * @param transactionalMessageRepository 事务消息仓储
-     * @param mqProducerAdapter MQ 适配器
-     * @param messageSendLogRepository 发送日志仓储
+     * @param mqProducerAdapter              MQ 适配器
+     * @param messageSendLogRepository       发送日志仓储
      */
     public MessageDispatchService(TransactionalMessageRepository transactionalMessageRepository,
-            MqProducerAdapter mqProducerAdapter, MessageSendLogRepository messageSendLogRepository) {
+                                  MqProducerAdapter mqProducerAdapter, MessageSendLogRepository messageSendLogRepository) {
         this.transactionalMessageRepository = transactionalMessageRepository;
         this.mqProducerAdapter = mqProducerAdapter;
         this.messageSendLogRepository = messageSendLogRepository;
@@ -58,14 +58,9 @@ public class MessageDispatchService {
      */
     public int dispatchPendingMessages(int limit) {
         List<TransactionalMessageRecord> candidates = this.transactionalMessageRepository.findDispatchCandidates(limit);
-        Collections.sort(candidates, new Comparator<TransactionalMessageRecord>() {
-            @Override
-            public int compare(TransactionalMessageRecord left, TransactionalMessageRecord right) {
-                return left.getId().compareTo(right.getId());
-            }
-        });
-        List<TransactionalMessageRecord> successRecords = new ArrayList<TransactionalMessageRecord>();
-        List<TransactionalMessageRecord> failedRecords = new ArrayList<TransactionalMessageRecord>();
+        candidates.sort(Comparator.comparing(BaseEntity::getId));
+        List<TransactionalMessageRecord> successRecords = new ArrayList<>();
+        List<TransactionalMessageRecord> failedRecords = new ArrayList<>();
         for (TransactionalMessageRecord candidate : candidates) {
             TransactionalMessageRecord record = this.transactionalMessageRepository.claimDispatchMessage(candidate);
             if (record == null) {
@@ -95,10 +90,12 @@ public class MessageDispatchService {
         logRecord.setMessageKey(record.getMessageKey());
         logRecord.setProducerCode(record.getProducerCode());
         logRecord.setMqType(record.getMqType());
+        logRecord.setParentId(record.getParentId());
+        logRecord.setRootId(record.getRootId());
         logRecord.setSendStatus(sendStatus);
         logRecord.setRetryCount(0);
         logRecord.setLastSendTime(new Date());
-        logRecord.setDescription(truncateDescription(description));
+        logRecord.setDescription(this.truncateDescription(description));
         this.messageSendLogRepository.save(logRecord);
     }
 

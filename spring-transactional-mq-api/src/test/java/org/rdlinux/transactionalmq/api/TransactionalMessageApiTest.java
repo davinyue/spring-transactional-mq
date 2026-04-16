@@ -89,6 +89,11 @@ public class TransactionalMessageApiTest {
             public <T> String send(TransactionalMessage<T> message) {
                 return "msg-2";
             }
+
+            @Override
+            public <T> String sendWithParent(TransactionalMessage<T> message, ConsumeContext parentContext) {
+                return parentContext.getId() + "-child";
+            }
         };
 
         MessagePayloadSerializer serializer = new MessagePayloadSerializer() {
@@ -108,12 +113,14 @@ public class TransactionalMessageApiTest {
             .setPayload("payload-value");
         ConsumeContext context = new ConsumeContext()
             .setId("msg-1")
+            .setRootId("root-1")
             .setMessageKey("message-key-1")
             .setConsumerCode(consumer.consumerCode());
 
         consumer.consume(context, message.getPayload());
 
         String messageId = sender.send(message);
+        String childMessageId = sender.sendWithParent(message, context);
 
         Assert.assertEquals("consumer-1", observedConsumerCode[0]);
         Assert.assertEquals("payload-value", observedPayload[0]);
@@ -121,6 +128,8 @@ public class TransactionalMessageApiTest {
         Assert.assertEquals(1, consumer.getMinConcurrency());
         Assert.assertEquals(1, consumer.getMaxConcurrency());
         Assert.assertEquals("msg-2", messageId);
+        Assert.assertEquals("msg-1-child", childMessageId);
+        Assert.assertEquals("root-1", context.getRootId());
         Assert.assertEquals("payload-value", serializer.serialize(message.getPayload()));
 
         Type targetType = new ParameterizedType() {

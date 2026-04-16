@@ -5,6 +5,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 import org.rdlinux.transactionalmq.api.model.TransactionalMessage;
+import org.rdlinux.transactionalmq.api.model.ConsumeContext;
 import org.rdlinux.transactionalmq.common.entity.BaseEntity;
 import org.rdlinux.transactionalmq.common.enums.MessageStatus;
 import org.rdlinux.transactionalmq.common.enums.MqType;
@@ -59,6 +60,14 @@ public class TransactionalMessageRecord extends BaseEntity<TransactionalMessageR
      */
     private Date nextDispatchTime;
     /**
+     * 父消息 id。
+     */
+    private String parentId;
+    /**
+     * 根消息 id。
+     */
+    private String rootId;
+    /**
      * 派发实例标识。
      */
     private String dispatchOwner;
@@ -96,6 +105,31 @@ public class TransactionalMessageRecord extends BaseEntity<TransactionalMessageR
         record.setPayloadText(payloadText);
         record.setMessageStatus(MessageStatus.INIT);
         record.setNextDispatchTime(new Date());
+        return record;
+    }
+
+    /**
+     * 从 API 消息和父消息上下文创建记录对象。
+     *
+     * <p>该方法只继承消息链路信息，不会复制父消息的业务内容。</p>
+     *
+     * @param message API 消息
+     * @param payloadText 负载文本
+     * @param parentContext 父消息上下文
+     * @param <T> 负载类型
+     * @return 记录对象
+     */
+    public static <T> TransactionalMessageRecord from(TransactionalMessage<T> message, String payloadText,
+            ConsumeContext parentContext) {
+        TransactionalMessageRecord record = from(message, payloadText);
+        if (parentContext != null) {
+            record.setParentId(parentContext.getId());
+            if (parentContext.getRootId() == null || parentContext.getRootId().trim().isEmpty()) {
+                record.setRootId(parentContext.getId());
+            } else {
+                record.setRootId(parentContext.getRootId());
+            }
+        }
         return record;
     }
 
@@ -299,6 +333,42 @@ public class TransactionalMessageRecord extends BaseEntity<TransactionalMessageR
      */
     public void setNextDispatchTime(Date nextDispatchTime) {
         this.nextDispatchTime = nextDispatchTime;
+    }
+
+    /**
+     * 获取父消息 id。
+     *
+     * @return 父消息 id
+     */
+    public String getParentId() {
+        return parentId;
+    }
+
+    /**
+     * 设置父消息 id。
+     *
+     * @param parentId 父消息 id
+     */
+    public void setParentId(String parentId) {
+        this.parentId = parentId;
+    }
+
+    /**
+     * 获取根消息 id。
+     *
+     * @return 根消息 id
+     */
+    public String getRootId() {
+        return rootId;
+    }
+
+    /**
+     * 设置根消息 id。
+     *
+     * @param rootId 根消息 id
+     */
+    public void setRootId(String rootId) {
+        this.rootId = rootId;
     }
 
     /**

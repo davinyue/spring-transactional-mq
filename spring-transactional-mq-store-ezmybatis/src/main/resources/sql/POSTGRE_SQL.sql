@@ -13,6 +13,8 @@ CREATE TABLE IF NOT EXISTS TXN_MESSAGE (
     biz_key VARCHAR(128) NULL,
     message_status VARCHAR(32) NOT NULL,
     next_dispatch_time TIMESTAMP NULL,
+    parent_id VARCHAR(24) NULL,
+    root_id VARCHAR(24) NULL,
     dispatch_owner VARCHAR(128) NULL,
     dispatch_token VARCHAR(24) NULL,
     dispatch_expire_time TIMESTAMP NULL
@@ -33,6 +35,8 @@ CREATE TABLE IF NOT EXISTS TXN_MESSAGE_HISTORY (
     biz_key VARCHAR(128) NULL,
     message_status VARCHAR(32) NOT NULL,
     next_dispatch_time TIMESTAMP NULL,
+    parent_id VARCHAR(24) NULL,
+    root_id VARCHAR(24) NULL,
     dispatch_owner VARCHAR(128) NULL,
     dispatch_token VARCHAR(24) NULL,
     dispatch_expire_time TIMESTAMP NULL
@@ -68,6 +72,8 @@ CREATE TABLE IF NOT EXISTS TXN_MESSAGE_SEND_LOG (
     create_time TIMESTAMP NOT NULL,
     update_time TIMESTAMP NOT NULL,
     message_key VARCHAR(128) NOT NULL,
+    parent_id VARCHAR(24) NULL,
+    root_id VARCHAR(24) NULL,
     producer_code VARCHAR(64) NOT NULL,
     mq_type VARCHAR(32) NOT NULL,
     send_status VARCHAR(32) NOT NULL,
@@ -96,6 +102,8 @@ COMMENT ON COLUMN TXN_MESSAGE.headers_json IS '消息头 JSON';
 COMMENT ON COLUMN TXN_MESSAGE.biz_key IS '业务键';
 COMMENT ON COLUMN TXN_MESSAGE.message_status IS '消息状态';
 COMMENT ON COLUMN TXN_MESSAGE.next_dispatch_time IS '下次派发时间';
+COMMENT ON COLUMN TXN_MESSAGE.parent_id IS '父消息id';
+COMMENT ON COLUMN TXN_MESSAGE.root_id IS '根消息id';
 COMMENT ON COLUMN TXN_MESSAGE.dispatch_owner IS '派发实例标识';
 COMMENT ON COLUMN TXN_MESSAGE.dispatch_token IS '派发令牌';
 COMMENT ON COLUMN TXN_MESSAGE.dispatch_expire_time IS '派发租约过期时间';
@@ -115,6 +123,8 @@ COMMENT ON COLUMN TXN_MESSAGE_HISTORY.headers_json IS '消息头 JSON';
 COMMENT ON COLUMN TXN_MESSAGE_HISTORY.biz_key IS '业务键';
 COMMENT ON COLUMN TXN_MESSAGE_HISTORY.message_status IS '消息状态';
 COMMENT ON COLUMN TXN_MESSAGE_HISTORY.next_dispatch_time IS '下次派发时间';
+COMMENT ON COLUMN TXN_MESSAGE_HISTORY.parent_id IS '父消息id';
+COMMENT ON COLUMN TXN_MESSAGE_HISTORY.root_id IS '根消息id';
 COMMENT ON COLUMN TXN_MESSAGE_HISTORY.dispatch_owner IS '派发实例标识';
 COMMENT ON COLUMN TXN_MESSAGE_HISTORY.dispatch_token IS '派发令牌';
 COMMENT ON COLUMN TXN_MESSAGE_HISTORY.dispatch_expire_time IS '派发租约过期时间';
@@ -145,6 +155,8 @@ COMMENT ON COLUMN TXN_MESSAGE_SEND_LOG.id IS '主键';
 COMMENT ON COLUMN TXN_MESSAGE_SEND_LOG.create_time IS '创建时间';
 COMMENT ON COLUMN TXN_MESSAGE_SEND_LOG.update_time IS '更新时间';
 COMMENT ON COLUMN TXN_MESSAGE_SEND_LOG.message_key IS '消息键';
+COMMENT ON COLUMN TXN_MESSAGE_SEND_LOG.parent_id IS '父消息id';
+COMMENT ON COLUMN TXN_MESSAGE_SEND_LOG.root_id IS '根消息id';
 COMMENT ON COLUMN TXN_MESSAGE_SEND_LOG.producer_code IS '生产者编码';
 COMMENT ON COLUMN TXN_MESSAGE_SEND_LOG.mq_type IS 'MQ 类型';
 COMMENT ON COLUMN TXN_MESSAGE_SEND_LOG.send_status IS '发送状态';

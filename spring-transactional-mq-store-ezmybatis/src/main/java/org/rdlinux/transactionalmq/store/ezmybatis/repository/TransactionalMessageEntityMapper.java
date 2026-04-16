@@ -39,6 +39,8 @@ final class TransactionalMessageEntityMapper {
         entity.setBizKey(record.getBizKey());
         entity.setMessageStatus(defaultMessageStatus(record.getMessageStatus()));
         entity.setNextDispatchTime(record.getNextDispatchTime());
+        entity.setParentId(record.getParentId());
+        entity.setRootId(record.getRootId());
         entity.setDispatchOwner(record.getDispatchOwner());
         entity.setDispatchToken(record.getDispatchToken());
         entity.setDispatchExpireTime(record.getDispatchExpireTime());
@@ -64,6 +66,8 @@ final class TransactionalMessageEntityMapper {
         record.setBizKey(entity.getBizKey());
         record.setMessageStatus(entity.getMessageStatus());
         record.setNextDispatchTime(entity.getNextDispatchTime());
+        record.setParentId(entity.getParentId());
+        record.setRootId(entity.getRootId());
         record.setDispatchOwner(entity.getDispatchOwner());
         record.setDispatchToken(entity.getDispatchToken());
         record.setDispatchExpireTime(entity.getDispatchExpireTime());
@@ -90,6 +94,8 @@ final class TransactionalMessageEntityMapper {
         entity.setBizKey(record.getBizKey());
         entity.setMessageStatus(defaultMessageStatus(record.getMessageStatus()));
         entity.setNextDispatchTime(record.getNextDispatchTime());
+        entity.setParentId(record.getParentId());
+        entity.setRootId(record.getRootId());
         entity.setDispatchOwner(record.getDispatchOwner());
         entity.setDispatchToken(record.getDispatchToken());
         entity.setDispatchExpireTime(record.getDispatchExpireTime());

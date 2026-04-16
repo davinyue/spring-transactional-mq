@@ -1,6 +1,8 @@
 package org.rdlinux.transactionalmq.rabbitmq;
 
 import java.lang.reflect.Type;
+import java.util.HashMap;
+import java.util.Map;
 
 import org.rdlinux.transactionalmq.api.consumer.TransactionalMessageConsumer;
 import org.rdlinux.transactionalmq.api.model.ConsumeContext;
@@ -72,9 +74,23 @@ class RabbitMqConsumerMessageListener implements ChannelAwareMessageListener {
             throw new IllegalArgumentException("message id must not be blank");
         }
         Object messageKey = properties.getHeaders().get("messageKey");
+        Object parentId = properties.getHeaders().get("parentId");
+        Object rootId = properties.getHeaders().get("rootId");
+        Map<String, String> headers = toHeaders(properties);
         return new ConsumeContext()
             .setId(messageId)
             .setMessageKey(messageKey == null ? null : String.valueOf(messageKey))
+            .setParentId(parentId == null ? null : String.valueOf(parentId))
+            .setRootId(rootId == null ? messageId : String.valueOf(rootId))
+            .setHeaders(headers)
             .setConsumerCode(this.consumer.consumerCode());
+    }
+
+    private Map<String, String> toHeaders(MessageProperties properties) {
+        Map<String, String> headers = new HashMap<String, String>();
+        for (Map.Entry<String, Object> entry : properties.getHeaders().entrySet()) {
+            headers.put(entry.getKey(), entry.getValue() == null ? null : String.valueOf(entry.getValue()));
+        }
+        return headers;
     }
 }

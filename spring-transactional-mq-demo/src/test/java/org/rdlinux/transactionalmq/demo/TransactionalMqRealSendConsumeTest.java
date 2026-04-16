@@ -168,9 +168,13 @@ public class TransactionalMqRealSendConsumeTest {
     private ConsumeContext buildConsumeContext(Message rabbitMessage, String messageId, String messageKey) {
         MessageProperties messageProperties = rabbitMessage.getMessageProperties();
         Object headerMessageKey = messageProperties.getHeaders().get("messageKey");
+        Object parentId = messageProperties.getHeaders().get("parentId");
+        Object rootId = messageProperties.getHeaders().get("rootId");
         return new ConsumeContext()
                 .setId(messageProperties.getMessageId() == null ? messageId : messageProperties.getMessageId())
                 .setMessageKey(headerMessageKey == null ? messageKey : String.valueOf(headerMessageKey))
+                .setParentId(parentId == null ? null : String.valueOf(parentId))
+                .setRootId(rootId == null ? messageId : String.valueOf(rootId))
                 .setConsumerCode(TEST_CONSUMER_CODE);
     }
 
@@ -191,8 +195,13 @@ public class TransactionalMqRealSendConsumeTest {
                 "SELECT COUNT(*) FROM USER_TAB_COLUMNS WHERE TABLE_NAME = 'TXN_MESSAGE' "
                         + "AND COLUMN_NAME = 'DISPATCH_TOKEN'",
                 Integer.class);
+        Integer rootIdColumnCount = this.jdbcTemplate.queryForObject(
+                "SELECT COUNT(*) FROM USER_TAB_COLUMNS WHERE TABLE_NAME = 'TXN_MESSAGE' "
+                        + "AND COLUMN_NAME = 'ROOT_ID'",
+                Integer.class);
         if ((oldColumnCount == null || oldColumnCount < 1)
-                && dispatchTokenColumnCount != null && dispatchTokenColumnCount > 0) {
+                && dispatchTokenColumnCount != null && dispatchTokenColumnCount > 0
+                && rootIdColumnCount != null && rootIdColumnCount > 0) {
             return;
         }
         this.dropTable("TXN_CONSUMED_MESSAGE_HISTORY");

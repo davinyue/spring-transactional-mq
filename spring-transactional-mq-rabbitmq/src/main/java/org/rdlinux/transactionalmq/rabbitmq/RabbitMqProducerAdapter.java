@@ -49,6 +49,8 @@ public class RabbitMqProducerAdapter implements MqProducerAdapter {
             messageProperties.setHeader("bizKey", message.getBizKey());
             messageProperties.setHeader("route", message.getRoute());
             messageProperties.setHeader("shardingKey", message.getShardingKey());
+            messageProperties.setHeader("parentId", message.getParentId());
+            messageProperties.setHeader("rootId", message.getRootId());
             return originalMessage;
                 });
     }

@@ -39,6 +39,14 @@ public class MessageSendLogRecord extends BaseEntity<MessageSendLogRecord> {
      * 发送结果描述。
      */
     private String description;
+    /**
+     * 父消息 id。
+     */
+    private String parentId;
+    /**
+     * 根消息 id。
+     */
+    private String rootId;
 
     /**
      * 获取消息键。
@@ -164,5 +172,41 @@ public class MessageSendLogRecord extends BaseEntity<MessageSendLogRecord> {
      */
     public void setDescription(String description) {
         this.description = description;
+    }
+
+    /**
+     * 获取父消息 id。
+     *
+     * @return 父消息 id
+     */
+    public String getParentId() {
+        return parentId;
+    }
+
+    /**
+     * 设置父消息 id。
+     *
+     * @param parentId 父消息 id
+     */
+    public void setParentId(String parentId) {
+        this.parentId = parentId;
+    }
+
+    /**
+     * 获取根消息 id。
+     *
+     * @return 根消息 id
+     */
+    public String getRootId() {
+        return rootId;
+    }
+
+    /**
+     * 设置根消息 id。
+     *
+     * @param rootId 根消息 id
+     */
+    public void setRootId(String rootId) {
+        this.rootId = rootId;
     }
 }

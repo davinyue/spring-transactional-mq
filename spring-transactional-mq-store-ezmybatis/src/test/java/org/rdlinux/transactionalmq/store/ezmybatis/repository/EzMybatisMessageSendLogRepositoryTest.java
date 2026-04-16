@@ -18,6 +18,8 @@ public class EzMybatisMessageSendLogRepositoryTest {
         record.setMessageKey("msg-key-9");
         record.setProducerCode("producer-9");
         record.setMqType(MqType.RABBITMQ);
+        record.setParentId("parent-9");
+        record.setRootId("root-9");
         record.setSendStatus(SendStatus.FAILED);
         record.setRetryCount(2);
 
@@ -26,9 +28,13 @@ public class EzMybatisMessageSendLogRepositoryTest {
         Assert.assertNotNull(entity.getCreateTime());
         Assert.assertNotNull(entity.getUpdateTime());
         Assert.assertNotNull(entity.getLastSendTime());
+        Assert.assertEquals("parent-9", entity.getParentId());
+        Assert.assertEquals("root-9", entity.getRootId());
         Assert.assertEquals(Integer.valueOf(2), entity.getRetryCount());
 
         MessageSendLogRecord mappedBack = repository.toRecord(entity);
         Assert.assertEquals(entity.getId(), mappedBack.getId());
+        Assert.assertEquals("parent-9", mappedBack.getParentId());
+        Assert.assertEquals("root-9", mappedBack.getRootId());
     }
 }

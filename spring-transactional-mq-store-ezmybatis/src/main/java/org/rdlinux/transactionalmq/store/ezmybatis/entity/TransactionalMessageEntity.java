@@ -68,6 +68,14 @@ public class TransactionalMessageEntity extends BaseEntity<TransactionalMessageE
      */
     private Date nextDispatchTime;
     /**
+     * 父消息 id。
+     */
+    private String parentId;
+    /**
+     * 根消息 id。
+     */
+    private String rootId;
+    /**
      * 派发实例标识。
      */
     private String dispatchOwner;

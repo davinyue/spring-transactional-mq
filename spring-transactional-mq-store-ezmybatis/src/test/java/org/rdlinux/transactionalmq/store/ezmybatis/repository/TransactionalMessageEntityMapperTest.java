@@ -28,6 +28,8 @@ public class TransactionalMessageEntityMapperTest {
         record.setBizKey("biz-1");
         record.setMessageStatus(MessageStatus.INIT);
         record.setNextDispatchTime(new Date(1710003600000L));
+        record.setParentId("parent-1");
+        record.setRootId("root-1");
         record.setDispatchOwner("node-1");
         record.setDispatchToken("token-1");
         record.setDispatchExpireTime(new Date(1710003900000L));
@@ -43,6 +45,8 @@ public class TransactionalMessageEntityMapperTest {
         Assert.assertEquals("{\"traceId\":\"t-1\"}", entity.getHeadersJson());
         Assert.assertEquals("biz-1", entity.getBizKey());
         Assert.assertEquals(MessageStatus.INIT, entity.getMessageStatus());
+        Assert.assertEquals("parent-1", entity.getParentId());
+        Assert.assertEquals("root-1", entity.getRootId());
         Assert.assertEquals("node-1", entity.getDispatchOwner());
         Assert.assertEquals("token-1", entity.getDispatchToken());
         Assert.assertNotNull(entity.getDispatchExpireTime());
@@ -58,6 +62,8 @@ public class TransactionalMessageEntityMapperTest {
         Assert.assertEquals("biz-1", mappedBack.getBizKey());
         Assert.assertEquals(MessageStatus.INIT, mappedBack.getMessageStatus());
         Assert.assertNotNull(mappedBack.getNextDispatchTime());
+        Assert.assertEquals("parent-1", mappedBack.getParentId());
+        Assert.assertEquals("root-1", mappedBack.getRootId());
         Assert.assertEquals("node-1", mappedBack.getDispatchOwner());
         Assert.assertEquals("token-1", mappedBack.getDispatchToken());
         Assert.assertNotNull(mappedBack.getDispatchExpireTime());

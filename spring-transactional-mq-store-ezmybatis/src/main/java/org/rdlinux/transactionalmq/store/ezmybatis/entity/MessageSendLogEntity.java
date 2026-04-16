@@ -51,4 +51,12 @@ public class MessageSendLogEntity extends BaseEntity<MessageSendLogEntity> {
      * 结果描述。
      */
     private String description;
+    /**
+     * 父消息 id。
+     */
+    private String parentId;
+    /**
+     * 根消息 id。
+     */
+    private String rootId;
 }

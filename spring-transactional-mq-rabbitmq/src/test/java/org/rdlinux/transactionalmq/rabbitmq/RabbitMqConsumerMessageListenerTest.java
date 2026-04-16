@@ -32,6 +32,9 @@ public class RabbitMqConsumerMessageListenerTest {
         properties.setMessageId("msg-1");
         properties.setDeliveryTag(7L);
         properties.setHeader("messageKey", "key-1");
+        properties.setHeader("parentId", "parent-1");
+        properties.setHeader("rootId", "root-1");
+        properties.setHeader("traceId", "trace-1");
         properties.setContentEncoding("gzip");
         Message message = new Message(RabbitMqPayloadCodec.gzip("\"payload-1\""), properties);
 
@@ -41,7 +44,12 @@ public class RabbitMqConsumerMessageListenerTest {
 
         listener.onMessage(message, channel);
 
-        verify(consumeIdempotentService).recordIfAbsent(org.mockito.ArgumentMatchers.any(ConsumeContext.class));
+        verify(consumeIdempotentService).recordIfAbsent(org.mockito.ArgumentMatchers.argThat(context ->
+                "msg-1".equals(context.getId())
+                    && "key-1".equals(context.getMessageKey())
+                    && "parent-1".equals(context.getParentId())
+                    && "root-1".equals(context.getRootId())
+                    && "trace-1".equals(context.getHeaders().get("traceId"))));
         verify(serializer).deserialize("\"payload-1\"", (Type) String.class);
         verify(channel).basicAck(7L, false);
     }

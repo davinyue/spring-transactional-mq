@@ -50,6 +50,14 @@ public class DispatchMessage {
      * 业务键。
      */
     private String bizKey;
+    /**
+     * 父消息 id。
+     */
+    private String parentId;
+    /**
+     * 根消息 id。
+     */
+    private String rootId;
 
     /**
      * 从消息记录创建派发对象。
@@ -70,6 +78,8 @@ public class DispatchMessage {
             message.setPayloadText(record.getPayloadText());
             message.setHeaders(record.getHeaders());
             message.setBizKey(record.getBizKey());
+            message.setParentId(record.getParentId());
+            message.setRootId(record.getRootId());
         }
         return message;
     }
@@ -256,5 +266,41 @@ public class DispatchMessage {
      */
     public void setBizKey(String bizKey) {
         this.bizKey = bizKey;
+    }
+
+    /**
+     * 获取父消息 id。
+     *
+     * @return 父消息 id
+     */
+    public String getParentId() {
+        return parentId;
+    }
+
+    /**
+     * 设置父消息 id。
+     *
+     * @param parentId 父消息 id
+     */
+    public void setParentId(String parentId) {
+        this.parentId = parentId;
+    }
+
+    /**
+     * 获取根消息 id。
+     *
+     * @return 根消息 id
+     */
+    public String getRootId() {
+        return rootId;
+    }
+
+    /**
+     * 设置根消息 id。
+     *
+     * @param rootId 根消息 id
+     */
+    public void setRootId(String rootId) {
+        this.rootId = rootId;
     }
 }

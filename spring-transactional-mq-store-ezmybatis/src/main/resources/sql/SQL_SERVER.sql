@@ -13,6 +13,8 @@ CREATE TABLE TXN_MESSAGE (
     biz_key NVARCHAR(128) NULL,
     message_status NVARCHAR(32) NOT NULL,
     next_dispatch_time DATETIME2 NULL,
+    parent_id NVARCHAR(24) NULL,
+    root_id NVARCHAR(24) NULL,
     dispatch_owner NVARCHAR(128) NULL,
     dispatch_token NVARCHAR(24) NULL,
     dispatch_expire_time DATETIME2 NULL
@@ -38,6 +40,8 @@ CREATE TABLE TXN_MESSAGE_HISTORY (
     biz_key NVARCHAR(128) NULL,
     message_status NVARCHAR(32) NOT NULL,
     next_dispatch_time DATETIME2 NULL,
+    parent_id NVARCHAR(24) NULL,
+    root_id NVARCHAR(24) NULL,
     dispatch_owner NVARCHAR(128) NULL,
     dispatch_token NVARCHAR(24) NULL,
     dispatch_expire_time DATETIME2 NULL
@@ -78,6 +82,8 @@ CREATE TABLE TXN_MESSAGE_SEND_LOG (
     create_time DATETIME2 NOT NULL,
     update_time DATETIME2 NOT NULL,
     message_key NVARCHAR(128) NOT NULL,
+    parent_id NVARCHAR(24) NULL,
+    root_id NVARCHAR(24) NULL,
     producer_code NVARCHAR(64) NOT NULL,
     mq_type NVARCHAR(32) NOT NULL,
     send_status NVARCHAR(32) NOT NULL,
@@ -131,6 +137,12 @@ EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'消息状态',
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'下次派发时间', @level0type=N'SCHEMA',
     @level0name=N'dbo', @level1type=N'TABLE', @level1name=N'TXN_MESSAGE', @level2type=N'COLUMN', @level2name=N'next_dispatch_time';
+GO
+EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'父消息id', @level0type=N'SCHEMA',
+    @level0name=N'dbo', @level1type=N'TABLE', @level1name=N'TXN_MESSAGE', @level2type=N'COLUMN', @level2name=N'parent_id';
+GO
+EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'根消息id', @level0type=N'SCHEMA',
+    @level0name=N'dbo', @level1type=N'TABLE', @level1name=N'TXN_MESSAGE', @level2type=N'COLUMN', @level2name=N'root_id';
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'派发实例标识', @level0type=N'SCHEMA',
     @level0name=N'dbo', @level1type=N'TABLE', @level1name=N'TXN_MESSAGE', @level2type=N'COLUMN', @level2name=N'dispatch_owner';
@@ -186,6 +198,12 @@ EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'消息状态',
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'下次派发时间', @level0type=N'SCHEMA',
     @level0name=N'dbo', @level1type=N'TABLE', @level1name=N'TXN_MESSAGE_HISTORY', @level2type=N'COLUMN', @level2name=N'next_dispatch_time';
+GO
+EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'父消息id', @level0type=N'SCHEMA',
+    @level0name=N'dbo', @level1type=N'TABLE', @level1name=N'TXN_MESSAGE_HISTORY', @level2type=N'COLUMN', @level2name=N'parent_id';
+GO
+EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'根消息id', @level0type=N'SCHEMA',
+    @level0name=N'dbo', @level1type=N'TABLE', @level1name=N'TXN_MESSAGE_HISTORY', @level2type=N'COLUMN', @level2name=N'root_id';
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'派发实例标识', @level0type=N'SCHEMA',
     @level0name=N'dbo', @level1type=N'TABLE', @level1name=N'TXN_MESSAGE_HISTORY', @level2type=N'COLUMN', @level2name=N'dispatch_owner';
@@ -271,6 +289,12 @@ EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'更新时间',
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'消息键', @level0type=N'SCHEMA',
     @level0name=N'dbo', @level1type=N'TABLE', @level1name=N'TXN_MESSAGE_SEND_LOG', @level2type=N'COLUMN', @level2name=N'message_key';
+GO
+EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'父消息id', @level0type=N'SCHEMA',
+    @level0name=N'dbo', @level1type=N'TABLE', @level1name=N'TXN_MESSAGE_SEND_LOG', @level2type=N'COLUMN', @level2name=N'parent_id';
+GO
+EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'根消息id', @level0type=N'SCHEMA',
+    @level0name=N'dbo', @level1type=N'TABLE', @level1name=N'TXN_MESSAGE_SEND_LOG', @level2type=N'COLUMN', @level2name=N'root_id';
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'生产者编码', @level0type=N'SCHEMA',
     @level0name=N'dbo', @level1type=N'TABLE', @level1name=N'TXN_MESSAGE_SEND_LOG', @level2type=N'COLUMN', @level2name=N'producer_code';
