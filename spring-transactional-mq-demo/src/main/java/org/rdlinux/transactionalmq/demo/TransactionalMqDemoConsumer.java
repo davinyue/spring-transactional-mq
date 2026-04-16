@@ -1,13 +1,14 @@
 package org.rdlinux.transactionalmq.demo;
 
-import java.util.Map;
-
+import org.rdlinux.transactionalmq.api.consumer.QueueMsgHandleRet;
 import org.rdlinux.transactionalmq.api.consumer.TransactionalMessageConsumer;
 import org.rdlinux.transactionalmq.api.model.ConsumeContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Component;
+
+import java.util.Map;
 
 /**
  * demo 事务消息消费者示例。
@@ -46,8 +47,9 @@ public class TransactionalMqDemoConsumer implements TransactionalMessageConsumer
     }
 
     @Override
-    public void consume(ConsumeContext context, Map<?, ?> payload) {
+    public QueueMsgHandleRet consume(ConsumeContext context, Map<?, ?> payload) {
         LOGGER.info("demo consumer received message, id={}, messageKey={}, payload={}",
                 context.getId(), context.getMessageKey(), payload);
+        return QueueMsgHandleRet.DEFAULT();
     }
 }

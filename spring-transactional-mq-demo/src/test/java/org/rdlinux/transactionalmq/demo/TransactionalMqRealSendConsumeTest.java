@@ -1,9 +1,5 @@
 package org.rdlinux.transactionalmq.demo;
 
-import java.nio.charset.StandardCharsets;
-import java.util.LinkedHashMap;
-import java.util.Map;
-
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -13,6 +9,7 @@ import org.rdlinux.ezmybatis.core.EzQuery;
 import org.rdlinux.ezmybatis.core.dao.EzDao;
 import org.rdlinux.ezmybatis.core.sqlstruct.Select;
 import org.rdlinux.ezmybatis.core.sqlstruct.table.EntityTable;
+import org.rdlinux.transactionalmq.api.consumer.QueueMsgHandleRet;
 import org.rdlinux.transactionalmq.api.consumer.TransactionalMessageConsumer;
 import org.rdlinux.transactionalmq.api.model.ConsumeContext;
 import org.rdlinux.transactionalmq.api.model.TransactionalMessage;
@@ -26,11 +23,7 @@ import org.rdlinux.transactionalmq.core.service.MessagePublishService;
 import org.rdlinux.transactionalmq.core.service.TransactionalMessageCleanupService;
 import org.rdlinux.transactionalmq.rabbitmq.RabbitMqConsumerInvoker;
 import org.rdlinux.transactionalmq.rabbitmq.RabbitMqPayloadCodec;
-import org.rdlinux.transactionalmq.store.ezmybatis.entity.ConsumedMessageEntity;
-import org.rdlinux.transactionalmq.store.ezmybatis.entity.ConsumedMessageHistoryEntity;
-import org.rdlinux.transactionalmq.store.ezmybatis.entity.MessageSendLogEntity;
-import org.rdlinux.transactionalmq.store.ezmybatis.entity.TransactionalMessageEntity;
-import org.rdlinux.transactionalmq.store.ezmybatis.entity.TransactionalMessageHistoryEntity;
+import org.rdlinux.transactionalmq.store.ezmybatis.entity.*;
 import org.springframework.amqp.core.Message;
 import org.springframework.amqp.core.MessageProperties;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
@@ -42,6 +35,9 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.datasource.init.DatabasePopulatorUtils;
 import org.springframework.jdbc.datasource.init.ResourceDatabasePopulator;
 import org.springframework.test.context.ActiveProfiles;
+
+import java.util.LinkedHashMap;
+import java.util.Map;
 
 /**
  * 真实 Oracle 与 RabbitMQ 发送消费集成测试。
@@ -310,17 +306,18 @@ public class TransactionalMqRealSendConsumeTest {
 
         @Override
         public String consumerCode() {
-            return TEST_CONSUMER_CODE;
+            return TransactionalMqRealSendConsumeTest.TEST_CONSUMER_CODE;
         }
 
         @Override
-        public void consume(ConsumeContext context, Map<?, ?> payload) {
+        public QueueMsgHandleRet consume(ConsumeContext context, Map<?, ?> payload) {
             Assertions.assertNotNull(payload);
             this.consumedId = context.getId();
+            return QueueMsgHandleRet.DEFAULT();
         }
 
         private String getConsumedId() {
-            return consumedId;
+            return this.consumedId;
         }
     }
 }

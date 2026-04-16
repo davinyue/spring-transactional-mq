@@ -1,21 +1,23 @@
 package org.rdlinux.transactionalmq.rabbitmq;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.mockito.Mockito.mock;
-
-import java.util.ArrayList;
-import java.util.List;
-import java.lang.reflect.Field;
-
 import org.junit.Test;
+import org.rdlinux.transactionalmq.api.consumer.QueueMsgHandleRet;
 import org.rdlinux.transactionalmq.api.consumer.TransactionalMessageConsumer;
 import org.rdlinux.transactionalmq.api.model.ConsumeContext;
 import org.rdlinux.transactionalmq.api.serialize.MessagePayloadSerializer;
 import org.rdlinux.transactionalmq.core.service.ConsumeIdempotentService;
+import org.rdlinux.transactionalmq.core.service.TxnMqTransactionalService;
 import org.springframework.amqp.core.AcknowledgeMode;
 import org.springframework.amqp.rabbit.connection.ConnectionFactory;
 import org.springframework.amqp.rabbit.listener.SimpleMessageListenerContainer;
+
+import java.lang.reflect.Field;
+import java.util.ArrayList;
+import java.util.List;
+
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.mockito.Mockito.mock;
 
 public class RabbitMqConsumerRegistrarTest {
 
@@ -58,7 +60,7 @@ public class RabbitMqConsumerRegistrarTest {
 
         private CapturingRegistrar(ConnectionFactory connectionFactory, RabbitMqConsumerInvoker rabbitMqConsumerInvoker) {
             super(connectionFactory, rabbitMqConsumerInvoker, mock(MessagePayloadSerializer.class),
-                mock(ConsumeIdempotentService.class), null);
+                    mock(ConsumeIdempotentService.class), null, new TxnMqTransactionalService());
         }
 
         @Override
@@ -90,7 +92,8 @@ public class RabbitMqConsumerRegistrarTest {
         }
 
         @Override
-        public void consume(ConsumeContext context, String payload) {
+        public QueueMsgHandleRet consume(ConsumeContext context, String payload) {
+            return QueueMsgHandleRet.DEFAULT();
         }
     }
 }

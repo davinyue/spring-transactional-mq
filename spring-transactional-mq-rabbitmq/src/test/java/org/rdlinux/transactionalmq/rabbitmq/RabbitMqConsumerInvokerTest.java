@@ -1,10 +1,11 @@
 package org.rdlinux.transactionalmq.rabbitmq;
 
-import static org.junit.Assert.assertEquals;
-
 import org.junit.Test;
+import org.rdlinux.transactionalmq.api.consumer.QueueMsgHandleRet;
 import org.rdlinux.transactionalmq.api.consumer.TransactionalMessageConsumer;
 import org.rdlinux.transactionalmq.api.model.ConsumeContext;
+
+import static org.junit.Assert.assertEquals;
 
 public class RabbitMqConsumerInvokerTest {
 
@@ -37,9 +38,10 @@ public class RabbitMqConsumerInvokerTest {
         }
 
         @Override
-        public void consume(ConsumeContext context, String payload) {
+        public QueueMsgHandleRet consume(ConsumeContext context, String payload) {
             this.context = context;
             this.payload = payload;
+            return QueueMsgHandleRet.DEFAULT();
         }
     }
 }

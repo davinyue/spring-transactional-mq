@@ -1,18 +1,19 @@
 package org.rdlinux.transactionalmq.api;
 
-import java.util.HashMap;
-import java.util.Map;
-import java.lang.reflect.ParameterizedType;
-import java.lang.reflect.Type;
-
 import org.junit.Assert;
 import org.junit.Test;
+import org.rdlinux.transactionalmq.api.consumer.QueueMsgHandleRet;
 import org.rdlinux.transactionalmq.api.consumer.TransactionalMessageConsumer;
 import org.rdlinux.transactionalmq.api.model.ConsumeContext;
 import org.rdlinux.transactionalmq.api.model.TransactionalMessage;
 import org.rdlinux.transactionalmq.api.producer.TransactionalMessageSender;
 import org.rdlinux.transactionalmq.api.serialize.MessagePayloadSerializer;
 import org.rdlinux.transactionalmq.common.enums.MqType;
+
+import java.lang.reflect.ParameterizedType;
+import java.lang.reflect.Type;
+import java.util.HashMap;
+import java.util.Map;
 
 /**
  * API 模型与接口测试。
@@ -28,16 +29,16 @@ public class TransactionalMessageApiTest {
         headers.put("traceId", "trace-1");
 
         TransactionalMessage<String> message = new TransactionalMessage<String>()
-            .setId("msg-1")
-            .setMessageKey("message-key-1")
-            .setProducerCode("producer-1")
-            .setMqType(MqType.RABBITMQ)
-            .setDestination("demo.exchange")
-            .setRoute("demo.route")
-            .setShardingKey("order-1")
-            .setPayload("payload-value")
-            .setHeaders(headers)
-            .setBizKey("biz-1");
+                .setId("msg-1")
+                .setMessageKey("message-key-1")
+                .setProducerCode("producer-1")
+                .setMqType(MqType.RABBITMQ)
+                .setDestination("demo.exchange")
+                .setRoute("demo.route")
+                .setShardingKey("order-1")
+                .setPayload("payload-value")
+                .setHeaders(headers)
+                .setBizKey("biz-1");
 
         Assert.assertEquals("msg-1", message.getId());
         Assert.assertEquals("message-key-1", message.getMessageKey());
@@ -78,9 +79,10 @@ public class TransactionalMessageApiTest {
             }
 
             @Override
-            public void consume(ConsumeContext context, String payload) {
+            public QueueMsgHandleRet consume(ConsumeContext context, String payload) {
                 observedConsumerCode[0] = context.getConsumerCode();
                 observedPayload[0] = payload;
+                return QueueMsgHandleRet.DEFAULT();
             }
         };
 
@@ -109,13 +111,13 @@ public class TransactionalMessageApiTest {
         };
 
         TransactionalMessage<String> message = new TransactionalMessage<String>()
-            .setMessageKey("message-key-1")
-            .setPayload("payload-value");
+                .setMessageKey("message-key-1")
+                .setPayload("payload-value");
         ConsumeContext context = new ConsumeContext()
-            .setId("msg-1")
-            .setRootId("root-1")
-            .setMessageKey("message-key-1")
-            .setConsumerCode(consumer.consumerCode());
+                .setId("msg-1")
+                .setRootId("root-1")
+                .setMessageKey("message-key-1")
+                .setConsumerCode(consumer.consumerCode());
 
         consumer.consume(context, message.getPayload());
 
@@ -135,7 +137,7 @@ public class TransactionalMessageApiTest {
         Type targetType = new ParameterizedType() {
             @Override
             public Type[] getActualTypeArguments() {
-                return new Type[] { String.class };
+                return new Type[]{String.class};
             }
 
             @Override
@@ -150,5 +152,20 @@ public class TransactionalMessageApiTest {
         };
         Assert.assertNull(serializer.deserialize("[]", targetType));
         Assert.assertNull(serializer.deserialize("[]", String.class));
+    }
+
+    @Test
+    public void consumeContextShouldUseDefensiveHeadersCopy() {
+        Map<String, String> headers = new HashMap<String, String>();
+        headers.put("traceId", "trace-1");
+
+        ConsumeContext context = new ConsumeContext().setHeaders(headers);
+
+        headers.put("traceId", "trace-2");
+        Assert.assertEquals("trace-1", context.getHeaders().get("traceId"));
+
+        Map<String, String> exposedHeaders = context.getHeaders();
+        exposedHeaders.put("newKey", "newValue");
+        Assert.assertFalse(context.getHeaders().containsKey("newKey"));
     }
 }

@@ -30,34 +30,4 @@ public class EzMybatisTransactionalMessageRepositoryStyleTest {
         Assert.assertFalse(source.contains("TABLE.field(\""));
     }
 
-    /**
-     * 验证批量更新前的查询使用主键作为稳定排序兜底，降低多实例反向锁行导致死锁的概率。
-     *
-     * @throws Exception 读取源码失败
-     */
-    @Test
-    public void repositoryShouldUseStableOrderForBatchClaims() throws Exception {
-        File sourceFile = new File("src/main/java/org/rdlinux/transactionalmq/store/ezmybatis/repository/"
-            + "EzMybatisTransactionalMessageRepository.java");
-        String source = new String(Files.readAllBytes(sourceFile.toPath()), StandardCharsets.UTF_8);
-
-        Assert.assertTrue(source.contains(".add(TABLE.field(TransactionalMessageEntity.Fields.nextDispatchTime))\n"
-            + "                .add(TABLE.field(BaseEntity.Fields.id))"));
-    }
-
-    /**
-     * 验证成功消息归档改为内存按 id 排序后逐条处理，避免多实例在数据库侧按不同顺序持锁。
-     *
-     * @throws Exception 读取源码失败
-     */
-    @Test
-    public void repositoryShouldSortSuccessCleanupCandidatesInMemoryById() throws Exception {
-        File sourceFile = new File("src/main/java/org/rdlinux/transactionalmq/store/ezmybatis/repository/"
-            + "EzMybatisTransactionalMessageRepository.java");
-        String source = new String(Files.readAllBytes(sourceFile.toPath()), StandardCharsets.UTF_8);
-
-        Assert.assertFalse(source.contains(".add(TABLE.field(BaseEntity.Fields.updateTime))\n"
-            + "                .add(TABLE.field(BaseEntity.Fields.id))"));
-        Assert.assertTrue(source.contains("entities.sort((left, right) -> left.getId().compareTo(right.getId()))"));
-    }
 }

@@ -42,10 +42,10 @@ public interface TransactionalMessageConsumer<T> {
     String consumerCode();
 
     /**
-     * 消费事务消息。
+     * 消费事务消息。事务已经开启
      *
      * @param context 消费上下文
      * @param payload 消息负载
      */
-    void consume(ConsumeContext context, T payload);
+    QueueMsgHandleRet consume(ConsumeContext context, T payload);
 }

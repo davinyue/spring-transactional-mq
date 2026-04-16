@@ -1,38 +1,33 @@
 package org.rdlinux.transactionalmq.starter.config;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.rdlinux.ezmybatis.core.dao.EzDao;
-import org.rdlinux.transactionalmq.api.serialize.MessagePayloadSerializer;
 import org.rdlinux.transactionalmq.api.consumer.TransactionalMessageConsumer;
+import org.rdlinux.transactionalmq.api.serialize.MessagePayloadSerializer;
 import org.rdlinux.transactionalmq.core.mq.MqProducerAdapter;
 import org.rdlinux.transactionalmq.core.repository.ConsumedMessageRepository;
 import org.rdlinux.transactionalmq.core.repository.MessageSendLogRepository;
 import org.rdlinux.transactionalmq.core.repository.TransactionalMessageRepository;
-import org.rdlinux.transactionalmq.core.service.ConsumedMessageCleanupService;
-import org.rdlinux.transactionalmq.core.service.ConsumeIdempotentService;
-import org.rdlinux.transactionalmq.core.service.MessageDispatchService;
-import org.rdlinux.transactionalmq.core.service.MessagePublishService;
-import org.rdlinux.transactionalmq.core.service.TransactionalMessageCleanupService;
+import org.rdlinux.transactionalmq.core.service.*;
 import org.rdlinux.transactionalmq.rabbitmq.RabbitMqConsumerInvoker;
 import org.rdlinux.transactionalmq.rabbitmq.RabbitMqConsumerRegistrar;
 import org.rdlinux.transactionalmq.rabbitmq.RabbitMqProducerAdapter;
 import org.rdlinux.transactionalmq.store.ezmybatis.repository.EzMybatisConsumedMessageRepository;
 import org.rdlinux.transactionalmq.store.ezmybatis.repository.EzMybatisMessageSendLogRepository;
 import org.rdlinux.transactionalmq.store.ezmybatis.repository.EzMybatisTransactionalMessageRepository;
-import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.amqp.rabbit.connection.ConnectionFactory;
+import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.boot.autoconfigure.AutoConfigureAfter;
 import org.springframework.boot.autoconfigure.amqp.RabbitAutoConfiguration;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
+import org.springframework.context.ApplicationContext;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.context.ApplicationContext;
 import org.springframework.scheduling.annotation.EnableScheduling;
-
-import com.fasterxml.jackson.databind.ObjectMapper;
 
 /**
  * 事务消息 starter 自动装配。
@@ -91,7 +86,7 @@ public class TransactionalMqAutoConfiguration {
     @ConditionalOnBean({TransactionalMessageRepository.class, MessagePayloadSerializer.class})
     @ConditionalOnMissingBean(MessagePublishService.class)
     public MessagePublishService messagePublishService(TransactionalMessageRepository transactionalMessageRepository,
-            MessagePayloadSerializer messagePayloadSerializer) {
+                                                       MessagePayloadSerializer messagePayloadSerializer) {
         return new MessagePublishService(transactionalMessageRepository, messagePayloadSerializer);
     }
 
@@ -151,15 +146,25 @@ public class TransactionalMqAutoConfiguration {
     }
 
     @Bean
+    @ConditionalOnClass(TxnMqTransactionalService.class)
+    @ConditionalOnMissingBean(TxnMqTransactionalService.class)
+    public TxnMqTransactionalService transactionalService() {
+        return new TxnMqTransactionalService();
+    }
+
+    @Bean
     @ConditionalOnClass({RabbitMqConsumerRegistrar.class, ConnectionFactory.class, TransactionalMessageConsumer.class})
     @ConditionalOnBean({ConnectionFactory.class, RabbitMqConsumerInvoker.class, MessagePayloadSerializer.class,
-        ConsumeIdempotentService.class})
+            ConsumeIdempotentService.class})
     @ConditionalOnMissingBean(RabbitMqConsumerRegistrar.class)
     public RabbitMqConsumerRegistrar rabbitMqConsumerRegistrar(ConnectionFactory connectionFactory,
-            RabbitMqConsumerInvoker rabbitMqConsumerInvoker, MessagePayloadSerializer messagePayloadSerializer,
-            ConsumeIdempotentService consumeIdempotentService, ApplicationContext applicationContext) {
+                                                               RabbitMqConsumerInvoker rabbitMqConsumerInvoker,
+                                                               MessagePayloadSerializer messagePayloadSerializer,
+                                                               ConsumeIdempotentService consumeIdempotentService,
+                                                               ApplicationContext applicationContext,
+                                                               TxnMqTransactionalService transactionalService) {
         return new RabbitMqConsumerRegistrar(connectionFactory, rabbitMqConsumerInvoker, messagePayloadSerializer,
-            consumeIdempotentService, applicationContext);
+                consumeIdempotentService, applicationContext, transactionalService);
     }
 
     @Bean
