@@ -1,6 +1,7 @@
 package org.rdlinux.transactionalmq.rabbitmq;
 
 import lombok.extern.slf4j.Slf4j;
+import org.rdlinux.transactionalmq.common.enums.MqType;
 import org.rdlinux.transactionalmq.core.model.DispatchMessage;
 import org.rdlinux.transactionalmq.core.mq.MqProducerAdapter;
 import org.springframework.amqp.core.MessageProperties;
@@ -26,6 +27,11 @@ public class RabbitMqProducerAdapter implements MqProducerAdapter {
      */
     public RabbitMqProducerAdapter(RabbitTemplate rabbitTemplate) {
         this.rabbitTemplate = rabbitTemplate;
+    }
+
+    @Override
+    public MqType supportMqType() {
+        return MqType.RABBITMQ;
     }
 
     @Override

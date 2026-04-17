@@ -5,7 +5,7 @@ import org.rdlinux.transactionalmq.common.enums.SendStatus;
 import org.rdlinux.transactionalmq.core.model.DispatchMessage;
 import org.rdlinux.transactionalmq.core.model.MessageSendLogRecord;
 import org.rdlinux.transactionalmq.core.model.TransactionalMessageRecord;
-import org.rdlinux.transactionalmq.core.mq.MqProducerAdapter;
+import org.rdlinux.transactionalmq.core.mq.MqProducerRouter;
 import org.rdlinux.transactionalmq.core.repository.MessageSendLogRepository;
 import org.rdlinux.transactionalmq.core.repository.TransactionalMessageRepository;
 
@@ -22,7 +22,7 @@ public class MessageDispatchService {
     private static final int MAX_DESCRIPTION_LENGTH = 512;
 
     private final TransactionalMessageRepository transactionalMessageRepository;
-    private final MqProducerAdapter mqProducerAdapter;
+    private final MqProducerRouter mqProducerRouter;
     private final MessageSendLogRepository messageSendLogRepository;
 
     /**
@@ -32,8 +32,8 @@ public class MessageDispatchService {
      * @param mqProducerAdapter              MQ 适配器
      */
     public MessageDispatchService(TransactionalMessageRepository transactionalMessageRepository,
-                                  MqProducerAdapter mqProducerAdapter) {
-        this(transactionalMessageRepository, mqProducerAdapter, null);
+                                  MqProducerRouter mqProducerRouter) {
+        this(transactionalMessageRepository, mqProducerRouter, null);
     }
 
     /**
@@ -44,9 +44,9 @@ public class MessageDispatchService {
      * @param messageSendLogRepository       发送日志仓储
      */
     public MessageDispatchService(TransactionalMessageRepository transactionalMessageRepository,
-                                  MqProducerAdapter mqProducerAdapter, MessageSendLogRepository messageSendLogRepository) {
+                                  MqProducerRouter mqProducerRouter, MessageSendLogRepository messageSendLogRepository) {
         this.transactionalMessageRepository = transactionalMessageRepository;
-        this.mqProducerAdapter = mqProducerAdapter;
+        this.mqProducerRouter = mqProducerRouter;
         this.messageSendLogRepository = messageSendLogRepository;
     }
 
@@ -67,7 +67,7 @@ public class MessageDispatchService {
                 continue;
             }
             try {
-                this.mqProducerAdapter.send(DispatchMessage.from(record));
+                this.mqProducerRouter.send(DispatchMessage.from(record));
             } catch (RuntimeException ex) {
                 this.saveSendLog(record, SendStatus.FAILED, ex.getMessage());
                 failedRecords.add(record);

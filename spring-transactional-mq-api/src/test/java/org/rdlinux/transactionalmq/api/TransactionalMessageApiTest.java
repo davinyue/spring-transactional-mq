@@ -32,7 +32,6 @@ public class TransactionalMessageApiTest {
                 .setId("msg-1")
                 .setMessageKey("message-key-1")
                 .setProducerCode("producer-1")
-                .setMqType(MqType.RABBITMQ)
                 .setDestination("demo.exchange")
                 .setRoute("demo.route")
                 .setShardingKey("order-1")
@@ -43,7 +42,6 @@ public class TransactionalMessageApiTest {
         Assert.assertEquals("msg-1", message.getId());
         Assert.assertEquals("message-key-1", message.getMessageKey());
         Assert.assertEquals("producer-1", message.getProducerCode());
-        Assert.assertEquals(MqType.RABBITMQ, message.getMqType());
         Assert.assertEquals("demo.exchange", message.getDestination());
         Assert.assertEquals("demo.route", message.getRoute());
         Assert.assertEquals("order-1", message.getShardingKey());
@@ -88,13 +86,14 @@ public class TransactionalMessageApiTest {
 
         TransactionalMessageSender sender = new TransactionalMessageSender() {
             @Override
-            public <T> String send(TransactionalMessage<T> message) {
-                return "msg-2";
+            public <T> String send(MqType mqType, TransactionalMessage<T> message) {
+                return mqType.name() + "-msg-2";
             }
 
             @Override
-            public <T> String sendWithParent(TransactionalMessage<T> message, ConsumeContext parentContext) {
-                return parentContext.getId() + "-child";
+            public <T> String sendWithParent(MqType mqType, TransactionalMessage<T> message,
+                                             ConsumeContext parentContext) {
+                return mqType.name() + "-" + parentContext.getId() + "-child";
             }
         };
 
@@ -121,16 +120,16 @@ public class TransactionalMessageApiTest {
 
         consumer.consume(context, message.getPayload());
 
-        String messageId = sender.send(message);
-        String childMessageId = sender.sendWithParent(message, context);
+        String messageId = sender.send(MqType.RABBITMQ, message);
+        String childMessageId = sender.sendWithParent(MqType.RABBITMQ, message, context);
 
         Assert.assertEquals("consumer-1", observedConsumerCode[0]);
         Assert.assertEquals("payload-value", observedPayload[0]);
         Assert.assertEquals("queue.consumer.1", consumer.getQueueName());
         Assert.assertEquals(1, consumer.getMinConcurrency());
         Assert.assertEquals(1, consumer.getMaxConcurrency());
-        Assert.assertEquals("msg-2", messageId);
-        Assert.assertEquals("msg-1-child", childMessageId);
+        Assert.assertEquals("RABBITMQ-msg-2", messageId);
+        Assert.assertEquals("RABBITMQ-msg-1-child", childMessageId);
         Assert.assertEquals("root-1", context.getRootId());
         Assert.assertEquals("payload-value", serializer.serialize(message.getPayload()));
 

@@ -23,6 +23,13 @@ import org.springframework.amqp.rabbit.core.RabbitTemplate;
 public class RabbitMqProducerAdapterTest {
 
     @Test
+    public void supportMqTypeShouldReturnRabbitMq() {
+        RabbitMqProducerAdapter adapter = new RabbitMqProducerAdapter(mock(RabbitTemplate.class));
+
+        assertEquals(MqType.RABBITMQ, adapter.supportMqType());
+    }
+
+    @Test
     public void sendShouldUseDefaultExchangeWhenDestinationHasNoColon() {
         RabbitTemplate rabbitTemplate = mock(RabbitTemplate.class);
         RabbitMqProducerAdapter adapter = new RabbitMqProducerAdapter(rabbitTemplate);

@@ -2,32 +2,24 @@ package org.rdlinux.transactionalmq.starter.config;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.rdlinux.ezmybatis.core.dao.EzDao;
-import org.rdlinux.transactionalmq.api.consumer.TransactionalMessageConsumer;
 import org.rdlinux.transactionalmq.api.serialize.MessagePayloadSerializer;
 import org.rdlinux.transactionalmq.core.mq.MqProducerAdapter;
+import org.rdlinux.transactionalmq.core.mq.MqProducerRouter;
 import org.rdlinux.transactionalmq.core.repository.ConsumedMessageRepository;
 import org.rdlinux.transactionalmq.core.repository.MessageSendLogRepository;
 import org.rdlinux.transactionalmq.core.repository.TransactionalMessageRepository;
 import org.rdlinux.transactionalmq.core.serialize.LuavaJsonMessagePayloadSerializer;
 import org.rdlinux.transactionalmq.core.service.*;
 import org.rdlinux.transactionalmq.core.service.impl.MessageDispatchWakeupCoordinator;
-import org.rdlinux.transactionalmq.rabbitmq.RabbitMqConsumerInvoker;
-import org.rdlinux.transactionalmq.rabbitmq.RabbitMqConsumerRegistrar;
-import org.rdlinux.transactionalmq.rabbitmq.RabbitMqProducerAdapter;
 import org.rdlinux.transactionalmq.store.ezmybatis.repository.EzMybatisConsumedMessageRepository;
 import org.rdlinux.transactionalmq.store.ezmybatis.repository.EzMybatisMessageSendLogRepository;
 import org.rdlinux.transactionalmq.store.ezmybatis.repository.EzMybatisTransactionalMessageRepository;
-import org.springframework.amqp.rabbit.connection.ConnectionFactory;
-import org.springframework.amqp.rabbit.core.RabbitTemplate;
-import org.springframework.boot.autoconfigure.AutoConfigureAfter;
-import org.springframework.boot.autoconfigure.amqp.RabbitAutoConfiguration;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.beans.factory.ObjectProvider;
-import org.springframework.context.ApplicationContext;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.scheduling.annotation.EnableScheduling;
@@ -43,7 +35,6 @@ import org.springframework.scheduling.annotation.EnableScheduling;
 @Configuration
 @EnableScheduling
 @EnableConfigurationProperties(TransactionalMqProperties.class)
-@AutoConfigureAfter(RabbitAutoConfiguration.class)
 @ConditionalOnProperty(prefix = "transactionalmq", name = "enabled", havingValue = "true", matchIfMissing = true)
 public class TransactionalMqAutoConfiguration {
 
@@ -144,21 +135,6 @@ public class TransactionalMqAutoConfiguration {
     }
 
     @Bean
-    @ConditionalOnClass(RabbitTemplate.class)
-    @ConditionalOnBean(RabbitTemplate.class)
-    @ConditionalOnMissingBean(MqProducerAdapter.class)
-    public RabbitMqProducerAdapter rabbitMqProducerAdapter(RabbitTemplate rabbitTemplate) {
-        return new RabbitMqProducerAdapter(rabbitTemplate);
-    }
-
-    @Bean
-    @ConditionalOnClass(RabbitMqConsumerInvoker.class)
-    @ConditionalOnMissingBean(RabbitMqConsumerInvoker.class)
-    public RabbitMqConsumerInvoker rabbitMqConsumerInvoker() {
-        return new RabbitMqConsumerInvoker();
-    }
-
-    @Bean
     @ConditionalOnClass(TxnMqTransactionalService.class)
     @ConditionalOnMissingBean(TxnMqTransactionalService.class)
     public TxnMqTransactionalService txnMqTransactionalService() {
@@ -166,27 +142,25 @@ public class TransactionalMqAutoConfiguration {
     }
 
     @Bean
-    @ConditionalOnClass({RabbitMqConsumerRegistrar.class, ConnectionFactory.class, TransactionalMessageConsumer.class})
-    @ConditionalOnBean({ConnectionFactory.class, RabbitMqConsumerInvoker.class, MessagePayloadSerializer.class,
-            ConsumeIdempotentService.class})
-    @ConditionalOnMissingBean(RabbitMqConsumerRegistrar.class)
-    public RabbitMqConsumerRegistrar rabbitMqConsumerRegistrar(ConnectionFactory connectionFactory,
-                                                               RabbitMqConsumerInvoker rabbitMqConsumerInvoker,
-                                                               MessagePayloadSerializer messagePayloadSerializer,
-                                                               ConsumeIdempotentService consumeIdempotentService,
-                                                               ApplicationContext applicationContext,
-                                                               TxnMqTransactionalService txnMqTransactionalService) {
-        return new RabbitMqConsumerRegistrar(connectionFactory, rabbitMqConsumerInvoker, messagePayloadSerializer,
-                consumeIdempotentService, applicationContext, txnMqTransactionalService);
+    @ConditionalOnMissingBean(MqProducerRouter.class)
+    public MqProducerRouter mqProducerRouter(ObjectProvider<java.util.List<MqProducerAdapter>> mqProducerAdapters) {
+        java.util.List<MqProducerAdapter> adapters = mqProducerAdapters.getIfAvailable();
+        return new MqProducerRouter(adapters == null ? java.util.Collections.<MqProducerAdapter>emptyList() : adapters);
     }
 
     @Bean
-    @ConditionalOnBean({TransactionalMessageRepository.class, MqProducerAdapter.class, MessageSendLogRepository.class})
+    @ConditionalOnMissingBean(TransactionalMqStartupValidator.class)
+    public TransactionalMqStartupValidator transactionalMqStartupValidator(MqProducerRouter mqProducerRouter) {
+        return new TransactionalMqStartupValidator(mqProducerRouter);
+    }
+
+    @Bean
+    @ConditionalOnBean({TransactionalMessageRepository.class, MqProducerRouter.class, MessageSendLogRepository.class})
     @ConditionalOnMissingBean(MessageDispatchService.class)
     public MessageDispatchService messageDispatchService(
-            TransactionalMessageRepository transactionalMessageRepository, MqProducerAdapter mqProducerAdapter,
+            TransactionalMessageRepository transactionalMessageRepository, MqProducerRouter mqProducerRouter,
             MessageSendLogRepository messageSendLogRepository) {
-        return new MessageDispatchService(transactionalMessageRepository, mqProducerAdapter, messageSendLogRepository);
+        return new MessageDispatchService(transactionalMessageRepository, mqProducerRouter, messageSendLogRepository);
     }
 
     @Bean

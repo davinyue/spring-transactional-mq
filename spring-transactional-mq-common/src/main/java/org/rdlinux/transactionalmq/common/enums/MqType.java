@@ -4,7 +4,8 @@ package org.rdlinux.transactionalmq.common.enums;
  * MQ 类型
  */
 public enum MqType {
-    RABBITMQ("rabbitmq");
+    RABBITMQ("rabbitmq"),
+    KAFKA("kafka");
 
     private final String code;
 

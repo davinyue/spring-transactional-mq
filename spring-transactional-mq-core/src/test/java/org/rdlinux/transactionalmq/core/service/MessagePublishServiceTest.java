@@ -40,14 +40,13 @@ public class MessagePublishServiceTest {
                 .setId("msg-1")
                 .setMessageKey("message-key-1")
                 .setProducerCode("producer-1")
-                .setMqType(MqType.RABBITMQ)
                 .setDestination("demo.exchange")
                 .setRoute("demo.route")
                 .setShardingKey("order-1")
                 .setPayload("payload-value")
                 .setBizKey("biz-1");
 
-        String messageId = service.send(message);
+        String messageId = service.send(MqType.RABBITMQ, message);
 
         Assert.assertNotNull(messageId);
         Assert.assertNotNull(repository.savedRecord);
@@ -72,7 +71,7 @@ public class MessagePublishServiceTest {
                 .setShardingKey("order-2")
                 .setPayload("payload-value");
 
-        TransactionalMessageRecord record = TransactionalMessageRecord.from(message, "serialized");
+        TransactionalMessageRecord record = TransactionalMessageRecord.from(MqType.RABBITMQ, message, "serialized");
 
         Assert.assertNull(record.getId());
         Assert.assertEquals("message-key-2", record.getMessageKey());
@@ -108,7 +107,7 @@ public class MessagePublishServiceTest {
                 .setMessageKey("message-key-parent")
                 .setConsumerCode("consumer-1");
 
-        String childId = service.sendWithParent(message, parentContext);
+        String childId = service.sendWithParent(MqType.RABBITMQ, message, parentContext);
 
         Assert.assertNotNull(childId);
         Assert.assertEquals(childId, repository.savedRecord.getId());
@@ -118,7 +117,7 @@ public class MessagePublishServiceTest {
 
     @Test
     public void sendShouldBeTransactional() throws Exception {
-        Method method = MessagePublishService.class.getMethod("send", TransactionalMessage.class);
+        Method method = MessagePublishService.class.getMethod("send", MqType.class, TransactionalMessage.class);
 
         Assert.assertNotNull(method.getAnnotation(Transactional.class));
     }

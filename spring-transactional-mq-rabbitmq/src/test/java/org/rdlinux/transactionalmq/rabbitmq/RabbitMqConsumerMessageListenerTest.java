@@ -55,7 +55,7 @@ public class RabbitMqConsumerMessageListenerTest {
     }
 
     @Test
-    public void onMessageShouldNackWithoutRequeueWhenDeserializeFailed() throws Exception {
+    public void onMessageShouldNackWithRequeueWhenDeserializeFailed() throws Exception {
         RabbitMqConsumerInvoker invoker = new RabbitMqConsumerInvoker();
         MessagePayloadSerializer serializer = mock(MessagePayloadSerializer.class);
         ConsumeIdempotentService consumeIdempotentService = mock(ConsumeIdempotentService.class);
@@ -74,7 +74,7 @@ public class RabbitMqConsumerMessageListenerTest {
 
         listener.onMessage(message, channel);
 
-        verify(channel).basicNack(8L, false, false);
+        verify(channel).basicNack(8L, false, true);
         verify(channel, never()).basicAck(anyLong(), anyBoolean());
     }
 

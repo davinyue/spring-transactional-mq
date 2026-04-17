@@ -2,6 +2,9 @@ package org.rdlinux.transactionalmq.core.service;
 
 import org.junit.Assert;
 import org.junit.Test;
+import org.rdlinux.transactionalmq.common.enums.MqType;
+import org.rdlinux.transactionalmq.core.mq.MqProducerAdapter;
+import org.rdlinux.transactionalmq.core.mq.MqProducerRouter;
 import org.rdlinux.transactionalmq.core.repository.TransactionalMessageRepository;
 import org.rdlinux.transactionalmq.core.service.impl.MessageDispatchWakeupCoordinator;
 
@@ -31,7 +34,8 @@ public class TransactionalMessageDispatchSchedulerTest {
         private int lastBatchSize;
 
         private CapturingMessageDispatchService() {
-            super(new NoopTransactionalMessageRepository(), new NoopMqProducerAdapter(),
+            super(new NoopTransactionalMessageRepository(),
+                    new MqProducerRouter(Collections.<MqProducerAdapter>singletonList(new NoopMqProducerAdapter())),
                     new NoopMessageSendLogRepository());
         }
 
@@ -83,6 +87,11 @@ public class TransactionalMessageDispatchSchedulerTest {
     }
 
     private static class NoopMqProducerAdapter implements org.rdlinux.transactionalmq.core.mq.MqProducerAdapter {
+
+        @Override
+        public MqType supportMqType() {
+            return MqType.RABBITMQ;
+        }
 
         @Override
         public void send(org.rdlinux.transactionalmq.core.model.DispatchMessage message) {

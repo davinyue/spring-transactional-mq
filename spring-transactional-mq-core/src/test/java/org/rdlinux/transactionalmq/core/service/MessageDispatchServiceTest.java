@@ -8,6 +8,7 @@ import org.rdlinux.transactionalmq.core.model.DispatchMessage;
 import org.rdlinux.transactionalmq.core.model.MessageSendLogRecord;
 import org.rdlinux.transactionalmq.core.model.TransactionalMessageRecord;
 import org.rdlinux.transactionalmq.core.mq.MqProducerAdapter;
+import org.rdlinux.transactionalmq.core.mq.MqProducerRouter;
 import org.rdlinux.transactionalmq.core.repository.MessageSendLogRepository;
 import org.rdlinux.transactionalmq.core.repository.TransactionalMessageRepository;
 
@@ -33,7 +34,8 @@ public class MessageDispatchServiceTest {
         CapturingMqProducerAdapter adapter = new CapturingMqProducerAdapter();
         adapter.failedId = "msg-3";
         CapturingMessageSendLogRepository logRepository = new CapturingMessageSendLogRepository();
-        MessageDispatchService service = new MessageDispatchService(repository, adapter, logRepository);
+        MessageDispatchService service = new MessageDispatchService(repository,
+                new MqProducerRouter(java.util.Collections.<MqProducerAdapter>singletonList(adapter)), logRepository);
 
         int dispatched = service.dispatchPendingMessages(10);
 
@@ -133,6 +135,11 @@ public class MessageDispatchServiceTest {
 
         private final List<DispatchMessage> sentMessages = new ArrayList<DispatchMessage>();
         private String failedId;
+
+        @Override
+        public MqType supportMqType() {
+            return MqType.RABBITMQ;
+        }
 
         @Override
         public void send(DispatchMessage message) {

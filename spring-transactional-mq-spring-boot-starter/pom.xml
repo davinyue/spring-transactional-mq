@@ -25,6 +25,7 @@
         <dependency>
             <groupId>org.rdlinux</groupId>
             <artifactId>spring-transactional-mq-rabbitmq</artifactId>
+            <optional>true</optional>
         </dependency>
         <dependency>
             <groupId>org.springframework.boot</groupId>

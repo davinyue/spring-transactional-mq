@@ -43,12 +43,11 @@ public class TransactionalMqRealDataRunner implements ApplicationRunner {
         TransactionalMessage<Map<String, Object>> message = new TransactionalMessage<Map<String, Object>>()
                 .setMessageKey(messageKey)
                 .setProducerCode("spring-transactional-mq-demo")
-                .setMqType(MqType.RABBITMQ)
                 .setDestination(this.properties.getDestination())
                 .setBizKey(messageKey)
                 .setPayload(this.buildPayload(messageKey));
 
-        String messageId = this.messagePublishService.send(message);
+        String messageId = this.messagePublishService.send(MqType.RABBITMQ, message);
         LOGGER.info("Transactional MQ real demo finished, id={}, messageKey={}, submitted=true",
                 messageId, message.getMessageKey());
     }

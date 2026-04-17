@@ -106,12 +106,11 @@ public class TransactionalMqRealSendConsumeTest {
         TransactionalMessage<Map<String, Object>> message = new TransactionalMessage<Map<String, Object>>()
                 .setMessageKey(messageKey)
                 .setProducerCode("spring-transactional-mq-demo-test")
-                .setMqType(MqType.RABBITMQ)
                 .setDestination(this.properties.getDestination())
                 .setBizKey(messageKey)
                 .setPayload(this.buildPayload(messageKey));
 
-        String messageId = this.messagePublishService.send(message);
+        String messageId = this.messagePublishService.send(MqType.RABBITMQ, message);
         Message rabbitMessage = this.rabbitTemplate.receive(this.properties.getQueueName(), 10000);
 
         Assertions.assertNotNull(messageId);

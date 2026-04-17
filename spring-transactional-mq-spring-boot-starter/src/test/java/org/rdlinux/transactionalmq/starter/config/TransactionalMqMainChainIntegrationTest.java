@@ -37,7 +37,8 @@ import static org.mockito.Mockito.verify;
 public class TransactionalMqMainChainIntegrationTest {
 
     private final ApplicationContextRunner contextRunner = new ApplicationContextRunner()
-            .withConfiguration(AutoConfigurations.of(TransactionalMqAutoConfiguration.class));
+            .withConfiguration(AutoConfigurations.of(TransactionalMqAutoConfiguration.class,
+                    TransactionalMqRabbitAutoConfiguration.class));
 
     @Test
     public void should_wire_publish_and_dispatch_main_chain() {
@@ -66,12 +67,11 @@ public class TransactionalMqMainChainIntegrationTest {
                     TransactionalMessage<String> message = new TransactionalMessage<String>()
                             .setMessageKey("message-key-8")
                             .setProducerCode("producer-8")
-                            .setMqType(MqType.RABBITMQ)
                             .setDestination("exchange.demo:queue.demo")
                             .setPayload("payload-8")
                             .setBizKey("biz-8");
 
-                    String messageId = publishService.send(message);
+                    String messageId = publishService.send(MqType.RABBITMQ, message);
 
                     assertNotNull(messageId);
                     assertEquals(1, ezDao.getTransactionalMessageCount());

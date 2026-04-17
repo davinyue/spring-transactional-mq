@@ -2,7 +2,6 @@ package org.rdlinux.transactionalmq.api.model;
 
 import lombok.Getter;
 import org.rdlinux.transactionalmq.common.entity.BaseEntity;
-import org.rdlinux.transactionalmq.common.enums.MqType;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -24,11 +23,6 @@ public class TransactionalMessage<T> extends BaseEntity<TransactionalMessage<T>>
      */
     @Getter
     private String producerCode;
-    /**
-     * MQ 类型
-     */
-    @Getter
-    private MqType mqType;
     /**
      * 目标信息
      */
@@ -78,17 +72,6 @@ public class TransactionalMessage<T> extends BaseEntity<TransactionalMessage<T>>
      */
     public TransactionalMessage<T> setProducerCode(String producerCode) {
         this.producerCode = producerCode;
-        return this.castSelf();
-    }
-
-    /**
-     * 设置 MQ 类型
-     *
-     * @param mqType MQ 类型
-     * @return 当前消息对象
-     */
-    public TransactionalMessage<T> setMqType(MqType mqType) {
-        this.mqType = mqType;
         return this.castSelf();
     }
 

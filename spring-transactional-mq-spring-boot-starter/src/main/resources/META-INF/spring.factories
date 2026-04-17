@@ -1,2 +1,3 @@
 org.springframework.boot.autoconfigure.EnableAutoConfiguration=\
-org.rdlinux.transactionalmq.starter.config.TransactionalMqAutoConfiguration
+org.rdlinux.transactionalmq.starter.config.TransactionalMqAutoConfiguration,\
+org.rdlinux.transactionalmq.starter.config.TransactionalMqRabbitAutoConfiguration

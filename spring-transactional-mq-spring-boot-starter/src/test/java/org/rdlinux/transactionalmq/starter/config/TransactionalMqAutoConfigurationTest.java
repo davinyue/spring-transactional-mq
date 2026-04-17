@@ -4,6 +4,7 @@ import org.junit.Assert;
 import org.junit.Test;
 import org.rdlinux.ezmybatis.core.dao.EzDao;
 import org.rdlinux.transactionalmq.api.serialize.MessagePayloadSerializer;
+import org.rdlinux.transactionalmq.core.mq.MqProducerRouter;
 import org.rdlinux.transactionalmq.core.serialize.LuavaJsonMessagePayloadSerializer;
 import org.rdlinux.transactionalmq.core.service.ConsumedMessageCleanupService;
 import org.rdlinux.transactionalmq.core.service.MessagePublishService;
@@ -12,6 +13,7 @@ import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.boot.autoconfigure.AutoConfigurations;
 import org.springframework.boot.autoconfigure.EnableAutoConfiguration;
 import org.springframework.boot.test.context.runner.ApplicationContextRunner;
+import org.springframework.boot.test.context.FilteredClassLoader;
 import org.springframework.core.io.support.SpringFactoriesLoader;
 
 import java.lang.reflect.Type;
@@ -24,7 +26,8 @@ import static org.mockito.Mockito.mock;
 public class TransactionalMqAutoConfigurationTest {
 
     private final ApplicationContextRunner contextRunner = new ApplicationContextRunner()
-            .withConfiguration(AutoConfigurations.of(TransactionalMqAutoConfiguration.class));
+            .withConfiguration(AutoConfigurations.of(TransactionalMqAutoConfiguration.class,
+                    TransactionalMqRabbitAutoConfiguration.class));
 
     @Test
     public void should_register_message_publish_service_when_enabled() {
@@ -33,9 +36,11 @@ public class TransactionalMqAutoConfigurationTest {
                         "transactionalmq.dispatch-batch-size=23",
                         "transactionalmq.consume-record-retention-days=8")
                 .withBean(EzDao.class, () -> mock(EzDao.class))
+                .withBean(RabbitTemplate.class, () -> mock(RabbitTemplate.class))
                 .run(context -> {
                     Assert.assertTrue(context.containsBean("messagePublishService"));
                     Assert.assertNotNull(context.getBean(MessagePublishService.class));
+                    Assert.assertNotNull(context.getBean(MqProducerRouter.class));
                     Assert.assertTrue(context.containsBean("transactionalMessageRepository"));
                     Assert.assertTrue(context.containsBean("consumedMessageRepository"));
                     Assert.assertTrue(context.containsBean("messageSendLogRepository"));
@@ -53,7 +58,9 @@ public class TransactionalMqAutoConfigurationTest {
 
     @Test
     public void should_register_default_message_payload_serializer_and_round_trip_payload() {
-        this.contextRunner.run(context -> {
+        this.contextRunner
+                .withBean(RabbitTemplate.class, () -> mock(RabbitTemplate.class))
+                .run(context -> {
             MessagePayloadSerializer serializer = context.getBean(MessagePayloadSerializer.class);
             Assert.assertTrue(serializer instanceof LuavaJsonMessagePayloadSerializer);
             SamplePayload payload = new SamplePayload("demo", 3);
@@ -67,6 +74,7 @@ public class TransactionalMqAutoConfigurationTest {
     public void should_use_user_defined_message_payload_serializer_when_present() {
         this.contextRunner
                 .withBean(MessagePayloadSerializer.class, CustomMessagePayloadSerializer::new)
+                .withBean(RabbitTemplate.class, () -> mock(RabbitTemplate.class))
                 .run(context -> {
                     MessagePayloadSerializer serializer = context.getBean(MessagePayloadSerializer.class);
                     Assert.assertTrue(serializer instanceof CustomMessagePayloadSerializer);
@@ -80,10 +88,12 @@ public class TransactionalMqAutoConfigurationTest {
         this.contextRunner
                 .withPropertyValues("transactionalmq.enabled=false")
                 .withBean(EzDao.class, () -> mock(EzDao.class))
+                .withBean(RabbitTemplate.class, () -> mock(RabbitTemplate.class))
                 .run(context -> {
                     Assert.assertFalse(context.containsBean("messagePublishService"));
                     Assert.assertFalse(context.containsBean("rabbitMqProducerAdapter"));
                     Assert.assertFalse(context.containsBean("transactionalMessageRepository"));
+                    Assert.assertFalse(context.containsBean("transactionalMqStartupValidator"));
                 });
     }
 
@@ -96,15 +106,33 @@ public class TransactionalMqAutoConfigurationTest {
                 .run(context -> {
                     Assert.assertTrue(context.containsBean("rabbitMqProducerAdapter"));
                     Assert.assertTrue(context.getBean(RabbitMqProducerAdapter.class) instanceof RabbitMqProducerAdapter);
+                    Assert.assertNotNull(context.getBean(MqProducerRouter.class));
                     Assert.assertTrue(context.containsBean("transactionalMessageRepository"));
+                });
+    }
+
+    @Test
+    public void should_fail_when_no_mq_implementation_found() {
+        this.contextRunner
+                .withPropertyValues("transactionalmq.enabled=true")
+                .withBean(EzDao.class, () -> mock(EzDao.class))
+                .withClassLoader(new FilteredClassLoader(
+                        "org.springframework.amqp.rabbit",
+                        "org.rdlinux.transactionalmq.rabbitmq"))
+                .run(context -> {
+                    Assert.assertNotNull(context.getStartupFailure());
+                    Assert.assertTrue(context.getStartupFailure().getMessage().contains("No MqProducerAdapter found"));
                 });
     }
 
     @Test
     public void should_be_listed_in_spring_factories_as_auto_configuration() {
         String className = TransactionalMqAutoConfiguration.class.getName();
+        String rabbitClassName = TransactionalMqRabbitAutoConfiguration.class.getName();
         Assert.assertTrue(SpringFactoriesLoader.loadFactoryNames(EnableAutoConfiguration.class,
                 this.getClass().getClassLoader()).contains(className));
+        Assert.assertTrue(SpringFactoriesLoader.loadFactoryNames(EnableAutoConfiguration.class,
+                this.getClass().getClassLoader()).contains(rabbitClassName));
     }
 
     private static final class SamplePayload {

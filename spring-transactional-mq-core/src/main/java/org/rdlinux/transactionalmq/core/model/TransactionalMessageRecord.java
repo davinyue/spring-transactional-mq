@@ -90,12 +90,13 @@ public class TransactionalMessageRecord extends BaseEntity<TransactionalMessageR
      * @param <T>         负载类型
      * @return 记录对象
      */
-    public static <T> TransactionalMessageRecord from(TransactionalMessage<T> message, String payloadText) {
+    public static <T> TransactionalMessageRecord from(MqType mqType, TransactionalMessage<T> message,
+                                                      String payloadText) {
         TransactionalMessageRecord record = new TransactionalMessageRecord();
         if (message != null) {
             record.setMessageKey(message.getMessageKey());
             record.setProducerCode(message.getProducerCode());
-            record.setMqType(message.getMqType());
+            record.setMqType(mqType);
             record.setDestination(message.getDestination());
             record.setRoute(message.getRoute());
             record.setShardingKey(message.getShardingKey());
@@ -119,9 +120,9 @@ public class TransactionalMessageRecord extends BaseEntity<TransactionalMessageR
      * @param <T>           负载类型
      * @return 记录对象
      */
-    public static <T> TransactionalMessageRecord from(TransactionalMessage<T> message, String payloadText,
-                                                      ConsumeContext parentContext) {
-        TransactionalMessageRecord record = from(message, payloadText);
+    public static <T> TransactionalMessageRecord from(MqType mqType, TransactionalMessage<T> message,
+                                                      String payloadText, ConsumeContext parentContext) {
+        TransactionalMessageRecord record = from(mqType, message, payloadText);
         if (parentContext != null) {
             record.setParentId(parentContext.getId());
             if (parentContext.getRootId() == null || parentContext.getRootId().trim().isEmpty()) {

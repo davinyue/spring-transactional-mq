@@ -4,6 +4,7 @@ import org.rdlinux.transactionalmq.api.model.ConsumeContext;
 import org.rdlinux.transactionalmq.api.model.TransactionalMessage;
 import org.rdlinux.transactionalmq.api.producer.TransactionalMessageSender;
 import org.rdlinux.transactionalmq.api.serialize.MessagePayloadSerializer;
+import org.rdlinux.transactionalmq.common.enums.MqType;
 import org.rdlinux.transactionalmq.common.id.ObjectIdGenerator;
 import org.rdlinux.transactionalmq.core.model.TransactionalMessageRecord;
 import org.rdlinux.transactionalmq.core.repository.TransactionalMessageRepository;
@@ -44,21 +45,21 @@ public class MessagePublishService implements TransactionalMessageSender {
      */
     @Override
     @Transactional(rollbackFor = Exception.class)
-    public <T> String send(TransactionalMessage<T> message) {
-        return this.doSave(message, null);
+    public <T> String send(MqType mqType, TransactionalMessage<T> message) {
+        return this.doSave(mqType, message, null);
     }
 
     @Override
     @Transactional(rollbackFor = Exception.class)
-    public <T> String sendWithParent(TransactionalMessage<T> message, ConsumeContext parentContext) {
-        return this.doSave(message, parentContext);
+    public <T> String sendWithParent(MqType mqType, TransactionalMessage<T> message, ConsumeContext parentContext) {
+        return this.doSave(mqType, message, parentContext);
     }
 
-    private <T> String doSave(TransactionalMessage<T> message, ConsumeContext parentContext) {
+    private <T> String doSave(MqType mqType, TransactionalMessage<T> message, ConsumeContext parentContext) {
         String payloadText = this.messagePayloadSerializer.serialize(message.getPayload());
         TransactionalMessageRecord record = parentContext == null
-                ? TransactionalMessageRecord.from(message, payloadText)
-                : TransactionalMessageRecord.from(message, payloadText, parentContext);
+                ? TransactionalMessageRecord.from(mqType, message, payloadText)
+                : TransactionalMessageRecord.from(mqType, message, payloadText, parentContext);
         this.ensureIds(record);
         TransactionalMessageRecord saved = this.transactionalMessageRepository.save(record);
         this.notifyDispatchAfterCommit();
