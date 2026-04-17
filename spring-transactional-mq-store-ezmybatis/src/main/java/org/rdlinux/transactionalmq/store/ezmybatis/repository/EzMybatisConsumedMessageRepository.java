@@ -19,7 +19,7 @@ import javax.annotation.Resource;
 import java.util.*;
 
 /**
- * 基于 ez-mybatis 的消费消息仓储实现。
+ * 基于 ez-mybatis 的消费消息仓储实现
  */
 @Repository
 public class EzMybatisConsumedMessageRepository implements ConsumedMessageRepository {

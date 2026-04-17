@@ -8,7 +8,7 @@ import java.util.zip.GZIPInputStream;
 import java.util.zip.GZIPOutputStream;
 
 /**
- * RabbitMQ 消息体 gzip 编解码工具。
+ * RabbitMQ 消息体 gzip 编解码工具
  */
 public final class RabbitMqPayloadCodec {
 

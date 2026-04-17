@@ -20,7 +20,7 @@ import javax.annotation.Resource;
 import java.util.*;
 
 /**
- * 基于 ez-mybatis 的事务消息仓储实现。
+ * 基于 ez-mybatis 的事务消息仓储实现
  */
 @Repository
 public class EzMybatisTransactionalMessageRepository implements TransactionalMessageRepository {
@@ -198,7 +198,7 @@ public class EzMybatisTransactionalMessageRepository implements TransactionalMes
         try {
             this.ezDao.insert(TransactionalMessageEntityMapper.toHistoryEntity(record));
         } catch (DuplicateKeyException ex) {
-            // 其他实例或历史重试可能已经写入历史表，继续删除主表即可。
+            // 其他实例或历史重试可能已经写入历史表，继续删除主表即可
         }
     }
 

@@ -5,14 +5,14 @@ import org.rdlinux.transactionalmq.core.model.ConsumedMessageRecord;
 import org.rdlinux.transactionalmq.core.repository.ConsumedMessageRepository;
 
 /**
- * 消费幂等服务骨架。
+ * 消费幂等服务骨架
  */
 public class ConsumeIdempotentService {
 
     private final ConsumedMessageRepository consumedMessageRepository;
 
     /**
-     * 构造消费幂等服务。
+     * 构造消费幂等服务
      *
      * @param consumedMessageRepository 已消费消息仓储
      */
@@ -21,7 +21,7 @@ public class ConsumeIdempotentService {
     }
 
     /**
-     * 原子保存消费记录，首次保存成功才返回 true。
+     * 原子保存消费记录，首次保存成功才返回 true
      *
      * @param context 消费上下文
      * @return 是否成功记录

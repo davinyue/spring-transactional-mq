@@ -2,9 +2,9 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** 完成事务消息框架首版骨架搭建，落地 Maven 多模块结构、4 张核心表实体、核心 SPI、RabbitMQ 适配入口和 Spring Boot starter 自动装配。
+**Goal:** 完成事务消息框架首版骨架搭建，落地 Maven 多模块结构、4 张核心表实体、核心 SPI、RabbitMQ 适配入口和 Spring Boot starter 自动装配
 
-**Architecture:** 采用“核心编排 + 存储实现 + MQ 适配 + starter 装配”的分层方案。`core` 仅保留领域流程和 SPI，不直接依赖 `EzDao` 与 RabbitMQ；`store-ezmybatis` 提供默认持久化实现，`rabbitmq` 提供首版 MQ 实现，最终由 starter 组装成业务可直接接入的默认能力。
+**Architecture:** 采用“核心编排 + 存储实现 + MQ 适配 + starter 装配”的分层方案`core` 仅保留领域流程和 SPI，不直接依赖 `EzDao` 与 RabbitMQ；`store-ezmybatis` 提供默认持久化实现，`rabbitmq` 提供首版 MQ 实现，最终由 starter 组装成业务可直接接入的默认能力
 
 **Tech Stack:** JDK 1.8, Maven, Spring Boot 2.7.18, Spring AMQP, ez-mybatis, JUnit 4
 
@@ -12,7 +12,7 @@
 
 ## File Structure
 
-本次实现涉及的主要文件与职责如下。
+本次实现涉及的主要文件与职责如下
 
 - Create: `spring-transactional-mq-common/pom.xml`
 - Create: `spring-transactional-mq-api/pom.xml`
@@ -666,7 +666,7 @@ git commit -m "feat: bootstrap transactional mq starter skeleton"
 - RabbitMQ 首版支持：由 Task 6 覆盖
 - Spring Boot starter 主接入方式：由 Task 7、Task 8 覆盖
 
-未发现 spec 要求缺口。
+未发现 spec 要求缺口
 
 ### Placeholder scan
 

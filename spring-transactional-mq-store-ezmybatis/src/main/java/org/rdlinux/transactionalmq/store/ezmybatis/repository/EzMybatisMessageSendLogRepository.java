@@ -18,7 +18,7 @@ import org.rdlinux.transactionalmq.store.ezmybatis.entity.MessageSendLogEntity;
 import org.springframework.stereotype.Repository;
 
 /**
- * 基于 ez-mybatis 的发送日志仓储实现。
+ * 基于 ez-mybatis 的发送日志仓储实现
  */
 @Repository
 public class EzMybatisMessageSendLogRepository implements MessageSendLogRepository {
@@ -42,12 +42,12 @@ public class EzMybatisMessageSendLogRepository implements MessageSendLogReposito
             return Collections.emptyList();
         }
         EzQuery<MessageSendLogEntity> query = EzQuery.builder(MessageSendLogEntity.class)
-            .from(TABLE)
-            .select(Select.EzSelectBuilder::addAll)
-            .where(w -> w.add(TABLE.field(MessageSendLogEntity.Fields.sendStatus), SendStatus.FAILED))
-            .orderBy(o -> o.add(TABLE.field(MessageSendLogEntity.Fields.lastSendTime)))
-            .page(1, limit)
-            .build();
+                .from(TABLE)
+                .select(Select.EzSelectBuilder::addAll)
+                .where(w -> w.add(TABLE.field(MessageSendLogEntity.Fields.sendStatus), SendStatus.FAILED))
+                .orderBy(o -> o.add(TABLE.field(MessageSendLogEntity.Fields.lastSendTime)))
+                .page(1, limit)
+                .build();
         List<MessageSendLogEntity> entities = this.ezDao.query(query);
         List<MessageSendLogRecord> records = new ArrayList<MessageSendLogRecord>(entities.size());
         for (MessageSendLogEntity entity : entities) {

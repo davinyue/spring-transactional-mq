@@ -5,14 +5,14 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 
 /**
- * 事务消息 Spring Boot Demo 启动类。
+ * 事务消息 Spring Boot Demo 启动类
  */
 @SpringBootApplication
 @EnableConfigurationProperties(TransactionalMqDemoProperties.class)
 public class TransactionalMqDemoApplication {
 
     /**
-     * 启动 demo 应用。
+     * 启动 demo 应用
      *
      * @param args 启动参数
      */

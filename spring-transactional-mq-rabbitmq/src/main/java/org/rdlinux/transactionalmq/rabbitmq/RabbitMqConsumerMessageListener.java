@@ -27,7 +27,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 
 /**
- * RabbitMQ 统一消费者消息监听器。
+ * RabbitMQ 统一消费者消息监听器
  */
 @Slf4j
 class RabbitMqConsumerMessageListener implements ChannelAwareMessageListener {

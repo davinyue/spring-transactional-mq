@@ -1,7 +1,7 @@
 package org.rdlinux.transactionalmq.common.enums;
 
 /**
- * MQ 类型。
+ * MQ 类型
  */
 public enum MqType {
     RABBITMQ("rabbitmq");

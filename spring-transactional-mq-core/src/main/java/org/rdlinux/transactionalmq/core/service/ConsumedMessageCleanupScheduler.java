@@ -1,38 +1,45 @@
-package org.rdlinux.transactionalmq.starter.config;
-
-import org.rdlinux.transactionalmq.core.service.ConsumedMessageCleanupService;
-import org.springframework.scheduling.annotation.Scheduled;
+package org.rdlinux.transactionalmq.core.service;
 
 import java.util.Calendar;
 import java.util.Date;
 
 /**
- * 已消费消息主表定时清理任务。
+ * 已消费消息主表定时清理任务
  */
 public class ConsumedMessageCleanupScheduler {
-
+    /**
+     * 已消费消息主表清理服务
+     */
     private final ConsumedMessageCleanupService consumedMessageCleanupService;
-    private final TransactionalMqProperties properties;
+    /**
+     * 已消费消息保留天数
+     */
+    private final int consumeRecordRetentionDays;
+    /**
+     * 单次清理批量大小
+     */
+    private final int consumeRecordCleanupBatchSize;
 
     /**
-     * 构造定时清理任务。
+     * 构造定时清理任务
      *
      * @param consumedMessageCleanupService 已消费消息主表清理服务
-     * @param properties                    starter 配置
+     * @param consumeRecordRetentionDays    已消费消息保留天数
+     * @param consumeRecordCleanupBatchSize 单次清理批量大小
      */
     public ConsumedMessageCleanupScheduler(ConsumedMessageCleanupService consumedMessageCleanupService,
-                                           TransactionalMqProperties properties) {
+                                           int consumeRecordRetentionDays, int consumeRecordCleanupBatchSize) {
         this.consumedMessageCleanupService = consumedMessageCleanupService;
-        this.properties = properties;
+        this.consumeRecordRetentionDays = consumeRecordRetentionDays;
+        this.consumeRecordCleanupBatchSize = consumeRecordCleanupBatchSize;
     }
 
     /**
-     * 定时清理消费主表旧记录。
+     * 定时清理消费主表旧记录
      */
-    @Scheduled(cron = "${transactional.mq.consume-record-cleanup-cron:0 0 3 * * ?}")
     public void cleanupConsumedMessages() {
-        Date cleanupBefore = this.resolveCleanupBefore(this.properties.getConsumeRecordRetentionDays());
-        int limit = this.properties.getConsumeRecordCleanupBatchSize();
+        Date cleanupBefore = this.resolveCleanupBefore(this.consumeRecordRetentionDays);
+        int limit = this.consumeRecordCleanupBatchSize;
         int cleaned = this.consumedMessageCleanupService.cleanupOlderThan(cleanupBefore, limit);
         while (cleaned >= limit && limit > 0) {
             cleaned = this.consumedMessageCleanupService.cleanupOlderThan(cleanupBefore, limit);

@@ -10,12 +10,12 @@ import org.rdlinux.transactionalmq.core.model.TransactionalMessageRecord;
 import org.rdlinux.transactionalmq.core.repository.TransactionalMessageRepository;
 
 /**
- * 事务消息主表清理服务测试。
+ * 事务消息主表清理服务测试
  */
 public class TransactionalMessageCleanupServiceTest {
 
     /**
-     * 验证清理服务委托仓储删除已发送成功消息。
+     * 验证清理服务委托仓储删除已发送成功消息
      */
     @Test
     public void cleanupSuccessMessagesShouldDelegateToRepository() {

@@ -17,7 +17,7 @@ import java.util.Date;
 import java.util.List;
 
 /**
- * 消息发布服务测试。
+ * 消息发布服务测试
  */
 public class MessagePublishServiceTest {
     @Test

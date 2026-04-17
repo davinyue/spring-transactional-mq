@@ -6,7 +6,7 @@ import lombok.Getter;
 import lombok.experimental.FieldNameConstants;
 
 /**
- * 公共基础实体。
+ * 公共基础实体
  *
  * @param <T> 子类类型
  */
@@ -15,20 +15,20 @@ import lombok.experimental.FieldNameConstants;
 public abstract class BaseEntity<T extends BaseEntity<T>> {
 
     /**
-     * 主键标识。
+     * 主键标识
      */
     private String id;
     /**
-     * 创建时间。
+     * 创建时间
      */
     private Date createTime;
     /**
-     * 更新时间。
+     * 更新时间
      */
     private Date updateTime;
 
     /**
-     * 设置主键标识。
+     * 设置主键标识
      *
      * @param id 主键标识
      * @return 子类自身
@@ -39,7 +39,7 @@ public abstract class BaseEntity<T extends BaseEntity<T>> {
     }
 
     /**
-     * 设置创建时间。
+     * 设置创建时间
      *
      * @param createTime 创建时间
      * @return 子类自身
@@ -50,7 +50,7 @@ public abstract class BaseEntity<T extends BaseEntity<T>> {
     }
 
     /**
-     * 设置更新时间。
+     * 设置更新时间
      *
      * @param updateTime 更新时间
      * @return 子类自身
@@ -61,7 +61,7 @@ public abstract class BaseEntity<T extends BaseEntity<T>> {
     }
 
     /**
-     * 将当前实例转换为子类泛型视图。
+     * 将当前实例转换为子类泛型视图
      *
      * @return 当前实例
      */

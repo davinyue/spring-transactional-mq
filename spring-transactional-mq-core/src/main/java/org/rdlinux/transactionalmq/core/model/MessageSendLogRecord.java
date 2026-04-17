@@ -7,58 +7,58 @@ import org.rdlinux.transactionalmq.common.enums.MqType;
 import org.rdlinux.transactionalmq.common.enums.SendStatus;
 
 /**
- * core 层发送日志。
+ * core 层发送日志
  */
 public class MessageSendLogRecord extends BaseEntity<MessageSendLogRecord> {
 
     /**
-     * 消息键。
+     * 消息键
      */
     private String messageKey;
     /**
-     * 生产者编码。
+     * 生产者编码
      */
     private String producerCode;
     /**
-     * MQ 类型。
+     * MQ 类型
      */
     private MqType mqType;
     /**
-     * 发送状态。
+     * 发送状态
      */
     private SendStatus sendStatus;
     /**
-     * 重试次数。
+     * 重试次数
      */
     private Integer retryCount;
     /**
-     * 最后发送时间。
+     * 最后发送时间
      */
     private Date lastSendTime;
     /**
-     * 发送结果描述。
+     * 发送结果描述
      */
     private String description;
     /**
-     * 父消息 id。
+     * 父消息 id
      */
     private String parentId;
     /**
-     * 根消息 id。
+     * 根消息 id
      */
     private String rootId;
 
     /**
-     * 获取消息键。
+     * 获取消息键
      *
      * @return 消息键
      */
     public String getMessageKey() {
-        return messageKey;
+        return this.messageKey;
     }
 
     /**
-     * 设置消息键。
+     * 设置消息键
      *
      * @param messageKey 消息键
      */
@@ -67,16 +67,16 @@ public class MessageSendLogRecord extends BaseEntity<MessageSendLogRecord> {
     }
 
     /**
-     * 获取生产者编码。
+     * 获取生产者编码
      *
      * @return 生产者编码
      */
     public String getProducerCode() {
-        return producerCode;
+        return this.producerCode;
     }
 
     /**
-     * 设置生产者编码。
+     * 设置生产者编码
      *
      * @param producerCode 生产者编码
      */
@@ -85,16 +85,16 @@ public class MessageSendLogRecord extends BaseEntity<MessageSendLogRecord> {
     }
 
     /**
-     * 获取 MQ 类型。
+     * 获取 MQ 类型
      *
      * @return MQ 类型
      */
     public MqType getMqType() {
-        return mqType;
+        return this.mqType;
     }
 
     /**
-     * 设置 MQ 类型。
+     * 设置 MQ 类型
      *
      * @param mqType MQ 类型
      */
@@ -103,16 +103,16 @@ public class MessageSendLogRecord extends BaseEntity<MessageSendLogRecord> {
     }
 
     /**
-     * 获取发送状态。
+     * 获取发送状态
      *
      * @return 发送状态
      */
     public SendStatus getSendStatus() {
-        return sendStatus;
+        return this.sendStatus;
     }
 
     /**
-     * 设置发送状态。
+     * 设置发送状态
      *
      * @param sendStatus 发送状态
      */
@@ -121,16 +121,16 @@ public class MessageSendLogRecord extends BaseEntity<MessageSendLogRecord> {
     }
 
     /**
-     * 获取重试次数。
+     * 获取重试次数
      *
      * @return 重试次数
      */
     public Integer getRetryCount() {
-        return retryCount;
+        return this.retryCount;
     }
 
     /**
-     * 设置重试次数。
+     * 设置重试次数
      *
      * @param retryCount 重试次数
      */
@@ -139,16 +139,16 @@ public class MessageSendLogRecord extends BaseEntity<MessageSendLogRecord> {
     }
 
     /**
-     * 获取最后发送时间。
+     * 获取最后发送时间
      *
      * @return 最后发送时间
      */
     public Date getLastSendTime() {
-        return lastSendTime;
+        return this.lastSendTime;
     }
 
     /**
-     * 设置最后发送时间。
+     * 设置最后发送时间
      *
      * @param lastSendTime 最后发送时间
      */
@@ -157,16 +157,16 @@ public class MessageSendLogRecord extends BaseEntity<MessageSendLogRecord> {
     }
 
     /**
-     * 获取发送结果描述。
+     * 获取发送结果描述
      *
      * @return 发送结果描述
      */
     public String getDescription() {
-        return description;
+        return this.description;
     }
 
     /**
-     * 设置发送结果描述。
+     * 设置发送结果描述
      *
      * @param description 发送结果描述
      */
@@ -175,16 +175,16 @@ public class MessageSendLogRecord extends BaseEntity<MessageSendLogRecord> {
     }
 
     /**
-     * 获取父消息 id。
+     * 获取父消息 id
      *
      * @return 父消息 id
      */
     public String getParentId() {
-        return parentId;
+        return this.parentId;
     }
 
     /**
-     * 设置父消息 id。
+     * 设置父消息 id
      *
      * @param parentId 父消息 id
      */
@@ -193,16 +193,16 @@ public class MessageSendLogRecord extends BaseEntity<MessageSendLogRecord> {
     }
 
     /**
-     * 获取根消息 id。
+     * 获取根消息 id
      *
      * @return 根消息 id
      */
     public String getRootId() {
-        return rootId;
+        return this.rootId;
     }
 
     /**
-     * 设置根消息 id。
+     * 设置根消息 id
      *
      * @param rootId 根消息 id
      */

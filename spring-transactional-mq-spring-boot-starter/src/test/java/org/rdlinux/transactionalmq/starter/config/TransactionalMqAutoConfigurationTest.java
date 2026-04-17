@@ -8,6 +8,7 @@ import org.junit.Assert;
 import org.junit.Test;
 import org.rdlinux.ezmybatis.core.dao.EzDao;
 import org.rdlinux.transactionalmq.api.serialize.MessagePayloadSerializer;
+import org.rdlinux.transactionalmq.core.serialize.LuavaJsonMessagePayloadSerializer;
 import org.rdlinux.transactionalmq.core.service.ConsumedMessageCleanupService;
 import org.rdlinux.transactionalmq.core.service.MessagePublishService;
 import org.rdlinux.transactionalmq.rabbitmq.RabbitMqProducerAdapter;
@@ -18,36 +19,36 @@ import org.springframework.boot.test.context.runner.ApplicationContextRunner;
 import org.springframework.core.io.support.SpringFactoriesLoader;
 
 /**
- * starter 自动装配测试。
+ * starter 自动装配测试
  */
 public class TransactionalMqAutoConfigurationTest {
 
     private final ApplicationContextRunner contextRunner = new ApplicationContextRunner()
-        .withConfiguration(AutoConfigurations.of(TransactionalMqAutoConfiguration.class));
+            .withConfiguration(AutoConfigurations.of(TransactionalMqAutoConfiguration.class));
 
     @Test
     public void should_register_message_publish_service_when_enabled() {
         this.contextRunner
-            .withPropertyValues("transactional.mq.enabled=true",
-                "transactional.mq.dispatch-batch-size=23",
-                "transactional.mq.consume-record-retention-days=8")
-            .withBean(EzDao.class, () -> mock(EzDao.class))
-            .run(context -> {
-                Assert.assertTrue(context.containsBean("messagePublishService"));
-                Assert.assertNotNull(context.getBean(MessagePublishService.class));
-                Assert.assertTrue(context.containsBean("transactionalMessageRepository"));
-                Assert.assertTrue(context.containsBean("consumedMessageRepository"));
-                Assert.assertTrue(context.containsBean("messageSendLogRepository"));
-                Assert.assertTrue(context.containsBean("consumedMessageCleanupService"));
-                Assert.assertTrue(context.containsBean("consumedMessageCleanupScheduler"));
-                Assert.assertTrue(context.containsBean("transactionalMessageCleanupService"));
-                Assert.assertTrue(context.containsBean("transactionalMessageCleanupScheduler"));
-                Assert.assertNotNull(context.getBean(ConsumedMessageCleanupService.class));
-                TransactionalMqProperties properties = context.getBean(TransactionalMqProperties.class);
-                Assert.assertTrue(properties.isEnabled());
-                Assert.assertEquals(23, properties.getDispatchBatchSize());
-                Assert.assertEquals(8, properties.getConsumeRecordRetentionDays());
-            });
+                .withPropertyValues("transactionalmq.enabled=true",
+                        "transactionalmq.dispatch-batch-size=23",
+                        "transactionalmq.consume-record-retention-days=8")
+                .withBean(EzDao.class, () -> mock(EzDao.class))
+                .run(context -> {
+                    Assert.assertTrue(context.containsBean("messagePublishService"));
+                    Assert.assertNotNull(context.getBean(MessagePublishService.class));
+                    Assert.assertTrue(context.containsBean("transactionalMessageRepository"));
+                    Assert.assertTrue(context.containsBean("consumedMessageRepository"));
+                    Assert.assertTrue(context.containsBean("messageSendLogRepository"));
+                    Assert.assertTrue(context.containsBean("consumedMessageCleanupService"));
+                    Assert.assertTrue(context.containsBean("consumedMessageCleanupScheduler"));
+                    Assert.assertTrue(context.containsBean("transactionalMessageCleanupService"));
+                    Assert.assertTrue(context.containsBean("transactionalMessageCleanupScheduler"));
+                    Assert.assertNotNull(context.getBean(ConsumedMessageCleanupService.class));
+                    TransactionalMqProperties properties = context.getBean(TransactionalMqProperties.class);
+                    Assert.assertTrue(properties.isEnabled());
+                    Assert.assertEquals(23, properties.getDispatchBatchSize());
+                    Assert.assertEquals(8, properties.getConsumeRecordRetentionDays());
+                });
     }
 
     @Test
@@ -65,45 +66,45 @@ public class TransactionalMqAutoConfigurationTest {
     @Test
     public void should_use_user_defined_message_payload_serializer_when_present() {
         this.contextRunner
-            .withBean(MessagePayloadSerializer.class, CustomMessagePayloadSerializer::new)
-            .run(context -> {
-                MessagePayloadSerializer serializer = context.getBean(MessagePayloadSerializer.class);
-                Assert.assertTrue(serializer instanceof CustomMessagePayloadSerializer);
-                Assert.assertEquals("custom:demo", serializer.serialize("demo"));
-                Assert.assertEquals(1, context.getBeansOfType(MessagePayloadSerializer.class).size());
-            });
+                .withBean(MessagePayloadSerializer.class, CustomMessagePayloadSerializer::new)
+                .run(context -> {
+                    MessagePayloadSerializer serializer = context.getBean(MessagePayloadSerializer.class);
+                    Assert.assertTrue(serializer instanceof CustomMessagePayloadSerializer);
+                    Assert.assertEquals("custom:demo", serializer.serialize("demo"));
+                    Assert.assertEquals(1, context.getBeansOfType(MessagePayloadSerializer.class).size());
+                });
     }
 
     @Test
     public void should_not_register_auto_configuration_when_disabled() {
         this.contextRunner
-            .withPropertyValues("transactional.mq.enabled=false")
-            .withBean(EzDao.class, () -> mock(EzDao.class))
-            .run(context -> {
-                Assert.assertFalse(context.containsBean("messagePublishService"));
-                Assert.assertFalse(context.containsBean("rabbitMqProducerAdapter"));
-                Assert.assertFalse(context.containsBean("transactionalMessageRepository"));
-            });
+                .withPropertyValues("transactionalmq.enabled=false")
+                .withBean(EzDao.class, () -> mock(EzDao.class))
+                .run(context -> {
+                    Assert.assertFalse(context.containsBean("messagePublishService"));
+                    Assert.assertFalse(context.containsBean("rabbitMqProducerAdapter"));
+                    Assert.assertFalse(context.containsBean("transactionalMessageRepository"));
+                });
     }
 
     @Test
     public void should_register_rabbit_mq_producer_adapter_when_rabbit_template_present() {
         this.contextRunner
-            .withPropertyValues("transactional.mq.enabled=true")
-            .withBean(EzDao.class, () -> mock(EzDao.class))
-            .withBean(RabbitTemplate.class, () -> mock(RabbitTemplate.class))
-            .run(context -> {
-                Assert.assertTrue(context.containsBean("rabbitMqProducerAdapter"));
-                Assert.assertTrue(context.getBean(RabbitMqProducerAdapter.class) instanceof RabbitMqProducerAdapter);
-                Assert.assertTrue(context.containsBean("transactionalMessageRepository"));
-            });
+                .withPropertyValues("transactionalmq.enabled=true")
+                .withBean(EzDao.class, () -> mock(EzDao.class))
+                .withBean(RabbitTemplate.class, () -> mock(RabbitTemplate.class))
+                .run(context -> {
+                    Assert.assertTrue(context.containsBean("rabbitMqProducerAdapter"));
+                    Assert.assertTrue(context.getBean(RabbitMqProducerAdapter.class) instanceof RabbitMqProducerAdapter);
+                    Assert.assertTrue(context.containsBean("transactionalMessageRepository"));
+                });
     }
 
     @Test
     public void should_be_listed_in_spring_factories_as_auto_configuration() {
         String className = TransactionalMqAutoConfiguration.class.getName();
         Assert.assertTrue(SpringFactoriesLoader.loadFactoryNames(EnableAutoConfiguration.class,
-            getClass().getClassLoader()).contains(className));
+                getClass().getClassLoader()).contains(className));
     }
 
     private static final class SamplePayload {

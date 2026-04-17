@@ -7,36 +7,36 @@ import org.rdlinux.transactionalmq.common.entity.BaseEntity;
 import org.rdlinux.transactionalmq.common.enums.ConsumeStatus;
 
 /**
- * core 层消费记录。
+ * core 层消费记录
  */
 public class ConsumedMessageRecord extends BaseEntity<ConsumedMessageRecord> {
 
     /**
-     * 消息键。
+     * 消息键
      */
     private String messageKey;
     /**
-     * 消费者编码。
+     * 消费者编码
      */
     private String consumerCode;
     /**
-     * 业务键。
+     * 业务键
      */
     private String bizKey;
     /**
-     * 消费状态。
+     * 消费状态
      */
     private ConsumeStatus consumeStatus;
     /**
-     * 消费时间。
+     * 消费时间
      */
     private Date consumeTime;
 
     /**
-     * 从消费上下文创建消费记录。
+     * 从消费上下文创建消费记录
      *
      * <p>当前骨架实现不推进消费状态机，成功处理后的归档链路会直接依赖 {@link ConsumeStatus#SUCCESS}
-     * 语义，因此这里默认落为成功状态，便于后续归档查询直接命中。</p>
+     * 语义，因此这里默认落为成功状态，便于后续归档查询直接命中</p>
      *
      * @param context 消费上下文
      * @return 消费记录
@@ -54,16 +54,16 @@ public class ConsumedMessageRecord extends BaseEntity<ConsumedMessageRecord> {
     }
 
     /**
-     * 获取消息键。
+     * 获取消息键
      *
      * @return 消息键
      */
     public String getMessageKey() {
-        return messageKey;
+        return this.messageKey;
     }
 
     /**
-     * 设置消息键。
+     * 设置消息键
      *
      * @param messageKey 消息键
      */
@@ -72,16 +72,16 @@ public class ConsumedMessageRecord extends BaseEntity<ConsumedMessageRecord> {
     }
 
     /**
-     * 获取消费者编码。
+     * 获取消费者编码
      *
      * @return 消费者编码
      */
     public String getConsumerCode() {
-        return consumerCode;
+        return this.consumerCode;
     }
 
     /**
-     * 设置消费者编码。
+     * 设置消费者编码
      *
      * @param consumerCode 消费者编码
      */
@@ -90,16 +90,16 @@ public class ConsumedMessageRecord extends BaseEntity<ConsumedMessageRecord> {
     }
 
     /**
-     * 获取业务键。
+     * 获取业务键
      *
      * @return 业务键
      */
     public String getBizKey() {
-        return bizKey;
+        return this.bizKey;
     }
 
     /**
-     * 设置业务键。
+     * 设置业务键
      *
      * @param bizKey 业务键
      */
@@ -108,16 +108,16 @@ public class ConsumedMessageRecord extends BaseEntity<ConsumedMessageRecord> {
     }
 
     /**
-     * 获取消费状态。
+     * 获取消费状态
      *
      * @return 消费状态
      */
     public ConsumeStatus getConsumeStatus() {
-        return consumeStatus;
+        return this.consumeStatus;
     }
 
     /**
-     * 设置消费状态。
+     * 设置消费状态
      *
      * @param consumeStatus 消费状态
      */
@@ -126,16 +126,16 @@ public class ConsumedMessageRecord extends BaseEntity<ConsumedMessageRecord> {
     }
 
     /**
-     * 获取消费时间。
+     * 获取消费时间
      *
      * @return 消费时间
      */
     public Date getConsumeTime() {
-        return consumeTime;
+        return this.consumeTime;
     }
 
     /**
-     * 设置消费时间。
+     * 设置消费时间
      *
      * @param consumeTime 消费时间
      */

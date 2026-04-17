@@ -11,7 +11,7 @@ import org.rdlinux.transactionalmq.store.ezmybatis.entity.TransactionalMessageEn
 import org.rdlinux.transactionalmq.store.ezmybatis.entity.TransactionalMessageHistoryEntity;
 
 /**
- * 事务消息记录与实体之间的转换工具。
+ * 事务消息记录与实体之间的转换工具
  *
  */
 final class TransactionalMessageEntityMapper {
@@ -115,9 +115,9 @@ final class TransactionalMessageEntityMapper {
     }
 
     /**
-     * 解析持久化主键。
+     * 解析持久化主键
      *
-     * <p>仅当 {@code id} 为空时才生成主键值，不会触碰业务消息标识。</p>
+     * <p>仅当 {@code id} 为空时才生成主键值，不会触碰业务消息标识</p>
      *
      * @param id 持久化主键
      * @return 可用于入库的主键
@@ -141,8 +141,8 @@ final class TransactionalMessageEntityMapper {
                 builder.append(',');
             }
             builder.append('"').append(escape(entry.getKey())).append('"')
-                .append(':')
-                .append('"').append(escape(entry.getValue())).append('"');
+                    .append(':')
+                    .append('"').append(escape(entry.getValue())).append('"');
             first = false;
         }
         builder.append('}');

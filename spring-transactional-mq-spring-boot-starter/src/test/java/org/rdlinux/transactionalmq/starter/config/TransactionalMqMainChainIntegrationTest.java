@@ -35,12 +35,12 @@ import org.springframework.boot.autoconfigure.AutoConfigurations;
 import org.springframework.boot.test.context.runner.ApplicationContextRunner;
 
 /**
- * starter 主链路集成回归测试。
+ * starter 主链路集成回归测试
  */
 public class TransactionalMqMainChainIntegrationTest {
 
     private final ApplicationContextRunner contextRunner = new ApplicationContextRunner()
-        .withConfiguration(AutoConfigurations.of(TransactionalMqAutoConfiguration.class));
+            .withConfiguration(AutoConfigurations.of(TransactionalMqAutoConfiguration.class));
 
     @Test
     public void should_wire_publish_and_dispatch_main_chain() {
@@ -48,61 +48,61 @@ public class TransactionalMqMainChainIntegrationTest {
         RabbitTemplate rabbitTemplate = mock(RabbitTemplate.class);
 
         this.contextRunner
-            .withPropertyValues("transactional.mq.enabled=true",
-                "transactional.mq.dispatch-idle-sleep-millis=100")
-            .withBean(EzDao.class, () -> ezDao)
-            .withBean(RabbitTemplate.class, () -> rabbitTemplate)
-            .withBean(TransactionalMessageDispatchScheduler.class,
-                () -> org.mockito.Mockito.mock(TransactionalMessageDispatchScheduler.class))
-            .run(context -> {
-                assertTrue(context.containsBean("transactionalMessageRepository"));
-                assertTrue(context.containsBean("messagePublishService"));
-                assertTrue(context.containsBean("messageDispatchService"));
-                assertTrue(context.containsBean("transactionalMessageCleanupService"));
-                assertTrue(context.containsBean("rabbitMqProducerAdapter"));
+                .withPropertyValues("transactionalmq.enabled=true",
+                        "transactionalmq.dispatch-idle-sleep-millis=100")
+                .withBean(EzDao.class, () -> ezDao)
+                .withBean(RabbitTemplate.class, () -> rabbitTemplate)
+                .withBean(TransactionalMessageDispatchScheduler.class,
+                        () -> org.mockito.Mockito.mock(TransactionalMessageDispatchScheduler.class))
+                .run(context -> {
+                    assertTrue(context.containsBean("transactionalMessageRepository"));
+                    assertTrue(context.containsBean("messagePublishService"));
+                    assertTrue(context.containsBean("messageDispatchService"));
+                    assertTrue(context.containsBean("transactionalMessageCleanupService"));
+                    assertTrue(context.containsBean("rabbitMqProducerAdapter"));
 
-                MessagePublishService publishService = context.getBean(MessagePublishService.class);
-                MessageDispatchService dispatchService = context.getBean(MessageDispatchService.class);
-                TransactionalMessageCleanupService cleanupService =
-                    context.getBean(TransactionalMessageCleanupService.class);
+                    MessagePublishService publishService = context.getBean(MessagePublishService.class);
+                    MessageDispatchService dispatchService = context.getBean(MessageDispatchService.class);
+                    TransactionalMessageCleanupService cleanupService =
+                            context.getBean(TransactionalMessageCleanupService.class);
 
-                TransactionalMessage<String> message = new TransactionalMessage<String>()
-                    .setMessageKey("message-key-8")
-                    .setProducerCode("producer-8")
-                    .setMqType(MqType.RABBITMQ)
-                    .setDestination("exchange.demo:queue.demo")
-                    .setPayload("payload-8")
-                    .setBizKey("biz-8");
+                    TransactionalMessage<String> message = new TransactionalMessage<String>()
+                            .setMessageKey("message-key-8")
+                            .setProducerCode("producer-8")
+                            .setMqType(MqType.RABBITMQ)
+                            .setDestination("exchange.demo:queue.demo")
+                            .setPayload("payload-8")
+                            .setBizKey("biz-8");
 
-                String messageId = publishService.send(message);
+                    String messageId = publishService.send(message);
 
-                assertNotNull(messageId);
-                assertEquals(1, ezDao.getTransactionalMessageCount());
-                assertEquals(messageId, ezDao.getTransactionalMessage(0).getId());
-                assertEquals(MessageStatus.INIT, ezDao.getTransactionalMessage(0).getMessageStatus());
-                assertEquals(0, ezDao.getTransactionalMessageHistoryCount());
+                    assertNotNull(messageId);
+                    assertEquals(1, ezDao.getTransactionalMessageCount());
+                    assertEquals(messageId, ezDao.getTransactionalMessage(0).getId());
+                    assertEquals(MessageStatus.INIT, ezDao.getTransactionalMessage(0).getMessageStatus());
+                    assertEquals(0, ezDao.getTransactionalMessageHistoryCount());
 
-                assertEquals(1, dispatchService.dispatchPendingMessages(10));
-                assertEquals(MessageStatus.SUCCESS, ezDao.getTransactionalMessage(0).getMessageStatus());
-                verify(rabbitTemplate).convertAndSend(eq("exchange.demo"), eq("queue.demo"), any(Object.class),
-                    any(MessagePostProcessor.class));
+                    assertEquals(1, dispatchService.dispatchPendingMessages(10));
+                    assertEquals(MessageStatus.SUCCESS, ezDao.getTransactionalMessage(0).getMessageStatus());
+                    verify(rabbitTemplate).convertAndSend(eq("exchange.demo"), eq("queue.demo"), any(Object.class),
+                            any(MessagePostProcessor.class));
 
-                ezDao.enableCleanupQuery();
-                int deleted = cleanupService.cleanupSuccessMessages(new Date(System.currentTimeMillis() + 1000), 10);
+                    ezDao.enableCleanupQuery();
+                    int deleted = cleanupService.cleanupSuccessMessages(new Date(System.currentTimeMillis() + 1000), 10);
 
-                assertEquals(1, deleted);
-                assertEquals(0, ezDao.getTransactionalMessageCount());
-                assertEquals(1, ezDao.getTransactionalMessageHistoryCount());
-                assertEquals(messageId, ezDao.getTransactionalMessageHistory(0).getId());
-            });
+                    assertEquals(1, deleted);
+                    assertEquals(0, ezDao.getTransactionalMessageCount());
+                    assertEquals(1, ezDao.getTransactionalMessageHistoryCount());
+                    assertEquals(messageId, ezDao.getTransactionalMessageHistory(0).getId());
+                });
     }
 
     private static final class StatefulEzDao extends EzDao {
 
         private final List<TransactionalMessageEntity> transactionalMessageEntities =
-            new ArrayList<TransactionalMessageEntity>();
+                new ArrayList<TransactionalMessageEntity>();
         private final List<TransactionalMessageHistoryEntity> transactionalMessageHistoryEntities =
-            new ArrayList<TransactionalMessageHistoryEntity>();
+                new ArrayList<TransactionalMessageHistoryEntity>();
         private boolean cleanupQueryEnabled;
 
         private StatefulEzDao() {
@@ -134,14 +134,14 @@ public class TransactionalMqMainChainIntegrationTest {
             Date now = new Date();
             for (TransactionalMessageEntity entity : this.transactionalMessageEntities) {
                 if (!this.cleanupQueryEnabled
-                    && entity.getMessageStatus() == MessageStatus.INIT
-                    && entity.getNextDispatchTime() != null
-                    && !entity.getNextDispatchTime().after(now)) {
+                        && entity.getMessageStatus() == MessageStatus.INIT
+                        && entity.getNextDispatchTime() != null
+                        && !entity.getNextDispatchTime().after(now)) {
                     result.add((Rt) copy(entity));
                 } else if (this.cleanupQueryEnabled
-                    && entity.getMessageStatus() == MessageStatus.SUCCESS
-                    && entity.getUpdateTime() != null
-                    && !entity.getUpdateTime().after(now)) {
+                        && entity.getMessageStatus() == MessageStatus.SUCCESS
+                        && entity.getUpdateTime() != null
+                        && !entity.getUpdateTime().after(now)) {
                     result.add((Rt) copy(entity));
                 }
             }
@@ -153,8 +153,8 @@ public class TransactionalMqMainChainIntegrationTest {
             Date now = new Date();
             for (TransactionalMessageEntity entity : this.transactionalMessageEntities) {
                 if (entity.getMessageStatus() == MessageStatus.INIT
-                    && entity.getNextDispatchTime() != null
-                    && !entity.getNextDispatchTime().after(now)) {
+                        && entity.getNextDispatchTime() != null
+                        && !entity.getNextDispatchTime().after(now)) {
                     entity.setMessageStatus(MessageStatus.SENDING);
                     entity.setUpdateTime(now);
                     entity.setNextDispatchTime(new Date(now.getTime() + 5 * 60 * 1000L));
@@ -167,8 +167,8 @@ public class TransactionalMqMainChainIntegrationTest {
                     return 1;
                 }
                 if (entity.getMessageStatus() == MessageStatus.SUCCESS
-                    && entity.getUpdateTime() != null
-                    && !entity.getUpdateTime().after(now)) {
+                        && entity.getUpdateTime() != null
+                        && !entity.getUpdateTime().after(now)) {
                     entity.setMessageStatus(MessageStatus.ARCHIVING);
                     entity.setUpdateTime(now);
                     return 1;

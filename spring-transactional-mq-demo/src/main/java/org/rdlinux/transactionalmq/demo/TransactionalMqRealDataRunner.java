@@ -14,7 +14,7 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Component;
 
 /**
- * 真实数据链路测试 runner。
+ * 真实数据链路测试 runner
  */
 @Component
 @ConditionalOnProperty(prefix = "demo.transactional-mq", name = "run-on-startup", havingValue = "true")
@@ -26,13 +26,13 @@ public class TransactionalMqRealDataRunner implements ApplicationRunner {
     private final TransactionalMqDemoProperties properties;
 
     /**
-     * 构造真实数据链路测试 runner。
+     * 构造真实数据链路测试 runner
      *
      * @param messagePublishService 消息发布服务
-     * @param properties demo 配置
+     * @param properties            demo 配置
      */
     public TransactionalMqRealDataRunner(MessagePublishService messagePublishService,
-            TransactionalMqDemoProperties properties) {
+                                         TransactionalMqDemoProperties properties) {
         this.messagePublishService = messagePublishService;
         this.properties = properties;
     }

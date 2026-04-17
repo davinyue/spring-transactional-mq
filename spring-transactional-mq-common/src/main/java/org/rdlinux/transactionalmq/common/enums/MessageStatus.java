@@ -1,7 +1,7 @@
 package org.rdlinux.transactionalmq.common.enums;
 
 /**
- * 事务消息主状态。
+ * 事务消息主状态
  */
 public enum MessageStatus {
     INIT("init"),

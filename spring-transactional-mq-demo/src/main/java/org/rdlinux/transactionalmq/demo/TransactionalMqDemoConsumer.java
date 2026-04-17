@@ -11,7 +11,7 @@ import org.springframework.stereotype.Component;
 import java.util.Map;
 
 /**
- * demo 事务消息消费者示例。
+ * demo 事务消息消费者示例
  */
 @Component
 @ConditionalOnProperty(prefix = "demo.transactional-mq", name = "enable-demo-consumer", havingValue = "true",

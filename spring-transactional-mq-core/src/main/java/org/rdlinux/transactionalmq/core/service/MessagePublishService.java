@@ -12,7 +12,7 @@ import org.springframework.transaction.support.TransactionSynchronization;
 import org.springframework.transaction.support.TransactionSynchronizationManager;
 
 /**
- * 事务消息发布服务骨架。
+ * 事务消息发布服务骨架
  */
 public class MessagePublishService implements TransactionalMessageSender {
 
@@ -21,7 +21,7 @@ public class MessagePublishService implements TransactionalMessageSender {
     private final MessageDispatchWakeupService messageDispatchWakeupService;
 
     /**
-     * 构造消息发布服务。
+     * 构造消息发布服务
      *
      * @param transactionalMessageRepository 事务消息仓储
      * @param messagePayloadSerializer       消息负载序列化器
@@ -36,7 +36,7 @@ public class MessagePublishService implements TransactionalMessageSender {
     }
 
     /**
-     * 保存消息并返回消息 id。
+     * 保存消息并返回消息 id
      *
      * @param message 事务消息
      * @param <T>     负载类型

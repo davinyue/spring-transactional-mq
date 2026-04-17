@@ -6,13 +6,13 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
 /**
- * demo RabbitMQ 资源配置。
+ * demo RabbitMQ 资源配置
  */
 @Configuration
 public class TransactionalMqDemoRabbitConfiguration {
 
     /**
-     * 声明默认测试队列。默认 exchange 发送时，destination 直接使用该队列名即可。
+     * 声明默认测试队列默认 exchange 发送时，destination 直接使用该队列名即可
      *
      * @param properties demo 配置
      * @return 测试队列

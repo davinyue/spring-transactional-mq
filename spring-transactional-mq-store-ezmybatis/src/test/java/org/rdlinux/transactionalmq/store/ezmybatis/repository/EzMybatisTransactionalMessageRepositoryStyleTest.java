@@ -8,12 +8,12 @@ import org.junit.Assert;
 import org.junit.Test;
 
 /**
- * 事务消息仓储实现风格测试。
+ * 事务消息仓储实现风格测试
  */
 public class EzMybatisTransactionalMessageRepositoryStyleTest {
 
     /**
-     * 验证仓储实现不再使用手写 SQL。
+     * 验证仓储实现不再使用手写 SQL
      *
      * @throws Exception 读取源码失败
      */

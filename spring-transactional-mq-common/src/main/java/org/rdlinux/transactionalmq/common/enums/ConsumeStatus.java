@@ -1,7 +1,7 @@
 package org.rdlinux.transactionalmq.common.enums;
 
 /**
- * 消费状态。
+ * 消费状态
  */
 public enum ConsumeStatus {
     INIT("init"),

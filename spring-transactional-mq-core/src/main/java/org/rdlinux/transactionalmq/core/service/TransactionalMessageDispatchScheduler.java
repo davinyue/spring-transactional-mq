@@ -4,11 +4,11 @@ import org.springframework.beans.factory.DisposableBean;
 import org.springframework.beans.factory.InitializingBean;
 
 /**
- * 事务消息后台派发线程。
+ * 事务消息后台派发线程
  *
- * <p>该线程持续轮询数据库中的待发送消息。当没有候选消息时会进入休眠；
+ * <p>该线程持续轮询数据库中的待发送消息当没有候选消息时会进入休眠；
  * 发送服务在事务提交成功后会通过 {@link MessageDispatchWakeupService#wakeup()} 提前唤醒它，
- * 减少新消息入库后的等待时间。</p>
+ * 减少新消息入库后的等待时间</p>
  */
 public class TransactionalMessageDispatchScheduler implements InitializingBean, DisposableBean {
     /**
@@ -32,7 +32,7 @@ public class TransactionalMessageDispatchScheduler implements InitializingBean, 
     private Thread workerThread;
 
     /**
-     * 构造后台派发线程。
+     * 构造后台派发线程
      *
      * @param messageDispatchService       消息派发服务
      * @param dispatchBatchSize            单次派发批量大小
@@ -78,7 +78,7 @@ public class TransactionalMessageDispatchScheduler implements InitializingBean, 
     }
 
     /**
-     * 立即执行一轮派发。
+     * 立即执行一轮派发
      *
      * @return 本轮派发数量
      */

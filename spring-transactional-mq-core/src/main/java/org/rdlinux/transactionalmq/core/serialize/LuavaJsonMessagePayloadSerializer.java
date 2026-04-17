@@ -1,12 +1,12 @@
-package org.rdlinux.transactionalmq.starter.config;
-
-import java.lang.reflect.Type;
+package org.rdlinux.transactionalmq.core.serialize;
 
 import org.rdlinux.luava.json.JacksonUtils;
 import org.rdlinux.transactionalmq.api.serialize.MessagePayloadSerializer;
 
+import java.lang.reflect.Type;
+
 /**
- * 基于 luava-json 的默认消息负载序列化器。
+ * 基于 luava-json 的默认消息负载序列化器
  */
 public class LuavaJsonMessagePayloadSerializer implements MessagePayloadSerializer {
 

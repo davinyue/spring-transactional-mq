@@ -8,12 +8,12 @@ import org.junit.Assert;
 import org.junit.Test;
 
 /**
- * ez-mybatis 仓储查询风格测试。
+ * ez-mybatis 仓储查询风格测试
  */
 public class EzMybatisRepositoryQueryStyleTest {
 
     /**
-     * 验证仓储查询分页统一使用 page。
+     * 验证仓储查询分页统一使用 page
      *
      * @throws Exception 读取源码失败
      */

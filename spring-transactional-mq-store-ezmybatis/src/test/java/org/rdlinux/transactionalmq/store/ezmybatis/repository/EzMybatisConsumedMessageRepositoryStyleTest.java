@@ -8,12 +8,12 @@ import org.junit.Assert;
 import org.junit.Test;
 
 /**
- * 已消费消息仓储实现风格测试。
+ * 已消费消息仓储实现风格测试
  */
 public class EzMybatisConsumedMessageRepositoryStyleTest {
 
     /**
-     * 验证消费主表清理不再使用批量删除，并按 id 稳定排序后逐条删除，降低多实例死锁风险。
+     * 验证消费主表清理不再使用批量删除，并按 id 稳定排序后逐条删除，降低多实例死锁风险
      *
      * @throws Exception 读取源码失败
      */

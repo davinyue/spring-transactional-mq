@@ -17,7 +17,7 @@ import org.rdlinux.transactionalmq.core.repository.MessageSendLogRepository;
 import org.rdlinux.transactionalmq.core.repository.TransactionalMessageRepository;
 
 /**
- * 消息派发服务测试。
+ * 消息派发服务测试
  */
 public class MessageDispatchServiceTest {
 
@@ -95,7 +95,7 @@ public class MessageDispatchServiceTest {
         public List<TransactionalMessageRecord> findDispatchCandidates(int limit) {
             this.findCalls++;
             this.claimLimit = limit;
-            return records;
+            return this.records;
         }
 
         @Override
@@ -136,7 +136,7 @@ public class MessageDispatchServiceTest {
 
         @Override
         public void send(DispatchMessage message) {
-            sentMessages.add(message);
+            this.sentMessages.add(message);
             if (message.getId().equals(this.failedId)) {
                 throw new RuntimeException("send failed");
             }
@@ -149,7 +149,7 @@ public class MessageDispatchServiceTest {
 
         @Override
         public MessageSendLogRecord save(MessageSendLogRecord record) {
-            savedLogs.add(record);
+            this.savedLogs.add(record);
             return record;
         }
 

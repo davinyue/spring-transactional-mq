@@ -11,7 +11,7 @@ import org.rdlinux.transactionalmq.core.model.ConsumedMessageRecord;
 import org.rdlinux.transactionalmq.core.repository.ConsumedMessageRepository;
 
 /**
- * 消费幂等服务测试。
+ * 消费幂等服务测试
  */
 public class ConsumeIdempotentServiceTest {
 
@@ -21,9 +21,9 @@ public class ConsumeIdempotentServiceTest {
         ConsumeIdempotentService service = new ConsumeIdempotentService(repository);
 
         boolean recorded = service.recordIfAbsent(new ConsumeContext()
-            .setId("msg-1")
-            .setMessageKey("message-key-1")
-            .setConsumerCode("consumer-1"));
+                .setId("msg-1")
+                .setMessageKey("message-key-1")
+                .setConsumerCode("consumer-1"));
 
         Assert.assertTrue(recorded);
         Assert.assertEquals(1, repository.saveIfAbsentCalls);
@@ -39,9 +39,9 @@ public class ConsumeIdempotentServiceTest {
         ConsumeIdempotentService service = new ConsumeIdempotentService(repository);
 
         boolean recorded = service.recordIfAbsent(new ConsumeContext()
-            .setId("msg-2")
-            .setMessageKey("message-key-2")
-            .setConsumerCode("consumer-2"));
+                .setId("msg-2")
+                .setMessageKey("message-key-2")
+                .setConsumerCode("consumer-2"));
 
         Assert.assertFalse(recorded);
         Assert.assertEquals(1, repository.saveIfAbsentCalls);
@@ -50,9 +50,9 @@ public class ConsumeIdempotentServiceTest {
     @Test
     public void consumedMessageRecordFromShouldDefaultToSuccessForArchiveFlow() {
         ConsumedMessageRecord record = ConsumedMessageRecord.from(new ConsumeContext()
-            .setId("msg-3")
-            .setMessageKey("message-key-3")
-            .setConsumerCode("consumer-3"));
+                .setId("msg-3")
+                .setMessageKey("message-key-3")
+                .setConsumerCode("consumer-3"));
 
         Assert.assertEquals(org.rdlinux.transactionalmq.common.enums.ConsumeStatus.SUCCESS, record.getConsumeStatus());
         Assert.assertEquals("msg-3", record.getId());
@@ -70,9 +70,9 @@ public class ConsumeIdempotentServiceTest {
 
         @Override
         public boolean saveIfAbsent(ConsumedMessageRecord record) {
-            saveIfAbsentCalls++;
-            savedRecord = record;
-            return saveResult;
+            this.saveIfAbsentCalls++;
+            this.savedRecord = record;
+            return this.saveResult;
         }
 
         @Override

@@ -16,6 +16,10 @@
     <dependencies>
         <dependency>
             <groupId>org.rdlinux</groupId>
+            <artifactId>luava-json</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.rdlinux</groupId>
             <artifactId>spring-transactional-mq-api</artifactId>
         </dependency>
         <dependency>

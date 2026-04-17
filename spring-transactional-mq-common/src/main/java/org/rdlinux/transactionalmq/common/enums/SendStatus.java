@@ -1,7 +1,7 @@
 package org.rdlinux.transactionalmq.common.enums;
 
 /**
- * 发送历史状态。
+ * 发送历史状态
  */
 public enum SendStatus {
     INIT("init"),

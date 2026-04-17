@@ -15,7 +15,7 @@ import java.util.Date;
 import java.util.List;
 
 /**
- * 事务消息派发服务骨架。
+ * 事务消息派发服务骨架
  */
 public class MessageDispatchService {
 
@@ -26,7 +26,7 @@ public class MessageDispatchService {
     private final MessageSendLogRepository messageSendLogRepository;
 
     /**
-     * 构造消息派发服务。
+     * 构造消息派发服务
      *
      * @param transactionalMessageRepository 事务消息仓储
      * @param mqProducerAdapter              MQ 适配器
@@ -37,7 +37,7 @@ public class MessageDispatchService {
     }
 
     /**
-     * 构造消息派发服务。
+     * 构造消息派发服务
      *
      * @param transactionalMessageRepository 事务消息仓储
      * @param mqProducerAdapter              MQ 适配器
@@ -51,7 +51,7 @@ public class MessageDispatchService {
     }
 
     /**
-     * 领取待派发消息并交给 MQ 适配器。
+     * 领取待派发消息并交给 MQ 适配器
      *
      * @param limit 领取条数
      * @return 本次派发数量

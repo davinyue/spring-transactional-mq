@@ -11,83 +11,83 @@ import org.rdlinux.transactionalmq.common.enums.MessageStatus;
 import org.rdlinux.transactionalmq.common.enums.MqType;
 
 /**
- * core 层事务消息持久化记录。
+ * core 层事务消息持久化记录
  */
 public class TransactionalMessageRecord extends BaseEntity<TransactionalMessageRecord> {
 
     /**
-     * 消息键。
+     * 消息键
      */
     private String messageKey;
     /**
-     * 生产者编码。
+     * 生产者编码
      */
     private String producerCode;
     /**
-     * MQ 类型。
+     * MQ 类型
      */
     private MqType mqType;
     /**
-     * 目标信息。
+     * 目标信息
      */
     private String destination;
     /**
-     * 路由信息。
+     * 路由信息
      */
     private String route;
     /**
-     * 分片键。
+     * 分片键
      */
     private String shardingKey;
     /**
-     * 负载文本。
+     * 负载文本
      */
     private String payloadText;
     /**
-     * 扩展消息头。
+     * 扩展消息头
      */
     private Map<String, String> headers = new HashMap<String, String>();
     /**
-     * 业务键。
+     * 业务键
      */
     private String bizKey;
     /**
-     * 消息状态。
+     * 消息状态
      */
     private MessageStatus messageStatus;
     /**
-     * 下次派发时间。
+     * 下次派发时间
      */
     private Date nextDispatchTime;
     /**
-     * 父消息 id。
+     * 父消息 id
      */
     private String parentId;
     /**
-     * 根消息 id。
+     * 根消息 id
      */
     private String rootId;
     /**
-     * 派发实例标识。
+     * 派发实例标识
      */
     private String dispatchOwner;
     /**
-     * 派发令牌。
+     * 派发令牌
      */
     private String dispatchToken;
     /**
-     * 派发租约过期时间。
+     * 派发租约过期时间
      */
     private Date dispatchExpireTime;
 
     /**
-     * 从 API 消息创建记录对象。
+     * 从 API 消息创建记录对象
      *
-     * <p>消息唯一标识统一使用 {@code id}，由存储层在入库时生成。</p>
+     * <p>消息唯一标识统一使用 {@code id}，由存储层在入库时生成</p>
      *
-     * @param message API 消息
+     * @param message     API 消息
      * @param payloadText 负载文本
-     * @param <T> 负载类型
+     * @param <T>         负载类型
      * @return 记录对象
      */
     public static <T> TransactionalMessageRecord from(TransactionalMessage<T> message, String payloadText) {
@@ -109,18 +109,18 @@ public class TransactionalMessageRecord extends BaseEntity<TransactionalMessageR
     }
 
     /**
-     * 从 API 消息和父消息上下文创建记录对象。
+     * 从 API 消息和父消息上下文创建记录对象
      *
-     * <p>该方法只继承消息链路信息，不会复制父消息的业务内容。</p>
+     * <p>该方法只继承消息链路信息，不会复制父消息的业务内容</p>
      *
-     * @param message API 消息
-     * @param payloadText 负载文本
+     * @param message       API 消息
+     * @param payloadText   负载文本
      * @param parentContext 父消息上下文
-     * @param <T> 负载类型
+     * @param <T>           负载类型
      * @return 记录对象
      */
     public static <T> TransactionalMessageRecord from(TransactionalMessage<T> message, String payloadText,
-            ConsumeContext parentContext) {
+                                                      ConsumeContext parentContext) {
         TransactionalMessageRecord record = from(message, payloadText);
         if (parentContext != null) {
             record.setParentId(parentContext.getId());
@@ -134,16 +134,16 @@ public class TransactionalMessageRecord extends BaseEntity<TransactionalMessageR
     }
 
     /**
-     * 获取消息键。
+     * 获取消息键
      *
      * @return 消息键
      */
     public String getMessageKey() {
-        return messageKey;
+        return this.messageKey;
     }
 
     /**
-     * 设置消息键。
+     * 设置消息键
      *
      * @param messageKey 消息键
      */
@@ -152,16 +152,16 @@ public class TransactionalMessageRecord extends BaseEntity<TransactionalMessageR
     }
 
     /**
-     * 获取生产者编码。
+     * 获取生产者编码
      *
      * @return 生产者编码
      */
     public String getProducerCode() {
-        return producerCode;
+        return this.producerCode;
     }
 
     /**
-     * 设置生产者编码。
+     * 设置生产者编码
      *
      * @param producerCode 生产者编码
      */
@@ -170,16 +170,16 @@ public class TransactionalMessageRecord extends BaseEntity<TransactionalMessageR
     }
 
     /**
-     * 获取 MQ 类型。
+     * 获取 MQ 类型
      *
      * @return MQ 类型
      */
     public MqType getMqType() {
-        return mqType;
+        return this.mqType;
     }
 
     /**
-     * 设置 MQ 类型。
+     * 设置 MQ 类型
      *
      * @param mqType MQ 类型
      */
@@ -188,16 +188,16 @@ public class TransactionalMessageRecord extends BaseEntity<TransactionalMessageR
     }
 
     /**
-     * 获取目标信息。
+     * 获取目标信息
      *
      * @return 目标信息
      */
     public String getDestination() {
-        return destination;
+        return this.destination;
     }
 
     /**
-     * 设置目标信息。
+     * 设置目标信息
      *
      * @param destination 目标信息
      */
@@ -206,16 +206,16 @@ public class TransactionalMessageRecord extends BaseEntity<TransactionalMessageR
     }
 
     /**
-     * 获取路由信息。
+     * 获取路由信息
      *
      * @return 路由信息
      */
     public String getRoute() {
-        return route;
+        return this.route;
     }
 
     /**
-     * 设置路由信息。
+     * 设置路由信息
      *
      * @param route 路由信息
      */
@@ -224,16 +224,16 @@ public class TransactionalMessageRecord extends BaseEntity<TransactionalMessageR
     }
 
     /**
-     * 获取分片键。
+     * 获取分片键
      *
      * @return 分片键
      */
     public String getShardingKey() {
-        return shardingKey;
+        return this.shardingKey;
     }
 
     /**
-     * 设置分片键。
+     * 设置分片键
      *
      * @param shardingKey 分片键
      */
@@ -242,16 +242,16 @@ public class TransactionalMessageRecord extends BaseEntity<TransactionalMessageR
     }
 
     /**
-     * 获取负载文本。
+     * 获取负载文本
      *
      * @return 负载文本
      */
     public String getPayloadText() {
-        return payloadText;
+        return this.payloadText;
     }
 
     /**
-     * 设置负载文本。
+     * 设置负载文本
      *
      * @param payloadText 负载文本
      */
@@ -260,16 +260,16 @@ public class TransactionalMessageRecord extends BaseEntity<TransactionalMessageR
     }
 
     /**
-     * 获取扩展消息头。
+     * 获取扩展消息头
      *
      * @return 消息头
      */
     public Map<String, String> getHeaders() {
-        return new HashMap<String, String>(headers);
+        return new HashMap<String, String>(this.headers);
     }
 
     /**
-     * 设置扩展消息头。
+     * 设置扩展消息头
      *
      * @param headers 消息头
      */
@@ -282,16 +282,16 @@ public class TransactionalMessageRecord extends BaseEntity<TransactionalMessageR
     }
 
     /**
-     * 获取业务键。
+     * 获取业务键
      *
      * @return 业务键
      */
     public String getBizKey() {
-        return bizKey;
+        return this.bizKey;
     }
 
     /**
-     * 设置业务键。
+     * 设置业务键
      *
      * @param bizKey 业务键
      */
@@ -300,16 +300,16 @@ public class TransactionalMessageRecord extends BaseEntity<TransactionalMessageR
     }
 
     /**
-     * 获取消息状态。
+     * 获取消息状态
      *
      * @return 消息状态
      */
     public MessageStatus getMessageStatus() {
-        return messageStatus;
+        return this.messageStatus;
     }
 
     /**
-     * 设置消息状态。
+     * 设置消息状态
      *
      * @param messageStatus 消息状态
      */
@@ -318,16 +318,16 @@ public class TransactionalMessageRecord extends BaseEntity<TransactionalMessageR
     }
 
     /**
-     * 获取下次派发时间。
+     * 获取下次派发时间
      *
      * @return 下次派发时间
      */
     public Date getNextDispatchTime() {
-        return nextDispatchTime;
+        return this.nextDispatchTime;
     }
 
     /**
-     * 设置下次派发时间。
+     * 设置下次派发时间
      *
      * @param nextDispatchTime 下次派发时间
      */
@@ -336,16 +336,16 @@ public class TransactionalMessageRecord extends BaseEntity<TransactionalMessageR
     }
 
     /**
-     * 获取父消息 id。
+     * 获取父消息 id
      *
      * @return 父消息 id
      */
     public String getParentId() {
-        return parentId;
+        return this.parentId;
     }
 
     /**
-     * 设置父消息 id。
+     * 设置父消息 id
      *
      * @param parentId 父消息 id
      */
@@ -354,16 +354,16 @@ public class TransactionalMessageRecord extends BaseEntity<TransactionalMessageR
     }
 
     /**
-     * 获取根消息 id。
+     * 获取根消息 id
      *
      * @return 根消息 id
      */
     public String getRootId() {
-        return rootId;
+        return this.rootId;
     }
 
     /**
-     * 设置根消息 id。
+     * 设置根消息 id
      *
      * @param rootId 根消息 id
      */
@@ -372,16 +372,16 @@ public class TransactionalMessageRecord extends BaseEntity<TransactionalMessageR
     }
 
     /**
-     * 获取派发实例标识。
+     * 获取派发实例标识
      *
      * @return 派发实例标识
      */
     public String getDispatchOwner() {
-        return dispatchOwner;
+        return this.dispatchOwner;
     }
 
     /**
-     * 设置派发实例标识。
+     * 设置派发实例标识
      *
      * @param dispatchOwner 派发实例标识
      */
@@ -390,16 +390,16 @@ public class TransactionalMessageRecord extends BaseEntity<TransactionalMessageR
     }
 
     /**
-     * 获取派发令牌。
+     * 获取派发令牌
      *
      * @return 派发令牌
      */
     public String getDispatchToken() {
-        return dispatchToken;
+        return this.dispatchToken;
     }
 
     /**
-     * 设置派发令牌。
+     * 设置派发令牌
      *
      * @param dispatchToken 派发令牌
      */
@@ -408,16 +408,16 @@ public class TransactionalMessageRecord extends BaseEntity<TransactionalMessageR
     }
 
     /**
-     * 获取派发租约过期时间。
+     * 获取派发租约过期时间
      *
      * @return 派发租约过期时间
      */
     public Date getDispatchExpireTime() {
-        return dispatchExpireTime;
+        return this.dispatchExpireTime;
     }
 
     /**
-     * 设置派发租约过期时间。
+     * 设置派发租约过期时间
      *
      * @param dispatchExpireTime 派发租约过期时间
      */

@@ -16,12 +16,12 @@ import java.util.HashMap;
 import java.util.Map;
 
 /**
- * API 模型与接口测试。
+ * API 模型与接口测试
  */
 public class TransactionalMessageApiTest {
 
     /**
-     * 验证事务消息支持链式设置。
+     * 验证事务消息支持链式设置
      */
     @Test
     public void transactionalMessageShouldSupportChainedSetters() {
@@ -60,7 +60,7 @@ public class TransactionalMessageApiTest {
     }
 
     /**
-     * 验证接口签名能够正常编译和使用。
+     * 验证接口签名能够正常编译和使用
      */
     @Test
     public void interfacesShouldCompileAndWork() {

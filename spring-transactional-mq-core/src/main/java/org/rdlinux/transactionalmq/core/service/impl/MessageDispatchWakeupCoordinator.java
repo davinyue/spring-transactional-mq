@@ -6,7 +6,7 @@ import java.util.concurrent.Semaphore;
 import java.util.concurrent.TimeUnit;
 
 /**
- * 派发线程唤醒协调器。
+ * 派发线程唤醒协调器
  */
 public class MessageDispatchWakeupCoordinator implements MessageDispatchWakeupService {
 
@@ -18,7 +18,7 @@ public class MessageDispatchWakeupCoordinator implements MessageDispatchWakeupSe
     }
 
     /**
-     * 等待下一次唤醒或超时。
+     * 等待下一次唤醒或超时
      *
      * @param timeoutMillis 超时时间
      */

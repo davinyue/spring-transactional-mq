@@ -10,7 +10,7 @@ import java.util.Date;
 import java.util.List;
 
 /**
- * 事务消息派发调度器测试。
+ * 事务消息派发调度器测试
  */
 public class TransactionalMessageDispatchSchedulerTest {
 

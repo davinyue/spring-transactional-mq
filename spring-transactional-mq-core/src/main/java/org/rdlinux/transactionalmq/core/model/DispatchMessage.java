@@ -6,61 +6,61 @@ import java.util.Map;
 import org.rdlinux.transactionalmq.common.enums.MqType;
 
 /**
- * 待派发消息。
+ * 待派发消息
  */
 public class DispatchMessage {
 
     /**
-     * 消息主键。
+     * 消息主键
      */
     private String id;
     /**
-     * 消息键。
+     * 消息键
      */
     private String messageKey;
     /**
-     * 生产者编码。
+     * 生产者编码
      */
     private String producerCode;
     /**
-     * MQ 类型。
+     * MQ 类型
      */
     private MqType mqType;
     /**
-     * 目标信息。
+     * 目标信息
      */
     private String destination;
     /**
-     * 路由信息。
+     * 路由信息
      */
     private String route;
     /**
-     * 分片键。
+     * 分片键
      */
     private String shardingKey;
     /**
-     * 负载文本。
+     * 负载文本
      */
     private String payloadText;
     /**
-     * 扩展消息头。
+     * 扩展消息头
      */
     private Map<String, String> headers = new HashMap<String, String>();
     /**
-     * 业务键。
+     * 业务键
      */
     private String bizKey;
     /**
-     * 父消息 id。
+     * 父消息 id
      */
     private String parentId;
     /**
-     * 根消息 id。
+     * 根消息 id
      */
     private String rootId;
 
     /**
-     * 从消息记录创建派发对象。
+     * 从消息记录创建派发对象
      *
      * @param record 消息记录
      * @return 派发对象
@@ -85,16 +85,16 @@ public class DispatchMessage {
     }
 
     /**
-     * 获取消息主键。
+     * 获取消息主键
      *
      * @return 消息主键
      */
     public String getId() {
-        return id;
+        return this.id;
     }
 
     /**
-     * 设置消息主键。
+     * 设置消息主键
      *
      * @param id 消息主键
      */
@@ -103,16 +103,16 @@ public class DispatchMessage {
     }
 
     /**
-     * 获取消息键。
+     * 获取消息键
      *
      * @return 消息键
      */
     public String getMessageKey() {
-        return messageKey;
+        return this.messageKey;
     }
 
     /**
-     * 设置消息键。
+     * 设置消息键
      *
      * @param messageKey 消息键
      */
@@ -121,16 +121,16 @@ public class DispatchMessage {
     }
 
     /**
-     * 获取生产者编码。
+     * 获取生产者编码
      *
      * @return 生产者编码
      */
     public String getProducerCode() {
-        return producerCode;
+        return this.producerCode;
     }
 
     /**
-     * 设置生产者编码。
+     * 设置生产者编码
      *
      * @param producerCode 生产者编码
      */
@@ -139,16 +139,16 @@ public class DispatchMessage {
     }
 
     /**
-     * 获取 MQ 类型。
+     * 获取 MQ 类型
      *
      * @return MQ 类型
      */
     public MqType getMqType() {
-        return mqType;
+        return this.mqType;
     }
 
     /**
-     * 设置 MQ 类型。
+     * 设置 MQ 类型
      *
      * @param mqType MQ 类型
      */
@@ -157,16 +157,16 @@ public class DispatchMessage {
     }
 
     /**
-     * 获取目标信息。
+     * 获取目标信息
      *
      * @return 目标信息
      */
     public String getDestination() {
-        return destination;
+        return this.destination;
     }
 
     /**
-     * 设置目标信息。
+     * 设置目标信息
      *
      * @param destination 目标信息
      */
@@ -175,16 +175,16 @@ public class DispatchMessage {
     }
 
     /**
-     * 获取路由信息。
+     * 获取路由信息
      *
      * @return 路由信息
      */
     public String getRoute() {
-        return route;
+        return this.route;
     }
 
     /**
-     * 设置路由信息。
+     * 设置路由信息
      *
      * @param route 路由信息
      */
@@ -193,16 +193,16 @@ public class DispatchMessage {
     }
 
     /**
-     * 获取分片键。
+     * 获取分片键
      *
      * @return 分片键
      */
     public String getShardingKey() {
-        return shardingKey;
+        return this.shardingKey;
     }
 
     /**
-     * 设置分片键。
+     * 设置分片键
      *
      * @param shardingKey 分片键
      */
@@ -211,16 +211,16 @@ public class DispatchMessage {
     }
 
     /**
-     * 获取负载文本。
+     * 获取负载文本
      *
      * @return 负载文本
      */
     public String getPayloadText() {
-        return payloadText;
+        return this.payloadText;
     }
 
     /**
-     * 设置负载文本。
+     * 设置负载文本
      *
      * @param payloadText 负载文本
      */
@@ -229,16 +229,16 @@ public class DispatchMessage {
     }
 
     /**
-     * 获取扩展消息头。
+     * 获取扩展消息头
      *
      * @return 消息头
      */
     public Map<String, String> getHeaders() {
-        return new HashMap<String, String>(headers);
+        return new HashMap<String, String>(this.headers);
     }
 
     /**
-     * 设置扩展消息头。
+     * 设置扩展消息头
      *
      * @param headers 消息头
      */
@@ -251,16 +251,16 @@ public class DispatchMessage {
     }
 
     /**
-     * 获取业务键。
+     * 获取业务键
      *
      * @return 业务键
      */
     public String getBizKey() {
-        return bizKey;
+        return this.bizKey;
     }
 
     /**
-     * 设置业务键。
+     * 设置业务键
      *
      * @param bizKey 业务键
      */
@@ -269,16 +269,16 @@ public class DispatchMessage {
     }
 
     /**
-     * 获取父消息 id。
+     * 获取父消息 id
      *
      * @return 父消息 id
      */
     public String getParentId() {
-        return parentId;
+        return this.parentId;
     }
 
     /**
-     * 设置父消息 id。
+     * 设置父消息 id
      *
      * @param parentId 父消息 id
      */
@@ -287,16 +287,16 @@ public class DispatchMessage {
     }
 
     /**
-     * 获取根消息 id。
+     * 获取根消息 id
      *
      * @return 根消息 id
      */
     public String getRootId() {
-        return rootId;
+        return this.rootId;
     }
 
     /**
-     * 设置根消息 id。
+     * 设置根消息 id
      *
      * @param rootId 根消息 id
      */

@@ -39,10 +39,10 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 
 /**
- * 真实 Oracle 与 RabbitMQ 发送消费集成测试。
+ * 真实 Oracle 与 RabbitMQ 发送消费集成测试
  *
- * <p>该测试会连接真实外部环境并写入测试数据，默认不执行。需要运行时显式增加：
- * {@code -DrealMqTest=true}。</p>
+ * <p>该测试会连接真实外部环境并写入测试数据，默认不执行需要运行时显式增加：
+ * {@code -DrealMqTest=true}</p>
  */
 @SpringBootTest(classes = TransactionalMqDemoApplication.class, properties = {
         "demo.transactional-mq.run-on-startup=false",
@@ -82,7 +82,7 @@ public class TransactionalMqRealSendConsumeTest {
     private JdbcTemplate jdbcTemplate;
 
     /**
-     * 清理真实测试环境中的历史测试数据。
+     * 清理真实测试环境中的历史测试数据
      */
     @BeforeEach
     public void cleanupTestData() {
@@ -98,7 +98,7 @@ public class TransactionalMqRealSendConsumeTest {
     }
 
     /**
-     * 验证消息发送到 RabbitMQ 后，消费者接口能消费消息并写入消费记录。
+     * 验证消息发送到 RabbitMQ 后，消费者接口能消费消息并写入消费记录
      */
     @Test
     public void shouldSendMessageAndRecordConsumedMessage() {
@@ -209,7 +209,7 @@ public class TransactionalMqRealSendConsumeTest {
         try {
             this.jdbcTemplate.execute("DROP TABLE " + tableName + " CASCADE CONSTRAINTS PURGE");
         } catch (DataAccessException ex) {
-            // 表不存在时忽略，后续建表脚本会重新创建所需结构。
+            // 表不存在时忽略，后续建表脚本会重新创建所需结构
         }
     }
 

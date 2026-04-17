@@ -3,42 +3,42 @@ package org.rdlinux.transactionalmq.demo;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 
 /**
- * 事务消息 demo 配置。
+ * 事务消息 demo 配置
  */
 @ConfigurationProperties(prefix = "demo.transactional-mq")
 public class TransactionalMqDemoProperties {
 
     /**
-     * 是否在应用启动后写入并派发一条测试消息。
+     * 是否在应用启动后写入并派发一条测试消息
      */
     private boolean runOnStartup;
     /**
-     * 测试消息目标。RabbitMQ 下可填写队列名，或使用 exchange:routingKey 格式。
+     * 测试消息目标RabbitMQ 下可填写队列名，或使用 exchange:routingKey 格式
      */
     private String destination = "spring.transactional.mq.demo";
     /**
-     * 是否自动声明默认测试队列。
+     * 是否自动声明默认测试队列
      */
     private boolean autoDeclareQueue = true;
     /**
-     * 默认测试队列名。
+     * 默认测试队列名
      */
     private String queueName = "spring.transactional.mq.demo";
     /**
-     * 是否启用 demo 消费者。
+     * 是否启用 demo 消费者
      */
     private boolean enableDemoConsumer = true;
     /**
-     * demo 消费者最小并发。
+     * demo 消费者最小并发
      */
     private int consumerMinConcurrency = 1;
     /**
-     * demo 消费者最大并发。
+     * demo 消费者最大并发
      */
     private int consumerMaxConcurrency = 2;
 
     /**
-     * 是否在应用启动后写入并派发一条测试消息。
+     * 是否在应用启动后写入并派发一条测试消息
      *
      * @return 是否执行启动测试
      */
@@ -47,7 +47,7 @@ public class TransactionalMqDemoProperties {
     }
 
     /**
-     * 设置是否在应用启动后写入并派发一条测试消息。
+     * 设置是否在应用启动后写入并派发一条测试消息
      *
      * @param runOnStartup 是否执行启动测试
      */
@@ -56,7 +56,7 @@ public class TransactionalMqDemoProperties {
     }
 
     /**
-     * 获取测试消息目标。
+     * 获取测试消息目标
      *
      * @return 测试消息目标
      */
@@ -65,7 +65,7 @@ public class TransactionalMqDemoProperties {
     }
 
     /**
-     * 设置测试消息目标。
+     * 设置测试消息目标
      *
      * @param destination 测试消息目标
      */
@@ -74,7 +74,7 @@ public class TransactionalMqDemoProperties {
     }
 
     /**
-     * 是否自动声明默认测试队列。
+     * 是否自动声明默认测试队列
      *
      * @return 是否自动声明默认测试队列
      */
@@ -83,7 +83,7 @@ public class TransactionalMqDemoProperties {
     }
 
     /**
-     * 设置是否自动声明默认测试队列。
+     * 设置是否自动声明默认测试队列
      *
      * @param autoDeclareQueue 是否自动声明默认测试队列
      */
@@ -92,7 +92,7 @@ public class TransactionalMqDemoProperties {
     }
 
     /**
-     * 获取默认测试队列名。
+     * 获取默认测试队列名
      *
      * @return 默认测试队列名
      */
@@ -101,7 +101,7 @@ public class TransactionalMqDemoProperties {
     }
 
     /**
-     * 设置默认测试队列名。
+     * 设置默认测试队列名
      *
      * @param queueName 默认测试队列名
      */
@@ -110,7 +110,7 @@ public class TransactionalMqDemoProperties {
     }
 
     /**
-     * 是否启用 demo 消费者。
+     * 是否启用 demo 消费者
      *
      * @return 是否启用 demo 消费者
      */
@@ -119,7 +119,7 @@ public class TransactionalMqDemoProperties {
     }
 
     /**
-     * 设置是否启用 demo 消费者。
+     * 设置是否启用 demo 消费者
      *
      * @param enableDemoConsumer 是否启用 demo 消费者
      */
@@ -128,7 +128,7 @@ public class TransactionalMqDemoProperties {
     }
 
     /**
-     * 获取 demo 消费者最小并发。
+     * 获取 demo 消费者最小并发
      *
      * @return demo 消费者最小并发
      */
@@ -137,7 +137,7 @@ public class TransactionalMqDemoProperties {
     }
 
     /**
-     * 设置 demo 消费者最小并发。
+     * 设置 demo 消费者最小并发
      *
      * @param consumerMinConcurrency demo 消费者最小并发
      */
@@ -146,7 +146,7 @@ public class TransactionalMqDemoProperties {
     }
 
     /**
-     * 获取 demo 消费者最大并发。
+     * 获取 demo 消费者最大并发
      *
      * @return demo 消费者最大并发
      */
@@ -155,7 +155,7 @@ public class TransactionalMqDemoProperties {
     }
 
     /**
-     * 设置 demo 消费者最大并发。
+     * 设置 demo 消费者最大并发
      *
      * @param consumerMaxConcurrency demo 消费者最大并发
      */

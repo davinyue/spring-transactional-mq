@@ -9,10 +9,10 @@ import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import java.util.Map;
 
 /**
- * RabbitMQ 生产者适配器。
+ * RabbitMQ 生产者适配器
  *
- * <p>新 API 使用 {@code destination} 表达 exchange/queue，使用 {@code route} 表达 routingKey。
- * 为兼容早期写法，{@code destination=exchange:routingKey} 仍会被解析为 exchange 和 routingKey。</p>
+ * <p>新 API 使用 {@code destination} 表达 exchange/queue，使用 {@code route} 表达 routingKey
+ * 为兼容早期写法，{@code destination=exchange:routingKey} 仍会被解析为 exchange 和 routingKey</p>
  */
 @Slf4j
 public class RabbitMqProducerAdapter implements MqProducerAdapter {
@@ -20,7 +20,7 @@ public class RabbitMqProducerAdapter implements MqProducerAdapter {
     private final RabbitTemplate rabbitTemplate;
 
     /**
-     * 构造 RabbitMQ 生产者适配器。
+     * 构造 RabbitMQ 生产者适配器
      *
      * @param rabbitTemplate RabbitMQ 模板
      */

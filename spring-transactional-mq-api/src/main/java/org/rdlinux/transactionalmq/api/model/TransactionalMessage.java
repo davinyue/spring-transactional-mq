@@ -8,7 +8,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 /**
- * 事务消息载体。
+ * 事务消息载体
  *
  * @param <T> 消息负载类型
  */
@@ -60,7 +60,7 @@ public class TransactionalMessage<T> extends BaseEntity<TransactionalMessage<T>>
     private String bizKey;
 
     /**
-     * 设置消息键。
+     * 设置消息键
      *
      * @param messageKey 消息键
      * @return 当前消息对象
@@ -71,7 +71,7 @@ public class TransactionalMessage<T> extends BaseEntity<TransactionalMessage<T>>
     }
 
     /**
-     * 设置生产者编码。
+     * 设置生产者编码
      *
      * @param producerCode 生产者编码
      * @return 当前消息对象
@@ -82,7 +82,7 @@ public class TransactionalMessage<T> extends BaseEntity<TransactionalMessage<T>>
     }
 
     /**
-     * 设置 MQ 类型。
+     * 设置 MQ 类型
      *
      * @param mqType MQ 类型
      * @return 当前消息对象
@@ -93,7 +93,7 @@ public class TransactionalMessage<T> extends BaseEntity<TransactionalMessage<T>>
     }
 
     /**
-     * 设置目标信息。
+     * 设置目标信息
      *
      * @param destination 目标信息
      * @return 当前消息对象
@@ -104,7 +104,7 @@ public class TransactionalMessage<T> extends BaseEntity<TransactionalMessage<T>>
     }
 
     /**
-     * 设置路由信息。
+     * 设置路由信息
      *
      * @param route 路由信息
      * @return 当前消息对象
@@ -115,7 +115,7 @@ public class TransactionalMessage<T> extends BaseEntity<TransactionalMessage<T>>
     }
 
     /**
-     * 设置分片键。
+     * 设置分片键
      *
      * @param shardingKey 分片键
      * @return 当前消息对象
@@ -126,7 +126,7 @@ public class TransactionalMessage<T> extends BaseEntity<TransactionalMessage<T>>
     }
 
     /**
-     * 设置消息负载。
+     * 设置消息负载
      *
      * @param payload 消息负载
      * @return 当前消息对象
@@ -137,7 +137,7 @@ public class TransactionalMessage<T> extends BaseEntity<TransactionalMessage<T>>
     }
 
     /**
-     * 获取扩展消息头。
+     * 获取扩展消息头
      *
      * @return 消息头
      */
@@ -146,7 +146,7 @@ public class TransactionalMessage<T> extends BaseEntity<TransactionalMessage<T>>
     }
 
     /**
-     * 设置扩展消息头。
+     * 设置扩展消息头
      *
      * @param headers 消息头
      * @return 当前消息对象
@@ -161,7 +161,7 @@ public class TransactionalMessage<T> extends BaseEntity<TransactionalMessage<T>>
     }
 
     /**
-     * 设置业务键。
+     * 设置业务键
      *
      * @param bizKey 业务键
      * @return 当前消息对象

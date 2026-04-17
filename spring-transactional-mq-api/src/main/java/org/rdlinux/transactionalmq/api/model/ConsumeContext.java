@@ -8,7 +8,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 /**
- * 消费上下文。
+ * 消费上下文
  */
 @Setter
 @Accessors(chain = true)
@@ -39,13 +39,13 @@ public class ConsumeContext {
      */
     private Map<String, String> headers = new HashMap<>();
     /**
-     * 消费者编码。
+     * 消费者编码
      */
     @Getter
     private String consumerCode;
 
     /**
-     * 设置原始消息头。
+     * 设置原始消息头
      *
      * @param headers 原始消息头
      * @return 当前上下文对象

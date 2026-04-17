@@ -16,7 +16,7 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * RabbitMQ 消费者自动注册器。
+ * RabbitMQ 消费者自动注册器
  */
 public class RabbitMqConsumerRegistrar implements SmartInitializingSingleton, DisposableBean {
 
@@ -41,7 +41,7 @@ public class RabbitMqConsumerRegistrar implements SmartInitializingSingleton, Di
     }
 
     /**
-     * 供测试使用的最小构造器。
+     * 供测试使用的最小构造器
      */
     RabbitMqConsumerRegistrar(ConnectionFactory connectionFactory, RabbitMqConsumerInvoker rabbitMqConsumerInvoker, TxnMqTransactionalService txnMqTransactionalService) {
         this(connectionFactory, rabbitMqConsumerInvoker, null, null, null, txnMqTransactionalService);
@@ -61,7 +61,7 @@ public class RabbitMqConsumerRegistrar implements SmartInitializingSingleton, Di
     }
 
     /**
-     * 注册单个消费者。
+     * 注册单个消费者
      *
      * @param mqConsumer 消费者
      */

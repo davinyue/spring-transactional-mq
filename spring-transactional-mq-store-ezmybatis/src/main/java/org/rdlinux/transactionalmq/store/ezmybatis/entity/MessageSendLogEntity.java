@@ -14,7 +14,7 @@ import lombok.experimental.Accessors;
 import lombok.experimental.FieldNameConstants;
 
 /**
- * 消息发送日志表实体。
+ * 消息发送日志表实体
  */
 @Getter
 @Setter
@@ -24,39 +24,39 @@ import lombok.experimental.FieldNameConstants;
 public class MessageSendLogEntity extends BaseEntity<MessageSendLogEntity> {
 
     /**
-     * 消息键。
+     * 消息键
      */
     private String messageKey;
     /**
-     * 生产者编码。
+     * 生产者编码
      */
     private String producerCode;
     /**
-     * MQ 类型。
+     * MQ 类型
      */
     private MqType mqType;
     /**
-     * 发送状态。
+     * 发送状态
      */
     private SendStatus sendStatus;
     /**
-     * 重试次数。
+     * 重试次数
      */
     private Integer retryCount;
     /**
-     * 最后发送时间。
+     * 最后发送时间
      */
     private Date lastSendTime;
     /**
-     * 结果描述。
+     * 结果描述
      */
     private String description;
     /**
-     * 父消息 id。
+     * 父消息 id
      */
     private String parentId;
     /**
-     * 根消息 id。
+     * 根消息 id
      */
     private String rootId;
 }
