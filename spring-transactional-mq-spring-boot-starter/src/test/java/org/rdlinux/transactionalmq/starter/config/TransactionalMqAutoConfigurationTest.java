@@ -5,6 +5,7 @@ import org.junit.Test;
 import org.rdlinux.ezmybatis.core.dao.EzDao;
 import org.rdlinux.transactionalmq.api.serialize.MessagePayloadSerializer;
 import org.rdlinux.transactionalmq.core.mq.MqProducerRouter;
+import org.rdlinux.transactionalmq.kafka.KafkaProducerAdapter;
 import org.rdlinux.transactionalmq.core.serialize.LuavaJsonMessagePayloadSerializer;
 import org.rdlinux.transactionalmq.core.service.ConsumedMessageCleanupService;
 import org.rdlinux.transactionalmq.core.service.MessagePublishService;
@@ -15,6 +16,8 @@ import org.springframework.boot.autoconfigure.EnableAutoConfiguration;
 import org.springframework.boot.test.context.runner.ApplicationContextRunner;
 import org.springframework.boot.test.context.FilteredClassLoader;
 import org.springframework.core.io.support.SpringFactoriesLoader;
+import org.springframework.kafka.core.ConsumerFactory;
+import org.springframework.kafka.core.KafkaTemplate;
 
 import java.lang.reflect.Type;
 
@@ -27,7 +30,8 @@ public class TransactionalMqAutoConfigurationTest {
 
     private final ApplicationContextRunner contextRunner = new ApplicationContextRunner()
             .withConfiguration(AutoConfigurations.of(TransactionalMqAutoConfiguration.class,
-                    TransactionalMqRabbitAutoConfiguration.class));
+                    TransactionalMqRabbitAutoConfiguration.class,
+                    TransactionalMqKafkaAutoConfiguration.class));
 
     @Test
     public void should_register_message_publish_service_when_enabled() {
@@ -112,6 +116,34 @@ public class TransactionalMqAutoConfigurationTest {
     }
 
     @Test
+    public void should_register_kafka_producer_adapter_when_kafka_template_present() {
+        this.contextRunner
+                .withPropertyValues("transactionalmq.enabled=true")
+                .withBean(EzDao.class, () -> mock(EzDao.class))
+                .withBean(KafkaTemplate.class, () -> mock(KafkaTemplate.class))
+                .run(context -> {
+                    Assert.assertTrue(context.containsBean("kafkaProducerAdapter"));
+                    Assert.assertTrue(context.getBean(KafkaProducerAdapter.class) instanceof KafkaProducerAdapter);
+                    Assert.assertNotNull(context.getBean(MqProducerRouter.class));
+                });
+    }
+
+    @Test
+    public void should_register_rabbit_and_kafka_adapters_together() {
+        this.contextRunner
+                .withPropertyValues("transactionalmq.enabled=true")
+                .withBean(EzDao.class, () -> mock(EzDao.class))
+                .withBean(RabbitTemplate.class, () -> mock(RabbitTemplate.class))
+                .withBean(KafkaTemplate.class, () -> mock(KafkaTemplate.class))
+                .withBean(ConsumerFactory.class, () -> mock(ConsumerFactory.class))
+                .run(context -> {
+                    Assert.assertTrue(context.containsBean("rabbitMqProducerAdapter"));
+                    Assert.assertTrue(context.containsBean("kafkaProducerAdapter"));
+                    Assert.assertEquals(2, context.getBeansOfType(org.rdlinux.transactionalmq.core.mq.MqProducerAdapter.class).size());
+                });
+    }
+
+    @Test
     public void should_fail_when_no_mq_implementation_found() {
         this.contextRunner
                 .withPropertyValues("transactionalmq.enabled=true")
@@ -129,10 +161,13 @@ public class TransactionalMqAutoConfigurationTest {
     public void should_be_listed_in_spring_factories_as_auto_configuration() {
         String className = TransactionalMqAutoConfiguration.class.getName();
         String rabbitClassName = TransactionalMqRabbitAutoConfiguration.class.getName();
+        String kafkaClassName = TransactionalMqKafkaAutoConfiguration.class.getName();
         Assert.assertTrue(SpringFactoriesLoader.loadFactoryNames(EnableAutoConfiguration.class,
                 this.getClass().getClassLoader()).contains(className));
         Assert.assertTrue(SpringFactoriesLoader.loadFactoryNames(EnableAutoConfiguration.class,
                 this.getClass().getClassLoader()).contains(rabbitClassName));
+        Assert.assertTrue(SpringFactoriesLoader.loadFactoryNames(EnableAutoConfiguration.class,
+                this.getClass().getClassLoader()).contains(kafkaClassName));
     }
 
     private static final class SamplePayload {

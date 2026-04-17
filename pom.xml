@@ -51,6 +51,7 @@
         <module>spring-transactional-mq-core</module>
         <module>spring-transactional-mq-store-ezmybatis</module>
         <module>spring-transactional-mq-rabbitmq</module>
+        <module>spring-transactional-mq-kafka</module>
         <module>spring-transactional-mq-spring-boot-starter</module>
         <module>spring-transactional-mq-demo</module>
     </modules>
@@ -112,6 +113,11 @@
             <dependency>
                 <groupId>org.rdlinux</groupId>
                 <artifactId>spring-transactional-mq-rabbitmq</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.rdlinux</groupId>
+                <artifactId>spring-transactional-mq-kafka</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>
