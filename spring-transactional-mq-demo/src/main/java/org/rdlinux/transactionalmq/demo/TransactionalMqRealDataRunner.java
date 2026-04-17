@@ -5,7 +5,6 @@ import java.util.Map;
 
 import org.rdlinux.transactionalmq.api.model.TransactionalMessage;
 import org.rdlinux.transactionalmq.common.enums.MqType;
-import org.rdlinux.transactionalmq.core.service.MessageDispatchService;
 import org.rdlinux.transactionalmq.core.service.MessagePublishService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -24,20 +23,17 @@ public class TransactionalMqRealDataRunner implements ApplicationRunner {
     private static final Logger LOGGER = LoggerFactory.getLogger(TransactionalMqRealDataRunner.class);
 
     private final MessagePublishService messagePublishService;
-    private final MessageDispatchService messageDispatchService;
     private final TransactionalMqDemoProperties properties;
 
     /**
      * 构造真实数据链路测试 runner。
      *
      * @param messagePublishService 消息发布服务
-     * @param messageDispatchService 消息派发服务
      * @param properties demo 配置
      */
     public TransactionalMqRealDataRunner(MessagePublishService messagePublishService,
-            MessageDispatchService messageDispatchService, TransactionalMqDemoProperties properties) {
+            TransactionalMqDemoProperties properties) {
         this.messagePublishService = messagePublishService;
-        this.messageDispatchService = messageDispatchService;
         this.properties = properties;
     }
 
@@ -53,9 +49,8 @@ public class TransactionalMqRealDataRunner implements ApplicationRunner {
                 .setPayload(this.buildPayload(messageKey));
 
         String messageId = this.messagePublishService.send(message);
-        int dispatched = this.messageDispatchService.dispatchPendingMessages(1);
-        LOGGER.info("Transactional MQ real demo finished, id={}, messageKey={}, dispatched={}",
-                messageId, message.getMessageKey(), dispatched);
+        LOGGER.info("Transactional MQ real demo finished, id={}, messageKey={}, submitted=true",
+                messageId, message.getMessageKey());
     }
 
     private Map<String, Object> buildPayload(String messageKey) {

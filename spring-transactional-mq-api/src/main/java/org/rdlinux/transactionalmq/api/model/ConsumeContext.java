@@ -1,5 +1,6 @@
 package org.rdlinux.transactionalmq.api.model;
 
+import lombok.Getter;
 import lombok.Setter;
 import lombok.experimental.Accessors;
 
@@ -16,18 +17,22 @@ public class ConsumeContext {
     /**
      * 消息主键
      */
+    @Getter
     private String id;
     /**
      * 消息键
      */
+    @Getter
     private String messageKey;
     /**
      * 父消息 id
      */
+    @Getter
     private String parentId;
     /**
      * 根消息 id
      */
+    @Getter
     private String rootId;
     /**
      * 原始消息头
@@ -36,6 +41,7 @@ public class ConsumeContext {
     /**
      * 消费者编码。
      */
+    @Getter
     private String consumerCode;
 
     /**
@@ -53,27 +59,8 @@ public class ConsumeContext {
         return this;
     }
 
-    public String getId() {
-        return this.id;
-    }
-
-    public String getMessageKey() {
-        return this.messageKey;
-    }
-
-    public String getParentId() {
-        return this.parentId;
-    }
-
-    public String getRootId() {
-        return this.rootId;
-    }
-
     public Map<String, String> getHeaders() {
         return new HashMap<>(this.headers);
     }
 
-    public String getConsumerCode() {
-        return this.consumerCode;
-    }
 }

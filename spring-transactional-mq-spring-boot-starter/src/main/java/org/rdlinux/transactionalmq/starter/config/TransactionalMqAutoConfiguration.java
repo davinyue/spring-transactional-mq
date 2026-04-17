@@ -9,6 +9,7 @@ import org.rdlinux.transactionalmq.core.repository.ConsumedMessageRepository;
 import org.rdlinux.transactionalmq.core.repository.MessageSendLogRepository;
 import org.rdlinux.transactionalmq.core.repository.TransactionalMessageRepository;
 import org.rdlinux.transactionalmq.core.service.*;
+import org.rdlinux.transactionalmq.core.service.impl.MessageDispatchWakeupCoordinator;
 import org.rdlinux.transactionalmq.rabbitmq.RabbitMqConsumerInvoker;
 import org.rdlinux.transactionalmq.rabbitmq.RabbitMqConsumerRegistrar;
 import org.rdlinux.transactionalmq.rabbitmq.RabbitMqProducerAdapter;
@@ -52,6 +53,12 @@ public class TransactionalMqAutoConfiguration {
     }
 
     @Bean
+    @ConditionalOnMissingBean(MessageDispatchWakeupCoordinator.class)
+    public MessageDispatchWakeupCoordinator messageDispatchWakeupCoordinator() {
+        return new MessageDispatchWakeupCoordinator();
+    }
+
+    @Bean
     @ConditionalOnClass(ObjectMapper.class)
     @ConditionalOnMissingBean(MessagePayloadSerializer.class)
     public MessagePayloadSerializer messagePayloadSerializer(ObjectMapper objectMapper) {
@@ -86,8 +93,10 @@ public class TransactionalMqAutoConfiguration {
     @ConditionalOnBean({TransactionalMessageRepository.class, MessagePayloadSerializer.class})
     @ConditionalOnMissingBean(MessagePublishService.class)
     public MessagePublishService messagePublishService(TransactionalMessageRepository transactionalMessageRepository,
-                                                       MessagePayloadSerializer messagePayloadSerializer) {
-        return new MessagePublishService(transactionalMessageRepository, messagePayloadSerializer);
+                                                       MessagePayloadSerializer messagePayloadSerializer,
+                                                       MessageDispatchWakeupCoordinator wakeupCoordinator) {
+        return new MessagePublishService(transactionalMessageRepository, messagePayloadSerializer,
+                wakeupCoordinator);
     }
 
     @Bean
@@ -148,7 +157,7 @@ public class TransactionalMqAutoConfiguration {
     @Bean
     @ConditionalOnClass(TxnMqTransactionalService.class)
     @ConditionalOnMissingBean(TxnMqTransactionalService.class)
-    public TxnMqTransactionalService transactionalService() {
+    public TxnMqTransactionalService txnMqTransactionalService() {
         return new TxnMqTransactionalService();
     }
 
@@ -162,9 +171,9 @@ public class TransactionalMqAutoConfiguration {
                                                                MessagePayloadSerializer messagePayloadSerializer,
                                                                ConsumeIdempotentService consumeIdempotentService,
                                                                ApplicationContext applicationContext,
-                                                               TxnMqTransactionalService transactionalService) {
+                                                               TxnMqTransactionalService txnMqTransactionalService) {
         return new RabbitMqConsumerRegistrar(connectionFactory, rabbitMqConsumerInvoker, messagePayloadSerializer,
-                consumeIdempotentService, applicationContext, transactionalService);
+                consumeIdempotentService, applicationContext, txnMqTransactionalService);
     }
 
     @Bean
@@ -174,5 +183,15 @@ public class TransactionalMqAutoConfiguration {
             TransactionalMessageRepository transactionalMessageRepository, MqProducerAdapter mqProducerAdapter,
             MessageSendLogRepository messageSendLogRepository) {
         return new MessageDispatchService(transactionalMessageRepository, mqProducerAdapter, messageSendLogRepository);
+    }
+
+    @Bean
+    @ConditionalOnBean(MessageDispatchService.class)
+    @ConditionalOnMissingBean(TransactionalMessageDispatchScheduler.class)
+    public TransactionalMessageDispatchScheduler transactionalMessageDispatchScheduler(
+            MessageDispatchService messageDispatchService, TransactionalMqProperties properties,
+            MessageDispatchWakeupCoordinator wakeupCoordinator) {
+        return new TransactionalMessageDispatchScheduler(messageDispatchService, properties.getDispatchBatchSize(),
+                properties.getDispatchIdleSleepMillis(), wakeupCoordinator);
     }
 }

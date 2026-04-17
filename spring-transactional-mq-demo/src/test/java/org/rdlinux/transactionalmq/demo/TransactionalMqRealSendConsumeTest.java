@@ -18,7 +18,6 @@ import org.rdlinux.transactionalmq.common.entity.BaseEntity;
 import org.rdlinux.transactionalmq.common.enums.MessageStatus;
 import org.rdlinux.transactionalmq.common.enums.MqType;
 import org.rdlinux.transactionalmq.core.service.ConsumeIdempotentService;
-import org.rdlinux.transactionalmq.core.service.MessageDispatchService;
 import org.rdlinux.transactionalmq.core.service.MessagePublishService;
 import org.rdlinux.transactionalmq.core.service.TransactionalMessageCleanupService;
 import org.rdlinux.transactionalmq.rabbitmq.RabbitMqConsumerInvoker;
@@ -65,8 +64,6 @@ public class TransactionalMqRealSendConsumeTest {
 
     @Autowired
     private MessagePublishService messagePublishService;
-    @Autowired
-    private MessageDispatchService messageDispatchService;
     @Autowired
     private TransactionalMessageCleanupService transactionalMessageCleanupService;
     @Autowired
@@ -115,11 +112,9 @@ public class TransactionalMqRealSendConsumeTest {
                 .setPayload(this.buildPayload(messageKey));
 
         String messageId = this.messagePublishService.send(message);
-        int dispatched = this.messageDispatchService.dispatchPendingMessages(1);
         Message rabbitMessage = this.rabbitTemplate.receive(this.properties.getQueueName(), 10000);
 
         Assertions.assertNotNull(messageId);
-        Assertions.assertEquals(1, dispatched);
         Assertions.assertNotNull(rabbitMessage, "RabbitMQ should receive dispatched message");
 
         ConsumeContext context = this.buildConsumeContext(rabbitMessage, messageId, messageKey);

@@ -23,9 +23,10 @@ import org.rdlinux.transactionalmq.api.model.TransactionalMessage;
 import org.rdlinux.transactionalmq.common.enums.MessageStatus;
 import org.rdlinux.transactionalmq.common.enums.MqType;
 import org.rdlinux.transactionalmq.core.model.TransactionalMessageRecord;
+import org.rdlinux.transactionalmq.core.service.TransactionalMessageDispatchScheduler;
 import org.rdlinux.transactionalmq.core.service.MessageDispatchService;
-import org.rdlinux.transactionalmq.core.service.MessagePublishService;
 import org.rdlinux.transactionalmq.core.service.TransactionalMessageCleanupService;
+import org.rdlinux.transactionalmq.core.service.MessagePublishService;
 import org.rdlinux.transactionalmq.store.ezmybatis.entity.TransactionalMessageEntity;
 import org.rdlinux.transactionalmq.store.ezmybatis.entity.TransactionalMessageHistoryEntity;
 import org.springframework.amqp.core.MessagePostProcessor;
@@ -47,9 +48,12 @@ public class TransactionalMqMainChainIntegrationTest {
         RabbitTemplate rabbitTemplate = mock(RabbitTemplate.class);
 
         this.contextRunner
-            .withPropertyValues("transactional.mq.enabled=true")
+            .withPropertyValues("transactional.mq.enabled=true",
+                "transactional.mq.dispatch-idle-sleep-millis=100")
             .withBean(EzDao.class, () -> ezDao)
             .withBean(RabbitTemplate.class, () -> rabbitTemplate)
+            .withBean(TransactionalMessageDispatchScheduler.class,
+                () -> org.mockito.Mockito.mock(TransactionalMessageDispatchScheduler.class))
             .run(context -> {
                 assertTrue(context.containsBean("transactionalMessageRepository"));
                 assertTrue(context.containsBean("messagePublishService"));
@@ -78,13 +82,12 @@ public class TransactionalMqMainChainIntegrationTest {
                 assertEquals(MessageStatus.INIT, ezDao.getTransactionalMessage(0).getMessageStatus());
                 assertEquals(0, ezDao.getTransactionalMessageHistoryCount());
 
-                int dispatched = dispatchService.dispatchPendingMessages(10);
-
-                assertEquals(1, dispatched);
+                assertEquals(1, dispatchService.dispatchPendingMessages(10));
                 assertEquals(MessageStatus.SUCCESS, ezDao.getTransactionalMessage(0).getMessageStatus());
                 verify(rabbitTemplate).convertAndSend(eq("exchange.demo"), eq("queue.demo"), any(Object.class),
                     any(MessagePostProcessor.class));
 
+                ezDao.enableCleanupQuery();
                 int deleted = cleanupService.cleanupSuccessMessages(new Date(System.currentTimeMillis() + 1000), 10);
 
                 assertEquals(1, deleted);
@@ -100,13 +103,14 @@ public class TransactionalMqMainChainIntegrationTest {
             new ArrayList<TransactionalMessageEntity>();
         private final List<TransactionalMessageHistoryEntity> transactionalMessageHistoryEntities =
             new ArrayList<TransactionalMessageHistoryEntity>();
+        private boolean cleanupQueryEnabled;
 
         private StatefulEzDao() {
             super(mock(EzMapper.class));
         }
 
         @Override
-        public int insert(Object model) {
+        public synchronized int insert(Object model) {
             if (model instanceof TransactionalMessageHistoryEntity) {
                 TransactionalMessageHistoryEntity entity = copy((TransactionalMessageHistoryEntity) model);
                 if (entity.getId() == null || entity.getId().isEmpty()) {
@@ -125,15 +129,17 @@ public class TransactionalMqMainChainIntegrationTest {
 
         @SuppressWarnings("unchecked")
         @Override
-        public <Rt> List<Rt> query(EzQuery<Rt> query) {
+        public synchronized <Rt> List<Rt> query(EzQuery<Rt> query) {
             List<Rt> result = new ArrayList<Rt>();
             Date now = new Date();
             for (TransactionalMessageEntity entity : this.transactionalMessageEntities) {
-                if (entity.getMessageStatus() == MessageStatus.INIT
+                if (!this.cleanupQueryEnabled
+                    && entity.getMessageStatus() == MessageStatus.INIT
                     && entity.getNextDispatchTime() != null
                     && !entity.getNextDispatchTime().after(now)) {
                     result.add((Rt) copy(entity));
-                } else if (entity.getMessageStatus() == MessageStatus.SUCCESS
+                } else if (this.cleanupQueryEnabled
+                    && entity.getMessageStatus() == MessageStatus.SUCCESS
                     && entity.getUpdateTime() != null
                     && !entity.getUpdateTime().after(now)) {
                     result.add((Rt) copy(entity));
@@ -143,7 +149,7 @@ public class TransactionalMqMainChainIntegrationTest {
         }
 
         @Override
-        public int ezUpdate(EzUpdate update) {
+        public synchronized int ezUpdate(EzUpdate update) {
             Date now = new Date();
             for (TransactionalMessageEntity entity : this.transactionalMessageEntities) {
                 if (entity.getMessageStatus() == MessageStatus.INIT
@@ -172,7 +178,7 @@ public class TransactionalMqMainChainIntegrationTest {
         }
 
         @Override
-        public int ezDelete(EzDelete delete) {
+        public synchronized int ezDelete(EzDelete delete) {
             int count = 0;
             for (int i = this.transactionalMessageEntities.size() - 1; i >= 0; i--) {
                 TransactionalMessageEntity entity = this.transactionalMessageEntities.get(i);
@@ -184,20 +190,24 @@ public class TransactionalMqMainChainIntegrationTest {
             return count;
         }
 
-        private int getTransactionalMessageCount() {
+        private synchronized int getTransactionalMessageCount() {
             return this.transactionalMessageEntities.size();
         }
 
-        private TransactionalMessageEntity getTransactionalMessage(int index) {
+        private synchronized TransactionalMessageEntity getTransactionalMessage(int index) {
             return this.transactionalMessageEntities.get(index);
         }
 
-        private int getTransactionalMessageHistoryCount() {
+        private synchronized int getTransactionalMessageHistoryCount() {
             return this.transactionalMessageHistoryEntities.size();
         }
 
-        private TransactionalMessageHistoryEntity getTransactionalMessageHistory(int index) {
+        private synchronized TransactionalMessageHistoryEntity getTransactionalMessageHistory(int index) {
             return this.transactionalMessageHistoryEntities.get(index);
+        }
+
+        private synchronized void enableCleanupQuery() {
+            this.cleanupQueryEnabled = true;
         }
 
         private TransactionalMessageEntity copy(TransactionalMessageEntity source) {

@@ -40,6 +40,8 @@ public class TransactionalMqAutoConfigurationTest {
                 Assert.assertTrue(context.containsBean("messageSendLogRepository"));
                 Assert.assertTrue(context.containsBean("consumedMessageCleanupService"));
                 Assert.assertTrue(context.containsBean("consumedMessageCleanupScheduler"));
+                Assert.assertTrue(context.containsBean("transactionalMessageCleanupService"));
+                Assert.assertTrue(context.containsBean("transactionalMessageCleanupScheduler"));
                 Assert.assertNotNull(context.getBean(ConsumedMessageCleanupService.class));
                 TransactionalMqProperties properties = context.getBean(TransactionalMqProperties.class);
                 Assert.assertTrue(properties.isEnabled());

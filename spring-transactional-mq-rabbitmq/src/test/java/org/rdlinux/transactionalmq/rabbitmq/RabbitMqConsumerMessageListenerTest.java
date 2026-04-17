@@ -109,6 +109,32 @@ public class RabbitMqConsumerMessageListenerTest {
         }
     }
 
+    @Test
+    public void onMessageShouldResolveGenericTypeFromAbstractParentConsumer() throws Exception {
+        RabbitMqConsumerInvoker invoker = new RabbitMqConsumerInvoker();
+        MessagePayloadSerializer serializer = mock(MessagePayloadSerializer.class);
+        ConsumeIdempotentService consumeIdempotentService = mock(ConsumeIdempotentService.class);
+        EarlyWarningConsumer consumer = new EarlyWarningConsumer();
+        RabbitMqConsumerMessageListener listener = new RabbitMqConsumerMessageListener(consumer, invoker, serializer,
+                consumeIdempotentService, new TxnMqTransactionalService());
+        Channel channel = mock(Channel.class);
+
+        MessageProperties properties = new MessageProperties();
+        properties.setMessageId("msg-4");
+        properties.setDeliveryTag(10L);
+        properties.setContentEncoding("gzip");
+        Message message = new Message(RabbitMqPayloadCodec.gzip("{\"code\":\"ok\"}"), properties);
+
+        when(consumeIdempotentService.recordIfAbsent(any(ConsumeContext.class))).thenReturn(true);
+        when(serializer.deserialize("{\"code\":\"ok\"}", (Type) EarlyWarningMessage.class))
+                .thenReturn(new EarlyWarningMessage().setCode("ok"));
+
+        listener.onMessage(message, channel);
+
+        verify(serializer).deserialize("{\"code\":\"ok\"}", (Type) EarlyWarningMessage.class);
+        verify(channel).basicAck(10L, false);
+    }
+
     private static final class RecordingConsumer implements TransactionalMessageConsumer<String> {
 
         @Override
@@ -143,5 +169,44 @@ public class RabbitMqConsumerMessageListenerTest {
         public QueueMsgHandleRet consume(ConsumeContext context, String payload) {
             return QueueMsgHandleRet.DEFAULT().setRollBack(true).setRollBackAck(false);
         }
+    }
+
+    private abstract static class AbstractParentConsumer<T extends BaseMessage<T>> implements TransactionalMessageConsumer<T> {
+
+        @Override
+        public String getQueueName() {
+            return "queue.abstract";
+        }
+
+        @Override
+        public String consumerCode() {
+            return "consumer-abstract";
+        }
+    }
+
+    private static final class EarlyWarningConsumer extends AbstractParentConsumer<EarlyWarningMessage> {
+
+        @Override
+        public QueueMsgHandleRet consume(ConsumeContext context, EarlyWarningMessage payload) {
+            return QueueMsgHandleRet.DEFAULT();
+        }
+    }
+
+    private static class BaseMessage<Mt extends BaseMessage<Mt>> {
+
+        private String code;
+
+        public String getCode() {
+            return code;
+        }
+
+        @SuppressWarnings("unchecked")
+        public Mt setCode(String code) {
+            this.code = code;
+            return (Mt) this;
+        }
+    }
+
+    private static final class EarlyWarningMessage extends BaseMessage<EarlyWarningMessage> {
     }
 }

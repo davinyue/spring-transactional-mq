@@ -1,10 +1,11 @@
 package org.rdlinux.transactionalmq.api.model;
 
-import java.util.HashMap;
-import java.util.Map;
-
+import lombok.Getter;
 import org.rdlinux.transactionalmq.common.entity.BaseEntity;
 import org.rdlinux.transactionalmq.common.enums.MqType;
+
+import java.util.HashMap;
+import java.util.Map;
 
 /**
  * 事务消息载体。
@@ -14,50 +15,49 @@ import org.rdlinux.transactionalmq.common.enums.MqType;
 public class TransactionalMessage<T> extends BaseEntity<TransactionalMessage<T>> {
 
     /**
-     * 消息键。
+     * 消息键
      */
+    @Getter
     private String messageKey;
     /**
-     * 生产者编码。
+     * 生产者编码
      */
+    @Getter
     private String producerCode;
     /**
-     * MQ 类型。
+     * MQ 类型
      */
+    @Getter
     private MqType mqType;
     /**
-     * 目标信息。
+     * 目标信息
      */
+    @Getter
     private String destination;
     /**
-     * 路由信息。
+     * 路由信息
      */
+    @Getter
     private String route;
     /**
-     * 分片键。
+     * 分片键
      */
+    @Getter
     private String shardingKey;
     /**
-     * 消息负载。
+     * 消息负载
      */
+    @Getter
     private T payload;
     /**
-     * 扩展消息头。
+     * 扩展消息头
      */
     private Map<String, String> headers = new HashMap<String, String>();
     /**
-     * 业务键。
+     * 业务键
      */
+    @Getter
     private String bizKey;
-
-    /**
-     * 获取消息键。
-     *
-     * @return 消息键
-     */
-    public String getMessageKey() {
-        return messageKey;
-    }
 
     /**
      * 设置消息键。
@@ -67,16 +67,7 @@ public class TransactionalMessage<T> extends BaseEntity<TransactionalMessage<T>>
      */
     public TransactionalMessage<T> setMessageKey(String messageKey) {
         this.messageKey = messageKey;
-        return castSelf();
-    }
-
-    /**
-     * 获取生产者编码。
-     *
-     * @return 生产者编码
-     */
-    public String getProducerCode() {
-        return producerCode;
+        return this.castSelf();
     }
 
     /**
@@ -87,16 +78,7 @@ public class TransactionalMessage<T> extends BaseEntity<TransactionalMessage<T>>
      */
     public TransactionalMessage<T> setProducerCode(String producerCode) {
         this.producerCode = producerCode;
-        return castSelf();
-    }
-
-    /**
-     * 获取 MQ 类型。
-     *
-     * @return MQ 类型
-     */
-    public MqType getMqType() {
-        return mqType;
+        return this.castSelf();
     }
 
     /**
@@ -107,16 +89,7 @@ public class TransactionalMessage<T> extends BaseEntity<TransactionalMessage<T>>
      */
     public TransactionalMessage<T> setMqType(MqType mqType) {
         this.mqType = mqType;
-        return castSelf();
-    }
-
-    /**
-     * 获取目标信息。
-     *
-     * @return 目标信息
-     */
-    public String getDestination() {
-        return destination;
+        return this.castSelf();
     }
 
     /**
@@ -127,16 +100,7 @@ public class TransactionalMessage<T> extends BaseEntity<TransactionalMessage<T>>
      */
     public TransactionalMessage<T> setDestination(String destination) {
         this.destination = destination;
-        return castSelf();
-    }
-
-    /**
-     * 获取路由信息。
-     *
-     * @return 路由信息
-     */
-    public String getRoute() {
-        return route;
+        return this.castSelf();
     }
 
     /**
@@ -147,16 +111,7 @@ public class TransactionalMessage<T> extends BaseEntity<TransactionalMessage<T>>
      */
     public TransactionalMessage<T> setRoute(String route) {
         this.route = route;
-        return castSelf();
-    }
-
-    /**
-     * 获取分片键。
-     *
-     * @return 分片键
-     */
-    public String getShardingKey() {
-        return shardingKey;
+        return this.castSelf();
     }
 
     /**
@@ -167,16 +122,7 @@ public class TransactionalMessage<T> extends BaseEntity<TransactionalMessage<T>>
      */
     public TransactionalMessage<T> setShardingKey(String shardingKey) {
         this.shardingKey = shardingKey;
-        return castSelf();
-    }
-
-    /**
-     * 获取消息负载。
-     *
-     * @return 消息负载
-     */
-    public T getPayload() {
-        return payload;
+        return this.castSelf();
     }
 
     /**
@@ -187,7 +133,7 @@ public class TransactionalMessage<T> extends BaseEntity<TransactionalMessage<T>>
      */
     public TransactionalMessage<T> setPayload(T payload) {
         this.payload = payload;
-        return castSelf();
+        return this.castSelf();
     }
 
     /**
@@ -196,7 +142,7 @@ public class TransactionalMessage<T> extends BaseEntity<TransactionalMessage<T>>
      * @return 消息头
      */
     public Map<String, String> getHeaders() {
-        return new HashMap<String, String>(headers);
+        return new HashMap<String, String>(this.headers);
     }
 
     /**
@@ -211,16 +157,7 @@ public class TransactionalMessage<T> extends BaseEntity<TransactionalMessage<T>>
         } else {
             this.headers = new HashMap<String, String>(headers);
         }
-        return castSelf();
-    }
-
-    /**
-     * 获取业务键。
-     *
-     * @return 业务键
-     */
-    public String getBizKey() {
-        return bizKey;
+        return this.castSelf();
     }
 
     /**
@@ -231,6 +168,6 @@ public class TransactionalMessage<T> extends BaseEntity<TransactionalMessage<T>>
      */
     public TransactionalMessage<T> setBizKey(String bizKey) {
         this.bizKey = bizKey;
-        return castSelf();
+        return this.castSelf();
     }
 }

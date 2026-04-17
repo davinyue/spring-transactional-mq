@@ -13,8 +13,10 @@ import org.slf4j.MDC;
 import org.springframework.amqp.core.Message;
 import org.springframework.amqp.core.MessageProperties;
 import org.springframework.amqp.rabbit.listener.api.ChannelAwareMessageListener;
+import org.springframework.core.GenericTypeResolver;
 import org.springframework.core.ResolvableType;
 import org.springframework.transaction.UnexpectedRollbackException;
+import org.springframework.util.ClassUtils;
 
 import java.io.IOException;
 import java.lang.reflect.Type;
@@ -45,10 +47,7 @@ class RabbitMqConsumerMessageListener implements ChannelAwareMessageListener {
         this.messagePayloadSerializer = messagePayloadSerializer;
         this.consumeIdempotentService = consumeIdempotentService;
         this.txnMqTransactionalService = txnMqTransactionalService;
-        this.payloadType = ResolvableType.forClass(consumer.getClass())
-                .as(TransactionalMessageConsumer.class)
-                .getGeneric(0)
-                .getType();
+        this.payloadType = this.resolvePayloadType(consumer);
     }
 
     @Override
@@ -58,15 +57,20 @@ class RabbitMqConsumerMessageListener implements ChannelAwareMessageListener {
         MDC.put("X-B3-TraceId", traceId);
         MDC.put("traceId", traceId);
         try {
-            long deliveryTag = message.getMessageProperties().getDeliveryTag();
             ConsumeContext context;
-            Object payload;
             try {
                 context = this.buildContext(message.getMessageProperties());
+            } catch (Exception e) {
+                log.error("队列{}消息context解析失败", this.consumer.getQueueName(), e);
+                this.requeueLater(message, channel, new ConsumeContext());
+                return;
+            }
+            Object payload;
+            try {
                 payload = this.deserialize(message);
             } catch (Exception e) {
-                log.error("队列{}消息解析失败", this.consumer.getQueueName(), e);
-                channel.basicNack(deliveryTag, false, false);
+                log.error("队列{}消息payload解析失败", this.consumer.getQueueName(), e);
+                this.requeueLater(message, channel, context);
                 return;
             }
             AtomicBoolean doAck = new AtomicBoolean(Boolean.FALSE);
@@ -211,5 +215,24 @@ class RabbitMqConsumerMessageListener implements ChannelAwareMessageListener {
             headers.put(entry.getKey(), entry.getValue() == null ? null : String.valueOf(entry.getValue()));
         }
         return headers;
+    }
+
+    private Type resolvePayloadType(TransactionalMessageConsumer<?> consumer) {
+        Class<?> userClass = ClassUtils.getUserClass(consumer);
+        Class<?> resolvedClass = GenericTypeResolver.resolveTypeArgument(userClass, TransactionalMessageConsumer.class);
+        if (resolvedClass != null) {
+            return resolvedClass;
+        }
+        Class<?> current = userClass;
+        while (current != null && current != Object.class) {
+            ResolvableType resolvableType = ResolvableType.forClass(current)
+                    .as(TransactionalMessageConsumer.class);
+            ResolvableType payloadResolvableType = resolvableType.getGeneric(0);
+            if (payloadResolvableType != ResolvableType.NONE && payloadResolvableType.resolve() != null) {
+                return payloadResolvableType.getType();
+            }
+            current = current.getSuperclass();
+        }
+        throw new IllegalArgumentException("unable to resolve consumer payload type: " + consumer.getClass().getName());
     }
 }

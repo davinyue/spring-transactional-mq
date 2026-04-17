@@ -1,11 +1,5 @@
 package org.rdlinux.transactionalmq.core.service;
 
-import java.lang.reflect.Method;
-import java.util.Collections;
-import java.util.Date;
-import java.util.List;
-import java.lang.reflect.Type;
-
 import org.junit.Assert;
 import org.junit.Test;
 import org.rdlinux.transactionalmq.api.model.ConsumeContext;
@@ -16,11 +10,16 @@ import org.rdlinux.transactionalmq.core.model.TransactionalMessageRecord;
 import org.rdlinux.transactionalmq.core.repository.TransactionalMessageRepository;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.lang.reflect.Method;
+import java.lang.reflect.Type;
+import java.util.Collections;
+import java.util.Date;
+import java.util.List;
+
 /**
  * 消息发布服务测试。
  */
 public class MessagePublishServiceTest {
-
     @Test
     public void publishShouldSaveRecordAndReturnAcceptedResult() {
         CapturingTransactionalMessageRepository repository = new CapturingTransactionalMessageRepository();
@@ -35,18 +34,18 @@ public class MessagePublishServiceTest {
                 return null;
             }
         };
-        MessagePublishService service = new MessagePublishService(repository, serializer);
+        MessagePublishService service = new MessagePublishService(repository, serializer, null);
 
         TransactionalMessage<String> message = new TransactionalMessage<String>()
-            .setId("msg-1")
-            .setMessageKey("message-key-1")
-            .setProducerCode("producer-1")
-            .setMqType(MqType.RABBITMQ)
-            .setDestination("demo.exchange")
-            .setRoute("demo.route")
-            .setShardingKey("order-1")
-            .setPayload("payload-value")
-            .setBizKey("biz-1");
+                .setId("msg-1")
+                .setMessageKey("message-key-1")
+                .setProducerCode("producer-1")
+                .setMqType(MqType.RABBITMQ)
+                .setDestination("demo.exchange")
+                .setRoute("demo.route")
+                .setShardingKey("order-1")
+                .setPayload("payload-value")
+                .setBizKey("biz-1");
 
         String messageId = service.send(message);
 
@@ -65,13 +64,13 @@ public class MessagePublishServiceTest {
     @Test
     public void transactionalMessageRecordFromShouldNotGenerateSeparateMessageIdentifier() {
         TransactionalMessage<String> message = new TransactionalMessage<String>()
-            .setId("api-id")
-            .setMessageKey("message-key-2")
-            .setProducerCode("producer-2")
-            .setDestination("topic-demo")
-            .setRoute("tag-a")
-            .setShardingKey("order-2")
-            .setPayload("payload-value");
+                .setId("api-id")
+                .setMessageKey("message-key-2")
+                .setProducerCode("producer-2")
+                .setDestination("topic-demo")
+                .setRoute("tag-a")
+                .setShardingKey("order-2")
+                .setPayload("payload-value");
 
         TransactionalMessageRecord record = TransactionalMessageRecord.from(message, "serialized");
 
@@ -99,15 +98,15 @@ public class MessagePublishServiceTest {
                 return null;
             }
         };
-        MessagePublishService service = new MessagePublishService(repository, serializer);
+        MessagePublishService service = new MessagePublishService(repository, serializer, null);
         TransactionalMessage<String> message = new TransactionalMessage<String>()
-            .setMessageKey("message-key-3")
-            .setPayload("payload-value-3");
+                .setMessageKey("message-key-3")
+                .setPayload("payload-value-3");
         ConsumeContext parentContext = new ConsumeContext()
-            .setId("parent-1")
-            .setRootId("root-1")
-            .setMessageKey("message-key-parent")
-            .setConsumerCode("consumer-1");
+                .setId("parent-1")
+                .setRootId("root-1")
+                .setMessageKey("message-key-parent")
+                .setConsumerCode("consumer-1");
 
         String childId = service.sendWithParent(message, parentContext);
 
