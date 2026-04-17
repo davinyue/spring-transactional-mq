@@ -62,4 +62,14 @@ public class MqProducerRouter {
     public boolean hasAdapters() {
         return !this.adapters.isEmpty();
     }
+
+    /**
+     * 是否支持指定 mqType。
+     *
+     * @param mqType MQ 类型
+     * @return 是否支持
+     */
+    public boolean supports(MqType mqType) {
+        return mqType != null && this.adapters.containsKey(mqType);
+    }
 }

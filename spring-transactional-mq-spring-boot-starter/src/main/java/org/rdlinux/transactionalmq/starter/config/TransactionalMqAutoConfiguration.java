@@ -87,9 +87,10 @@ public class TransactionalMqAutoConfiguration {
     @ConditionalOnMissingBean(MessagePublishService.class)
     public MessagePublishService messagePublishService(TransactionalMessageRepository transactionalMessageRepository,
                                                        MessagePayloadSerializer messagePayloadSerializer,
-                                                       MessageDispatchWakeupCoordinator wakeupCoordinator) {
+                                                       MessageDispatchWakeupCoordinator wakeupCoordinator,
+                                                       MqProducerRouter mqProducerRouter) {
         return new MessagePublishService(transactionalMessageRepository, messagePayloadSerializer,
-                wakeupCoordinator);
+                wakeupCoordinator, mqProducerRouter);
     }
 
     @Bean

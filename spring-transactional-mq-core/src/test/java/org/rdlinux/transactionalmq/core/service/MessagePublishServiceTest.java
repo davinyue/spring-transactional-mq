@@ -6,6 +6,8 @@ import org.rdlinux.transactionalmq.api.model.ConsumeContext;
 import org.rdlinux.transactionalmq.api.model.TransactionalMessage;
 import org.rdlinux.transactionalmq.api.serialize.MessagePayloadSerializer;
 import org.rdlinux.transactionalmq.common.enums.MqType;
+import org.rdlinux.transactionalmq.core.mq.MqProducerAdapter;
+import org.rdlinux.transactionalmq.core.mq.MqProducerRouter;
 import org.rdlinux.transactionalmq.core.model.TransactionalMessageRecord;
 import org.rdlinux.transactionalmq.core.repository.TransactionalMessageRepository;
 import org.springframework.transaction.annotation.Transactional;
@@ -34,7 +36,8 @@ public class MessagePublishServiceTest {
                 return null;
             }
         };
-        MessagePublishService service = new MessagePublishService(repository, serializer, null);
+        MessagePublishService service = new MessagePublishService(repository, serializer, null,
+                this.buildRouter(MqType.RABBITMQ));
 
         TransactionalMessage<String> message = new TransactionalMessage<String>()
                 .setId("msg-1")
@@ -97,7 +100,8 @@ public class MessagePublishServiceTest {
                 return null;
             }
         };
-        MessagePublishService service = new MessagePublishService(repository, serializer, null);
+        MessagePublishService service = new MessagePublishService(repository, serializer, null,
+                this.buildRouter(MqType.RABBITMQ));
         TransactionalMessage<String> message = new TransactionalMessage<String>()
                 .setMessageKey("message-key-3")
                 .setPayload("payload-value-3");
@@ -120,6 +124,49 @@ public class MessagePublishServiceTest {
         Method method = MessagePublishService.class.getMethod("send", MqType.class, TransactionalMessage.class);
 
         Assert.assertNotNull(method.getAnnotation(Transactional.class));
+    }
+
+    @Test
+    public void sendShouldFailBeforeSaveWhenMqTypeUnsupported() {
+        CapturingTransactionalMessageRepository repository = new CapturingTransactionalMessageRepository();
+        MessagePayloadSerializer serializer = new MessagePayloadSerializer() {
+            @Override
+            public String serialize(Object payload) {
+                return "serialized-" + payload;
+            }
+
+            @Override
+            public <T> T deserialize(String payloadText, Type targetType) {
+                return null;
+            }
+        };
+        MessagePublishService service = new MessagePublishService(repository, serializer, null,
+                this.buildRouter(MqType.RABBITMQ));
+        TransactionalMessage<String> message = new TransactionalMessage<String>()
+                .setMessageKey("message-key-4")
+                .setPayload("payload-value-4");
+
+        try {
+            service.send(MqType.KAFKA, message);
+            Assert.fail("expected IllegalArgumentException");
+        } catch (IllegalArgumentException ex) {
+            Assert.assertEquals("unsupported mqType: KAFKA", ex.getMessage());
+        }
+
+        Assert.assertNull(repository.savedRecord);
+    }
+
+    private MqProducerRouter buildRouter(MqType mqType) {
+        return new MqProducerRouter(Collections.<MqProducerAdapter>singletonList(new MqProducerAdapter() {
+            @Override
+            public MqType supportMqType() {
+                return mqType;
+            }
+
+            @Override
+            public void send(org.rdlinux.transactionalmq.core.model.DispatchMessage message) {
+            }
+        }));
     }
 
     private static class CapturingTransactionalMessageRepository implements TransactionalMessageRepository {

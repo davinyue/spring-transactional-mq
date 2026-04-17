@@ -6,6 +6,7 @@ import org.rdlinux.transactionalmq.api.producer.TransactionalMessageSender;
 import org.rdlinux.transactionalmq.api.serialize.MessagePayloadSerializer;
 import org.rdlinux.transactionalmq.common.enums.MqType;
 import org.rdlinux.transactionalmq.common.id.ObjectIdGenerator;
+import org.rdlinux.transactionalmq.core.mq.MqProducerRouter;
 import org.rdlinux.transactionalmq.core.model.TransactionalMessageRecord;
 import org.rdlinux.transactionalmq.core.repository.TransactionalMessageRepository;
 import org.springframework.transaction.annotation.Transactional;
@@ -20,6 +21,7 @@ public class MessagePublishService implements TransactionalMessageSender {
     private final TransactionalMessageRepository transactionalMessageRepository;
     private final MessagePayloadSerializer messagePayloadSerializer;
     private final MessageDispatchWakeupService messageDispatchWakeupService;
+    private final MqProducerRouter mqProducerRouter;
 
     /**
      * 构造消息发布服务
@@ -27,13 +29,16 @@ public class MessagePublishService implements TransactionalMessageSender {
      * @param transactionalMessageRepository 事务消息仓储
      * @param messagePayloadSerializer       消息负载序列化器
      * @param messageDispatchWakeupService   派发线程唤醒器
+     * @param mqProducerRouter              MQ 生产者路由器
      */
     public MessagePublishService(TransactionalMessageRepository transactionalMessageRepository,
                                  MessagePayloadSerializer messagePayloadSerializer,
-                                 MessageDispatchWakeupService messageDispatchWakeupService) {
+                                 MessageDispatchWakeupService messageDispatchWakeupService,
+                                 MqProducerRouter mqProducerRouter) {
         this.transactionalMessageRepository = transactionalMessageRepository;
         this.messagePayloadSerializer = messagePayloadSerializer;
         this.messageDispatchWakeupService = messageDispatchWakeupService;
+        this.mqProducerRouter = mqProducerRouter;
     }
 
     /**
@@ -56,6 +61,7 @@ public class MessagePublishService implements TransactionalMessageSender {
     }
 
     private <T> String doSave(MqType mqType, TransactionalMessage<T> message, ConsumeContext parentContext) {
+        this.validateMqType(mqType);
         String payloadText = this.messagePayloadSerializer.serialize(message.getPayload());
         TransactionalMessageRecord record = parentContext == null
                 ? TransactionalMessageRecord.from(mqType, message, payloadText)
@@ -64,6 +70,15 @@ public class MessagePublishService implements TransactionalMessageSender {
         TransactionalMessageRecord saved = this.transactionalMessageRepository.save(record);
         this.notifyDispatchAfterCommit();
         return saved.getId();
+    }
+
+    private void validateMqType(MqType mqType) {
+        if (mqType == null) {
+            throw new IllegalArgumentException("mqType must not be null");
+        }
+        if (this.mqProducerRouter == null || !this.mqProducerRouter.supports(mqType)) {
+            throw new IllegalArgumentException("unsupported mqType: " + mqType);
+        }
     }
 
     private void ensureIds(TransactionalMessageRecord record) {
