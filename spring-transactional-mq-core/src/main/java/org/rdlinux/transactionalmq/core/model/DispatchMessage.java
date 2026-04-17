@@ -1,9 +1,9 @@
 package org.rdlinux.transactionalmq.core.model;
 
+import org.rdlinux.transactionalmq.common.enums.MqType;
+
 import java.util.HashMap;
 import java.util.Map;
-
-import org.rdlinux.transactionalmq.common.enums.MqType;
 
 /**
  * 待派发消息

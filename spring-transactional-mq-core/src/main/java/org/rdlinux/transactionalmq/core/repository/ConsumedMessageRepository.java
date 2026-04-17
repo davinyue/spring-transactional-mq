@@ -1,9 +1,9 @@
 package org.rdlinux.transactionalmq.core.repository;
 
+import org.rdlinux.transactionalmq.core.model.ConsumedMessageRecord;
+
 import java.util.Date;
 import java.util.List;
-
-import org.rdlinux.transactionalmq.core.model.ConsumedMessageRecord;
 
 /**
  * 已消费消息仓储 SPI

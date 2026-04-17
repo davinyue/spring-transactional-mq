@@ -1,10 +1,5 @@
 package org.rdlinux.transactionalmq.core.service;
 
-import java.util.Arrays;
-import java.util.ArrayList;
-import java.util.Date;
-import java.util.List;
-
 import org.junit.Assert;
 import org.junit.Test;
 import org.rdlinux.transactionalmq.common.enums.MqType;
@@ -15,6 +10,11 @@ import org.rdlinux.transactionalmq.core.model.TransactionalMessageRecord;
 import org.rdlinux.transactionalmq.core.mq.MqProducerAdapter;
 import org.rdlinux.transactionalmq.core.repository.MessageSendLogRepository;
 import org.rdlinux.transactionalmq.core.repository.TransactionalMessageRepository;
+
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Date;
+import java.util.List;
 
 /**
  * 消息派发服务测试

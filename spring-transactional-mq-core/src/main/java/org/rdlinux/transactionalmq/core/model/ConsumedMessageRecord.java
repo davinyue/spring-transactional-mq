@@ -1,10 +1,10 @@
 package org.rdlinux.transactionalmq.core.model;
 
-import java.util.Date;
-
 import org.rdlinux.transactionalmq.api.model.ConsumeContext;
 import org.rdlinux.transactionalmq.common.entity.BaseEntity;
 import org.rdlinux.transactionalmq.common.enums.ConsumeStatus;
+
+import java.util.Date;
 
 /**
  * core 层消费记录

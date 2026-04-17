@@ -1,14 +1,14 @@
 package org.rdlinux.transactionalmq.core.service;
 
-import java.util.Date;
-import java.util.Collections;
-import java.util.List;
-
 import org.junit.Assert;
 import org.junit.Test;
 import org.rdlinux.transactionalmq.api.model.ConsumeContext;
 import org.rdlinux.transactionalmq.core.model.ConsumedMessageRecord;
 import org.rdlinux.transactionalmq.core.repository.ConsumedMessageRepository;
+
+import java.util.Collections;
+import java.util.Date;
+import java.util.List;
 
 /**
  * 消费幂等服务测试

@@ -1,12 +1,5 @@
 package org.rdlinux.transactionalmq.store.ezmybatis.repository;
 
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.Date;
-import java.util.List;
-
-import javax.annotation.Resource;
-
 import org.rdlinux.ezmybatis.core.EzQuery;
 import org.rdlinux.ezmybatis.core.dao.EzDao;
 import org.rdlinux.ezmybatis.core.sqlstruct.Select;
@@ -16,6 +9,12 @@ import org.rdlinux.transactionalmq.core.model.MessageSendLogRecord;
 import org.rdlinux.transactionalmq.core.repository.MessageSendLogRepository;
 import org.rdlinux.transactionalmq.store.ezmybatis.entity.MessageSendLogEntity;
 import org.springframework.stereotype.Repository;
+
+import javax.annotation.Resource;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Date;
+import java.util.List;
 
 /**
  * 基于 ez-mybatis 的发送日志仓储实现
@@ -30,10 +29,10 @@ public class EzMybatisMessageSendLogRepository implements MessageSendLogReposito
 
     @Override
     public MessageSendLogRecord save(MessageSendLogRecord record) {
-        MessageSendLogEntity entity = toEntity(record);
+        MessageSendLogEntity entity = this.toEntity(record);
         this.ezDao.insert(entity);
         record.setId(entity.getId());
-        return toRecord(entity);
+        return this.toRecord(entity);
     }
 
     @Override
@@ -51,7 +50,7 @@ public class EzMybatisMessageSendLogRepository implements MessageSendLogReposito
         List<MessageSendLogEntity> entities = this.ezDao.query(query);
         List<MessageSendLogRecord> records = new ArrayList<MessageSendLogRecord>(entities.size());
         for (MessageSendLogEntity entity : entities) {
-            records.add(toRecord(entity));
+            records.add(this.toRecord(entity));
         }
         return records;
     }
@@ -60,8 +59,8 @@ public class EzMybatisMessageSendLogRepository implements MessageSendLogReposito
         Date now = new Date();
         MessageSendLogEntity entity = new MessageSendLogEntity();
         entity.setId(TransactionalMessageEntityMapper.resolvePrimaryKey(record.getId()));
-        entity.setCreateTime(defaultDate(record.getCreateTime(), now));
-        entity.setUpdateTime(defaultDate(record.getUpdateTime(), entity.getCreateTime()));
+        entity.setCreateTime(this.defaultDate(record.getCreateTime(), now));
+        entity.setUpdateTime(this.defaultDate(record.getUpdateTime(), entity.getCreateTime()));
         entity.setMessageKey(record.getMessageKey());
         entity.setProducerCode(record.getProducerCode());
         entity.setMqType(record.getMqType());
@@ -69,7 +68,7 @@ public class EzMybatisMessageSendLogRepository implements MessageSendLogReposito
         entity.setRootId(record.getRootId());
         entity.setSendStatus(record.getSendStatus());
         entity.setRetryCount(record.getRetryCount());
-        entity.setLastSendTime(defaultDate(record.getLastSendTime(), now));
+        entity.setLastSendTime(this.defaultDate(record.getLastSendTime(), now));
         entity.setDescription(record.getDescription());
         if (entity.getSendStatus() == null) {
             entity.setSendStatus(SendStatus.INIT);

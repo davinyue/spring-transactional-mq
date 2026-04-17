@@ -1,10 +1,10 @@
 package org.rdlinux.transactionalmq.core.model;
 
-import java.util.Date;
-
 import org.rdlinux.transactionalmq.common.entity.BaseEntity;
 import org.rdlinux.transactionalmq.common.enums.MqType;
 import org.rdlinux.transactionalmq.common.enums.SendStatus;
+
+import java.util.Date;
 
 /**
  * core 层发送日志

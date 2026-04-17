@@ -1,8 +1,5 @@
 package org.rdlinux.transactionalmq.demo;
 
-import java.util.LinkedHashMap;
-import java.util.Map;
-
 import org.rdlinux.transactionalmq.api.model.TransactionalMessage;
 import org.rdlinux.transactionalmq.common.enums.MqType;
 import org.rdlinux.transactionalmq.core.service.MessagePublishService;
@@ -12,6 +9,9 @@ import org.springframework.boot.ApplicationArguments;
 import org.springframework.boot.ApplicationRunner;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Component;
+
+import java.util.LinkedHashMap;
+import java.util.Map;
 
 /**
  * 真实数据链路测试 runner

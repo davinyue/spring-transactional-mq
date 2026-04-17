@@ -34,6 +34,6 @@ public interface MessagePayloadSerializer {
      * @return 反序列化对象
      */
     default <T> T deserialize(String payloadText, Class<T> targetType) {
-        return deserialize(payloadText, (Type) targetType);
+        return this.deserialize(payloadText, (Type) targetType);
     }
 }

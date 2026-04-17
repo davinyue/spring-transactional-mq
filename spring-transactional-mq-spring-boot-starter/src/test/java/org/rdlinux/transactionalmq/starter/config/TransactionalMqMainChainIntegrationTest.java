@@ -1,18 +1,5 @@
 package org.rdlinux.transactionalmq.starter.config;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.verify;
-
-import java.util.ArrayList;
-import java.util.Date;
-import java.util.List;
-import java.util.UUID;
-
 import org.junit.Test;
 import org.rdlinux.ezmybatis.core.EzDelete;
 import org.rdlinux.ezmybatis.core.EzQuery;
@@ -22,17 +9,27 @@ import org.rdlinux.ezmybatis.core.mapper.EzMapper;
 import org.rdlinux.transactionalmq.api.model.TransactionalMessage;
 import org.rdlinux.transactionalmq.common.enums.MessageStatus;
 import org.rdlinux.transactionalmq.common.enums.MqType;
-import org.rdlinux.transactionalmq.core.model.TransactionalMessageRecord;
-import org.rdlinux.transactionalmq.core.service.TransactionalMessageDispatchScheduler;
 import org.rdlinux.transactionalmq.core.service.MessageDispatchService;
-import org.rdlinux.transactionalmq.core.service.TransactionalMessageCleanupService;
 import org.rdlinux.transactionalmq.core.service.MessagePublishService;
+import org.rdlinux.transactionalmq.core.service.TransactionalMessageCleanupService;
+import org.rdlinux.transactionalmq.core.service.TransactionalMessageDispatchScheduler;
 import org.rdlinux.transactionalmq.store.ezmybatis.entity.TransactionalMessageEntity;
 import org.rdlinux.transactionalmq.store.ezmybatis.entity.TransactionalMessageHistoryEntity;
 import org.springframework.amqp.core.MessagePostProcessor;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.boot.autoconfigure.AutoConfigurations;
 import org.springframework.boot.test.context.runner.ApplicationContextRunner;
+
+import java.util.ArrayList;
+import java.util.Date;
+import java.util.List;
+import java.util.UUID;
+
+import static org.junit.Assert.*;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
 
 /**
  * starter 主链路集成回归测试
@@ -112,15 +109,15 @@ public class TransactionalMqMainChainIntegrationTest {
         @Override
         public synchronized int insert(Object model) {
             if (model instanceof TransactionalMessageHistoryEntity) {
-                TransactionalMessageHistoryEntity entity = copy((TransactionalMessageHistoryEntity) model);
+                TransactionalMessageHistoryEntity entity = this.copy((TransactionalMessageHistoryEntity) model);
                 if (entity.getId() == null || entity.getId().isEmpty()) {
-                    entity.setId(generateId());
+                    entity.setId(this.generateId());
                 }
                 this.transactionalMessageHistoryEntities.add(entity);
             } else if (model instanceof TransactionalMessageEntity) {
-                TransactionalMessageEntity entity = copy((TransactionalMessageEntity) model);
+                TransactionalMessageEntity entity = this.copy((TransactionalMessageEntity) model);
                 if (entity.getId() == null || entity.getId().isEmpty()) {
-                    entity.setId(generateId());
+                    entity.setId(this.generateId());
                 }
                 this.transactionalMessageEntities.add(entity);
             }
@@ -137,12 +134,12 @@ public class TransactionalMqMainChainIntegrationTest {
                         && entity.getMessageStatus() == MessageStatus.INIT
                         && entity.getNextDispatchTime() != null
                         && !entity.getNextDispatchTime().after(now)) {
-                    result.add((Rt) copy(entity));
+                    result.add((Rt) this.copy(entity));
                 } else if (this.cleanupQueryEnabled
                         && entity.getMessageStatus() == MessageStatus.SUCCESS
                         && entity.getUpdateTime() != null
                         && !entity.getUpdateTime().after(now)) {
-                    result.add((Rt) copy(entity));
+                    result.add((Rt) this.copy(entity));
                 }
             }
             return result;
@@ -213,8 +210,8 @@ public class TransactionalMqMainChainIntegrationTest {
         private TransactionalMessageEntity copy(TransactionalMessageEntity source) {
             TransactionalMessageEntity target = new TransactionalMessageEntity();
             target.setId(source.getId());
-            target.setCreateTime(copyDate(source.getCreateTime()));
-            target.setUpdateTime(copyDate(source.getUpdateTime()));
+            target.setCreateTime(this.copyDate(source.getCreateTime()));
+            target.setUpdateTime(this.copyDate(source.getUpdateTime()));
             target.setMessageKey(source.getMessageKey());
             target.setProducerCode(source.getProducerCode());
             target.setMqType(source.getMqType());
@@ -225,15 +222,15 @@ public class TransactionalMqMainChainIntegrationTest {
             target.setHeadersJson(source.getHeadersJson());
             target.setBizKey(source.getBizKey());
             target.setMessageStatus(source.getMessageStatus());
-            target.setNextDispatchTime(copyDate(source.getNextDispatchTime()));
+            target.setNextDispatchTime(this.copyDate(source.getNextDispatchTime()));
             return target;
         }
 
         private TransactionalMessageHistoryEntity copy(TransactionalMessageHistoryEntity source) {
             TransactionalMessageHistoryEntity target = new TransactionalMessageHistoryEntity();
             target.setId(source.getId());
-            target.setCreateTime(copyDate(source.getCreateTime()));
-            target.setUpdateTime(copyDate(source.getUpdateTime()));
+            target.setCreateTime(this.copyDate(source.getCreateTime()));
+            target.setUpdateTime(this.copyDate(source.getUpdateTime()));
             target.setMessageKey(source.getMessageKey());
             target.setProducerCode(source.getProducerCode());
             target.setMqType(source.getMqType());
@@ -244,7 +241,7 @@ public class TransactionalMqMainChainIntegrationTest {
             target.setHeadersJson(source.getHeadersJson());
             target.setBizKey(source.getBizKey());
             target.setMessageStatus(source.getMessageStatus());
-            target.setNextDispatchTime(copyDate(source.getNextDispatchTime()));
+            target.setNextDispatchTime(this.copyDate(source.getNextDispatchTime()));
             return target;
         }
 

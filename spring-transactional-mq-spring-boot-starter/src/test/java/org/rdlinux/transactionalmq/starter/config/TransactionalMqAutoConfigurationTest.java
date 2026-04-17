@@ -1,9 +1,5 @@
 package org.rdlinux.transactionalmq.starter.config;
 
-import static org.mockito.Mockito.mock;
-
-import java.lang.reflect.Type;
-
 import org.junit.Assert;
 import org.junit.Test;
 import org.rdlinux.ezmybatis.core.dao.EzDao;
@@ -13,10 +9,14 @@ import org.rdlinux.transactionalmq.core.service.ConsumedMessageCleanupService;
 import org.rdlinux.transactionalmq.core.service.MessagePublishService;
 import org.rdlinux.transactionalmq.rabbitmq.RabbitMqProducerAdapter;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
-import org.springframework.boot.autoconfigure.EnableAutoConfiguration;
 import org.springframework.boot.autoconfigure.AutoConfigurations;
+import org.springframework.boot.autoconfigure.EnableAutoConfiguration;
 import org.springframework.boot.test.context.runner.ApplicationContextRunner;
 import org.springframework.core.io.support.SpringFactoriesLoader;
+
+import java.lang.reflect.Type;
+
+import static org.mockito.Mockito.mock;
 
 /**
  * starter 自动装配测试
@@ -104,7 +104,7 @@ public class TransactionalMqAutoConfigurationTest {
     public void should_be_listed_in_spring_factories_as_auto_configuration() {
         String className = TransactionalMqAutoConfiguration.class.getName();
         Assert.assertTrue(SpringFactoriesLoader.loadFactoryNames(EnableAutoConfiguration.class,
-                getClass().getClassLoader()).contains(className));
+                this.getClass().getClassLoader()).contains(className));
     }
 
     private static final class SamplePayload {

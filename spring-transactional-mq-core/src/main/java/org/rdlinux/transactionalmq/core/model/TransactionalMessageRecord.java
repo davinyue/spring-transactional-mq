@@ -1,14 +1,14 @@
 package org.rdlinux.transactionalmq.core.model;
 
-import java.util.Date;
-import java.util.HashMap;
-import java.util.Map;
-
-import org.rdlinux.transactionalmq.api.model.TransactionalMessage;
 import org.rdlinux.transactionalmq.api.model.ConsumeContext;
+import org.rdlinux.transactionalmq.api.model.TransactionalMessage;
 import org.rdlinux.transactionalmq.common.entity.BaseEntity;
 import org.rdlinux.transactionalmq.common.enums.MessageStatus;
 import org.rdlinux.transactionalmq.common.enums.MqType;
+
+import java.util.Date;
+import java.util.HashMap;
+import java.util.Map;
 
 /**
  * core 层事务消息持久化记录

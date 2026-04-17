@@ -1,7 +1,7 @@
 package org.rdlinux.transactionalmq.api.producer;
 
-import org.rdlinux.transactionalmq.api.model.TransactionalMessage;
 import org.rdlinux.transactionalmq.api.model.ConsumeContext;
+import org.rdlinux.transactionalmq.api.model.TransactionalMessage;
 
 /**
  * 事务消息发送器

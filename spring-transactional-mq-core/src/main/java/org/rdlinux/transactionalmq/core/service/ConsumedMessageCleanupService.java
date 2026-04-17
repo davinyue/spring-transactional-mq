@@ -1,10 +1,10 @@
 package org.rdlinux.transactionalmq.core.service;
 
-import java.util.Date;
-import java.util.List;
-
 import org.rdlinux.transactionalmq.core.model.ConsumedMessageRecord;
 import org.rdlinux.transactionalmq.core.repository.ConsumedMessageRepository;
+
+import java.util.Date;
+import java.util.List;
 
 /**
  * 已消费消息主表清理服务
