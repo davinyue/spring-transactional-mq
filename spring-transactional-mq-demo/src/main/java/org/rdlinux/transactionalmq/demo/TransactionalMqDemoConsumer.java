@@ -3,6 +3,7 @@ package org.rdlinux.transactionalmq.demo;
 import org.rdlinux.transactionalmq.api.consumer.QueueMsgHandleRet;
 import org.rdlinux.transactionalmq.api.consumer.TransactionalMessageConsumer;
 import org.rdlinux.transactionalmq.api.model.ConsumeContext;
+import org.rdlinux.transactionalmq.common.enums.MqType;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
@@ -39,6 +40,11 @@ public class TransactionalMqDemoConsumer implements TransactionalMessageConsumer
     @Override
     public int getMaxConcurrency() {
         return this.properties.getConsumerMaxConcurrency();
+    }
+
+    @Override
+    public MqType getSupportMqType() {
+        return MqType.RABBITMQ;
     }
 
     @Override

@@ -29,7 +29,7 @@ public class MqProducerRouter {
             }
             MqType mqType = producerAdapter.supportMqType();
             if (mqType == null) {
-                throw new IllegalStateException("MqProducerAdapter supportMqType must not be null");
+                throw new IllegalStateException("MqProducerAdapter getSupportMqType must not be null");
             }
             if (this.adapters.containsKey(mqType)) {
                 throw new IllegalStateException("duplicate MqProducerAdapter for mqType: " + mqType);

@@ -10,19 +10,19 @@ import org.rdlinux.transactionalmq.api.model.ConsumeContext;
 import org.rdlinux.transactionalmq.api.model.TransactionalMessage;
 import org.rdlinux.transactionalmq.api.serialize.MessagePayloadSerializer;
 import org.rdlinux.transactionalmq.common.enums.MqType;
-import org.rdlinux.transactionalmq.core.service.MessagePublishService;
 import org.rdlinux.transactionalmq.core.service.ConsumeIdempotentService;
+import org.rdlinux.transactionalmq.core.service.MessagePublishService;
 import org.rdlinux.transactionalmq.core.service.TxnMqTransactionalService;
 import org.springframework.kafka.support.Acknowledgment;
 
 import java.lang.reflect.Type;
 import java.nio.charset.StandardCharsets;
+import java.time.Duration;
 import java.util.Optional;
 
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyLong;
-import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
+import static org.mockito.Mockito.anyString;
 
 public class KafkaConsumerMessageListenerTest {
 
@@ -73,7 +73,7 @@ public class KafkaConsumerMessageListenerTest {
 
         listener.onMessage(record, acknowledgment);
 
-        verify(acknowledgment).nack(10000L);
+        verify(acknowledgment).nack(Duration.ofMillis(10000L));
         verify(acknowledgment, never()).acknowledge();
         verifyNoInteractions(messagePublishService);
     }
@@ -158,7 +158,7 @@ public class KafkaConsumerMessageListenerTest {
 
         listener.onMessage(record, acknowledgment);
 
-        verify(acknowledgment).nack(10000L);
+        verify(acknowledgment).nack(Duration.ofMillis(10000L));
         verify(acknowledgment, never()).acknowledge();
     }
 
@@ -187,6 +187,11 @@ public class KafkaConsumerMessageListenerTest {
         }
 
         @Override
+        public MqType getSupportMqType() {
+            return MqType.KAFKA;
+        }
+
+        @Override
         public String consumerCode() {
             return "consumer-listener";
         }
@@ -205,6 +210,11 @@ public class KafkaConsumerMessageListenerTest {
         }
 
         @Override
+        public MqType getSupportMqType() {
+            return MqType.KAFKA;
+        }
+
+        @Override
         public String consumerCode() {
             return "consumer-rollback";
         }
@@ -220,6 +230,11 @@ public class KafkaConsumerMessageListenerTest {
         @Override
         public String getQueueName() {
             return "topic.abstract";
+        }
+
+        @Override
+        public MqType getSupportMqType() {
+            return MqType.KAFKA;
         }
 
         @Override

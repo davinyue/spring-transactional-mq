@@ -72,6 +72,11 @@ public class TransactionalMessageApiTest {
             }
 
             @Override
+            public MqType getSupportMqType() {
+                return MqType.RABBITMQ;
+            }
+
+            @Override
             public String consumerCode() {
                 return "consumer-1";
             }
@@ -126,6 +131,7 @@ public class TransactionalMessageApiTest {
         Assert.assertEquals("consumer-1", observedConsumerCode[0]);
         Assert.assertEquals("payload-value", observedPayload[0]);
         Assert.assertEquals("queue.consumer.1", consumer.getQueueName());
+        Assert.assertEquals(MqType.RABBITMQ, consumer.getSupportMqType());
         Assert.assertEquals(1, consumer.getMinConcurrency());
         Assert.assertEquals(1, consumer.getMaxConcurrency());
         Assert.assertEquals("RABBITMQ-msg-2", messageId);

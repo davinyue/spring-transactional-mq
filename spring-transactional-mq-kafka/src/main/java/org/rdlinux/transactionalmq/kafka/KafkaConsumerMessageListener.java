@@ -18,11 +18,13 @@ import org.springframework.core.GenericTypeResolver;
 import org.springframework.core.ResolvableType;
 import org.springframework.kafka.listener.AcknowledgingMessageListener;
 import org.springframework.kafka.support.Acknowledgment;
+import org.springframework.lang.NonNull;
 import org.springframework.transaction.UnexpectedRollbackException;
 import org.springframework.util.ClassUtils;
 
 import java.lang.reflect.Type;
 import java.nio.charset.StandardCharsets;
+import java.time.Duration;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -57,7 +59,7 @@ class KafkaConsumerMessageListener implements AcknowledgingMessageListener<Strin
     }
 
     @Override
-    public void onMessage(ConsumerRecord<String, byte[]> record, Acknowledgment acknowledgment) {
+    public void onMessage(@NonNull ConsumerRecord<String, byte[]> record, Acknowledgment acknowledgment) {
         String traceId = new ObjectId().toHexString();
         MDC.put("X-B3-TraceId", traceId);
         MDC.put("traceId", traceId);
@@ -80,7 +82,7 @@ class KafkaConsumerMessageListener implements AcknowledgingMessageListener<Strin
             }
             AtomicBoolean doAck = new AtomicBoolean(false);
             AtomicBoolean needRepublish = new AtomicBoolean(false);
-            AtomicReference<QueueMsgHandleRet> retRef = new AtomicReference<QueueMsgHandleRet>();
+            AtomicReference<QueueMsgHandleRet> retRef = new AtomicReference<>();
             try {
                 this.txnMqTransactionalService.required(() -> {
                     if (!this.consumeIdempotentService.recordIfAbsent(context)) {
@@ -132,7 +134,7 @@ class KafkaConsumerMessageListener implements AcknowledgingMessageListener<Strin
 
     private void nack(Acknowledgment acknowledgment) {
         if (acknowledgment != null) {
-            acknowledgment.nack(10000L);
+            acknowledgment.nack(Duration.ofMillis(10000L));
         }
     }
 
@@ -141,7 +143,7 @@ class KafkaConsumerMessageListener implements AcknowledgingMessageListener<Strin
             return false;
         }
         try {
-            TransactionalMessage<Object> retryMessage = new TransactionalMessage<Object>()
+            TransactionalMessage<Object> retryMessage = new TransactionalMessage<>()
                     .setMessageKey(context.getMessageKey())
                     .setProducerCode(this.findHeader(record, "producerCode"))
                     .setDestination(record.topic())
@@ -184,7 +186,7 @@ class KafkaConsumerMessageListener implements AcknowledgingMessageListener<Strin
     }
 
     private Map<String, String> toHeaders(ConsumerRecord<String, byte[]> record) {
-        Map<String, String> headers = new HashMap<String, String>();
+        Map<String, String> headers = new HashMap<>();
         for (Header header : record.headers()) {
             headers.put(header.key(), header.value() == null ? null : new String(header.value(), StandardCharsets.UTF_8));
         }

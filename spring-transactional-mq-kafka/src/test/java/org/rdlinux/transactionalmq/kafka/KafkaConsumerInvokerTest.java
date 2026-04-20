@@ -4,6 +4,7 @@ import org.junit.Test;
 import org.rdlinux.transactionalmq.api.consumer.QueueMsgHandleRet;
 import org.rdlinux.transactionalmq.api.consumer.TransactionalMessageConsumer;
 import org.rdlinux.transactionalmq.api.model.ConsumeContext;
+import org.rdlinux.transactionalmq.common.enums.MqType;
 
 import static org.junit.Assert.assertEquals;
 
@@ -30,6 +31,11 @@ public class KafkaConsumerInvokerTest {
         @Override
         public String getQueueName() {
             return "topic.consumer.3";
+        }
+
+        @Override
+        public MqType getSupportMqType() {
+            return MqType.KAFKA;
         }
 
         @Override

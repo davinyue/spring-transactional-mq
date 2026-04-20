@@ -6,6 +6,7 @@ import org.rdlinux.transactionalmq.api.consumer.QueueMsgHandleRet;
 import org.rdlinux.transactionalmq.api.consumer.TransactionalMessageConsumer;
 import org.rdlinux.transactionalmq.api.model.ConsumeContext;
 import org.rdlinux.transactionalmq.api.serialize.MessagePayloadSerializer;
+import org.rdlinux.transactionalmq.common.enums.MqType;
 import org.rdlinux.transactionalmq.core.service.ConsumeIdempotentService;
 import org.rdlinux.transactionalmq.core.service.TxnMqTransactionalService;
 import org.springframework.amqp.core.Message;
@@ -143,6 +144,11 @@ public class RabbitMqConsumerMessageListenerTest {
         }
 
         @Override
+        public MqType getSupportMqType() {
+            return MqType.RABBITMQ;
+        }
+
+        @Override
         public String consumerCode() {
             return "consumer-listener";
         }
@@ -158,6 +164,11 @@ public class RabbitMqConsumerMessageListenerTest {
         @Override
         public String getQueueName() {
             return "queue.interrupt";
+        }
+
+        @Override
+        public MqType getSupportMqType() {
+            return MqType.RABBITMQ;
         }
 
         @Override
@@ -179,6 +190,11 @@ public class RabbitMqConsumerMessageListenerTest {
         }
 
         @Override
+        public MqType getSupportMqType() {
+            return MqType.RABBITMQ;
+        }
+
+        @Override
         public String consumerCode() {
             return "consumer-abstract";
         }
@@ -197,7 +213,7 @@ public class RabbitMqConsumerMessageListenerTest {
         private String code;
 
         public String getCode() {
-            return code;
+            return this.code;
         }
 
         @SuppressWarnings("unchecked")

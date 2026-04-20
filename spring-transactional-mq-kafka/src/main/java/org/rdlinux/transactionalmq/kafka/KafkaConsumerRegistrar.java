@@ -2,6 +2,7 @@ package org.rdlinux.transactionalmq.kafka;
 
 import org.rdlinux.transactionalmq.api.consumer.TransactionalMessageConsumer;
 import org.rdlinux.transactionalmq.api.serialize.MessagePayloadSerializer;
+import org.rdlinux.transactionalmq.common.enums.MqType;
 import org.rdlinux.transactionalmq.core.service.ConsumeIdempotentService;
 import org.rdlinux.transactionalmq.core.service.MessagePublishService;
 import org.rdlinux.transactionalmq.core.service.TxnMqTransactionalService;
@@ -28,8 +29,7 @@ public class KafkaConsumerRegistrar implements SmartInitializingSingleton, Dispo
     private final ApplicationContext applicationContext;
     private final TxnMqTransactionalService txnMqTransactionalService;
     private final MessagePublishService messagePublishService;
-    private final List<ConcurrentMessageListenerContainer<String, byte[]>> containers =
-            new ArrayList<ConcurrentMessageListenerContainer<String, byte[]>>();
+    private final List<ConcurrentMessageListenerContainer<String, byte[]>> containers = new ArrayList<>();
 
     public KafkaConsumerRegistrar(ConsumerFactory<String, byte[]> consumerFactory,
                                   KafkaConsumerInvoker kafkaConsumerInvoker,
@@ -62,6 +62,9 @@ public class KafkaConsumerRegistrar implements SmartInitializingSingleton, Dispo
         Map<String, TransactionalMessageConsumer> consumers =
                 this.applicationContext.getBeansOfType(TransactionalMessageConsumer.class);
         for (TransactionalMessageConsumer consumer : consumers.values()) {
+            if (!MqType.KAFKA.equals(consumer.getSupportMqType())) {
+                continue;
+            }
             this.consume(consumer);
         }
     }

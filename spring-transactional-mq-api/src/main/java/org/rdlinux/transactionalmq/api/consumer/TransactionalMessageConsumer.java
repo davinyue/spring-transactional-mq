@@ -1,6 +1,7 @@
 package org.rdlinux.transactionalmq.api.consumer;
 
 import org.rdlinux.transactionalmq.api.model.ConsumeContext;
+import org.rdlinux.transactionalmq.common.enums.MqType;
 
 /**
  * 统一事务消息消费者
@@ -15,6 +16,13 @@ public interface TransactionalMessageConsumer<T> {
      * @return 队列名
      */
     String getQueueName();
+
+    /**
+     * 获取消费者所属 MQ 类型
+     *
+     * @return MQ 类型
+     */
+    MqType getSupportMqType();
 
     /**
      * 获取最小消费并发

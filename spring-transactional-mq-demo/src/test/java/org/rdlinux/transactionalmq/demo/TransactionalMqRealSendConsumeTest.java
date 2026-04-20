@@ -299,6 +299,11 @@ public class TransactionalMqRealSendConsumeTest {
         }
 
         @Override
+        public MqType getSupportMqType() {
+            return MqType.RABBITMQ;
+        }
+
+        @Override
         public String consumerCode() {
             return TransactionalMqRealSendConsumeTest.TEST_CONSUMER_CODE;
         }

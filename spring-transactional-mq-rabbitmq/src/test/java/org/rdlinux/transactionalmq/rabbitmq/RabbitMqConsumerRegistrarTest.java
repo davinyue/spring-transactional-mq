@@ -5,19 +5,24 @@ import org.rdlinux.transactionalmq.api.consumer.QueueMsgHandleRet;
 import org.rdlinux.transactionalmq.api.consumer.TransactionalMessageConsumer;
 import org.rdlinux.transactionalmq.api.model.ConsumeContext;
 import org.rdlinux.transactionalmq.api.serialize.MessagePayloadSerializer;
+import org.rdlinux.transactionalmq.common.enums.MqType;
 import org.rdlinux.transactionalmq.core.service.ConsumeIdempotentService;
 import org.rdlinux.transactionalmq.core.service.TxnMqTransactionalService;
 import org.springframework.amqp.core.AcknowledgeMode;
 import org.springframework.amqp.rabbit.connection.ConnectionFactory;
 import org.springframework.amqp.rabbit.listener.SimpleMessageListenerContainer;
+import org.springframework.context.ApplicationContext;
 
 import java.lang.reflect.Field;
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 public class RabbitMqConsumerRegistrarTest {
 
@@ -35,6 +40,24 @@ public class RabbitMqConsumerRegistrarTest {
         assertEquals(2, readIntField(container, "concurrentConsumers"));
         assertEquals(5, readIntField(container, "maxConcurrentConsumers"));
         assertEquals("queue.demo", container.getQueueNames()[0]);
+    }
+
+    @Test
+    @SuppressWarnings("rawtypes")
+    public void afterSingletonsInstantiatedShouldOnlyRegisterRabbitConsumers() {
+        ApplicationContext applicationContext = mock(ApplicationContext.class);
+        Map<String, TransactionalMessageConsumer> consumers = new LinkedHashMap<String, TransactionalMessageConsumer>();
+        consumers.put("rabbitConsumer", new DemoConsumer());
+        consumers.put("kafkaConsumer", new KafkaConsumer());
+        when(applicationContext.getBeansOfType(TransactionalMessageConsumer.class)).thenReturn(consumers);
+
+        CapturingRegistrar registrar = new CapturingRegistrar(mock(ConnectionFactory.class), new RabbitMqConsumerInvoker(),
+                applicationContext);
+
+        registrar.afterSingletonsInstantiated();
+
+        assertEquals(1, registrar.containers.size());
+        assertEquals("queue.demo", registrar.containers.get(0).getQueueNames()[0]);
     }
 
     private static int readIntField(Object target, String fieldName) {
@@ -63,6 +86,12 @@ public class RabbitMqConsumerRegistrarTest {
                     mock(ConsumeIdempotentService.class), null, new TxnMqTransactionalService());
         }
 
+        private CapturingRegistrar(ConnectionFactory connectionFactory, RabbitMqConsumerInvoker rabbitMqConsumerInvoker,
+                                   ApplicationContext applicationContext) {
+            super(connectionFactory, rabbitMqConsumerInvoker, mock(MessagePayloadSerializer.class),
+                    mock(ConsumeIdempotentService.class), applicationContext, new TxnMqTransactionalService());
+        }
+
         @Override
         protected void startContainer(SimpleMessageListenerContainer container) {
             this.containers.add(container);
@@ -87,8 +116,36 @@ public class RabbitMqConsumerRegistrarTest {
         }
 
         @Override
+        public MqType getSupportMqType() {
+            return MqType.RABBITMQ;
+        }
+
+        @Override
         public String consumerCode() {
             return "consumer-demo";
+        }
+
+        @Override
+        public QueueMsgHandleRet consume(ConsumeContext context, String payload) {
+            return QueueMsgHandleRet.DEFAULT();
+        }
+    }
+
+    private static final class KafkaConsumer implements TransactionalMessageConsumer<String> {
+
+        @Override
+        public String getQueueName() {
+            return "topic.demo";
+        }
+
+        @Override
+        public MqType getSupportMqType() {
+            return MqType.KAFKA;
+        }
+
+        @Override
+        public String consumerCode() {
+            return "kafka-consumer";
         }
 
         @Override

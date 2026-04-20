@@ -2,6 +2,7 @@ package org.rdlinux.transactionalmq.rabbitmq;
 
 import org.rdlinux.transactionalmq.api.consumer.TransactionalMessageConsumer;
 import org.rdlinux.transactionalmq.api.serialize.MessagePayloadSerializer;
+import org.rdlinux.transactionalmq.common.enums.MqType;
 import org.rdlinux.transactionalmq.core.service.ConsumeIdempotentService;
 import org.rdlinux.transactionalmq.core.service.TxnMqTransactionalService;
 import org.springframework.amqp.core.AcknowledgeMode;
@@ -56,6 +57,9 @@ public class RabbitMqConsumerRegistrar implements SmartInitializingSingleton, Di
         Map<String, TransactionalMessageConsumer> consumers =
                 this.applicationContext.getBeansOfType(TransactionalMessageConsumer.class);
         for (TransactionalMessageConsumer consumer : consumers.values()) {
+            if (!MqType.RABBITMQ.equals(consumer.getSupportMqType())) {
+                continue;
+            }
             this.consume(consumer);
         }
     }
