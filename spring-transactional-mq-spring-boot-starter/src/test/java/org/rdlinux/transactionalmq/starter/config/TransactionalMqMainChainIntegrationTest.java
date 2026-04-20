@@ -46,8 +46,8 @@ public class TransactionalMqMainChainIntegrationTest {
         RabbitTemplate rabbitTemplate = mock(RabbitTemplate.class);
 
         this.contextRunner
-                .withPropertyValues("transactionalmq.enabled=true",
-                        "transactionalmq.dispatch-idle-sleep-millis=100")
+                .withPropertyValues(TransactionalMqProperties.PREFIX + ".enabled=true",
+                        TransactionalMqProperties.PREFIX + ".dispatch-idle-sleep-millis=100")
                 .withBean(EzDao.class, () -> ezDao)
                 .withBean(RabbitTemplate.class, () -> rabbitTemplate)
                 .withBean(TransactionalMessageDispatchScheduler.class,

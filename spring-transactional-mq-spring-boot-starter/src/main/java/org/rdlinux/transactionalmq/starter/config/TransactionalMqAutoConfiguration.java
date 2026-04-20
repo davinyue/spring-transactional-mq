@@ -2,6 +2,7 @@ package org.rdlinux.transactionalmq.starter.config;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.rdlinux.ezmybatis.core.dao.EzDao;
+import org.apache.ibatis.session.SqlSessionFactory;
 import org.rdlinux.transactionalmq.api.serialize.MessagePayloadSerializer;
 import org.rdlinux.transactionalmq.core.mq.MqProducerAdapter;
 import org.rdlinux.transactionalmq.core.mq.MqProducerRouter;
@@ -24,6 +25,8 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.scheduling.annotation.EnableScheduling;
 
+import javax.sql.DataSource;
+
 /**
  * 事务消息 starter 自动装配
  *
@@ -35,7 +38,8 @@ import org.springframework.scheduling.annotation.EnableScheduling;
 @Configuration
 @EnableScheduling
 @EnableConfigurationProperties(TransactionalMqProperties.class)
-@ConditionalOnProperty(prefix = "transactionalmq", name = "enabled", havingValue = "true", matchIfMissing = true)
+@ConditionalOnProperty(prefix = TransactionalMqProperties.PREFIX, name = "enabled",
+        havingValue = "true", matchIfMissing = true)
 public class TransactionalMqAutoConfiguration {
 
     @Bean
@@ -56,6 +60,17 @@ public class TransactionalMqAutoConfiguration {
     @ConditionalOnMissingBean(MessagePayloadSerializer.class)
     public MessagePayloadSerializer messagePayloadSerializer(ObjectMapper objectMapper) {
         return new LuavaJsonMessagePayloadSerializer();
+    }
+
+    @Bean
+    @ConditionalOnClass({EzDao.class, SqlSessionFactory.class, DataSource.class})
+    @ConditionalOnBean({EzDao.class, SqlSessionFactory.class, DataSource.class})
+    @ConditionalOnProperty(prefix = TransactionalMqProperties.PREFIX, name = "auto-init-schema",
+            havingValue = "true", matchIfMissing = true)
+    @ConditionalOnMissingBean(TransactionalMqSchemaInitializer.class)
+    public TransactionalMqSchemaInitializer transactionalMqSchemaInitializer(DataSource dataSource,
+                                                                             SqlSessionFactory sqlSessionFactory) {
+        return new TransactionalMqSchemaInitializer(dataSource, sqlSessionFactory.getConfiguration());
     }
 
     @Bean

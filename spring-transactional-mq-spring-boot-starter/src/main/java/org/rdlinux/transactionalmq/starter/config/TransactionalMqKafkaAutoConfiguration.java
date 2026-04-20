@@ -23,7 +23,8 @@ import org.springframework.kafka.core.KafkaTemplate;
  */
 @Configuration
 @ConditionalOnClass({KafkaTemplate.class, KafkaProducerAdapter.class})
-@ConditionalOnProperty(prefix = "transactionalmq", name = "enabled", havingValue = "true", matchIfMissing = true)
+@ConditionalOnProperty(prefix = TransactionalMqProperties.PREFIX, name = "enabled",
+        havingValue = "true", matchIfMissing = true)
 public class TransactionalMqKafkaAutoConfiguration {
 
     @Bean

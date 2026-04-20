@@ -25,7 +25,8 @@ import org.springframework.context.annotation.Configuration;
 @Configuration
 @AutoConfigureAfter(RabbitAutoConfiguration.class)
 @ConditionalOnClass({RabbitTemplate.class, RabbitMqProducerAdapter.class})
-@ConditionalOnProperty(prefix = "transactionalmq", name = "enabled", havingValue = "true", matchIfMissing = true)
+@ConditionalOnProperty(prefix = TransactionalMqProperties.PREFIX, name = "enabled",
+        havingValue = "true", matchIfMissing = true)
 public class TransactionalMqRabbitAutoConfiguration {
 
     @Bean

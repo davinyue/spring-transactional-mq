@@ -9,12 +9,21 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
  */
 @Setter
 @Getter
-@ConfigurationProperties(prefix = "transactionalmq")
+@ConfigurationProperties(prefix = TransactionalMqProperties.PREFIX)
 public class TransactionalMqProperties {
+    /**
+     * 事务消息配置前缀
+     */
+    public static final String PREFIX = "transactionalmq";
+
     /**
      * 是否启用自动装配
      */
     private boolean enabled = true;
+    /**
+     * 是否自动初始化事务消息表结构
+     */
+    private boolean autoInitSchema = true;
     /**
      * 默认派发批量大小
      */
