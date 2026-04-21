@@ -31,7 +31,7 @@ public class MessageDispatchService {
      * 构造消息派发服务
      *
      * @param transactionalMessageRepository 事务消息仓储
-     * @param mqProducerAdapter              MQ 适配器
+     * @param mqProducerRouter               MQ 路由器
      */
     public MessageDispatchService(TransactionalMessageRepository transactionalMessageRepository,
                                   MqProducerRouter mqProducerRouter) {
@@ -42,7 +42,7 @@ public class MessageDispatchService {
      * 构造消息派发服务
      *
      * @param transactionalMessageRepository 事务消息仓储
-     * @param mqProducerAdapter              MQ 适配器
+     * @param mqProducerRouter               MQ 路由器
      * @param messageSendLogRepository       发送日志仓储
      */
     public MessageDispatchService(TransactionalMessageRepository transactionalMessageRepository,
