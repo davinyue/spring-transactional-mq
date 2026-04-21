@@ -57,10 +57,12 @@ public class TransactionalMqAutoConfiguration {
     @ConditionalOnProperty(prefix = TransactionalMqProperties.PREFIX, name = "auto-init-schema",
             havingValue = "true", matchIfMissing = true)
     @ConditionalOnMissingBean(TransactionalMqSchemaInitializer.class)
+    @ConditionalOnClass(EzDao.class)
+    @ConditionalOnBean(EzDao.class)
     public TransactionalMqSchemaInitializer transactionalMqSchemaInitializer(DataSource dataSource,
                                                                              MybatisProperties mybatisProperties,
-                                                                             EzMapper ezMapper) {
-        return new TransactionalMqSchemaInitializer(dataSource, mybatisProperties.getConfiguration(), ezMapper);
+                                                                             EzDao ezDao) {
+        return new TransactionalMqSchemaInitializer(dataSource, mybatisProperties.getConfiguration(), ezDao);
     }
 
     @Bean

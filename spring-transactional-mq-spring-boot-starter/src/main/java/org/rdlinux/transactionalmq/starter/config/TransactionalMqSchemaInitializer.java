@@ -3,6 +3,7 @@ package org.rdlinux.transactionalmq.starter.config;
 import org.apache.ibatis.session.Configuration;
 import org.rdlinux.ezmybatis.constant.DbType;
 import org.rdlinux.ezmybatis.core.EzMybatisContent;
+import org.rdlinux.ezmybatis.core.dao.EzDao;
 import org.rdlinux.ezmybatis.core.mapper.EzMapper;
 import org.rdlinux.ezmybatis.core.sqlstruct.table.EntityTable;
 import org.rdlinux.transactionalmq.store.ezmybatis.entity.ConsumedMessageEntity;
@@ -33,12 +34,12 @@ public class TransactionalMqSchemaInitializer implements InitializingBean {
 
     private final DataSource dataSource;
     private final Configuration configuration;
-    private final EzMapper ezMapper;
+    private final EzDao ezDao;
 
-    public TransactionalMqSchemaInitializer(DataSource dataSource, Configuration configuration, EzMapper ezMapper) {
+    public TransactionalMqSchemaInitializer(DataSource dataSource, Configuration configuration, EzDao ezDao) {
         this.dataSource = dataSource;
         this.configuration = configuration;
-        this.ezMapper = ezMapper;
+        this.ezDao = ezDao;
     }
 
     @Override
@@ -63,7 +64,7 @@ public class TransactionalMqSchemaInitializer implements InitializingBean {
 
     protected boolean allTablesExist() {
         for (Class<?> entityType : TABLE_ENTITY_TYPES) {
-            if (!this.ezMapper.tableExists(EntityTable.of(entityType))) {
+            if (!this.ezDao.tableExists(EntityTable.of(entityType))) {
                 return false;
             }
         }
