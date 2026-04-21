@@ -64,7 +64,7 @@
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
         <spring-boot.version>2.7.18</spring-boot.version>
-        <ez-mybatis.version>1.0.8.RS</ez-mybatis.version>
+        <ez-mybatis.version>1.0.9.RS</ez-mybatis.version>
         <maven.compiler.compilerVersion>1.8</maven.compiler.compilerVersion>
         <maven.compiler.plugin.version>3.8.0</maven.compiler.plugin.version>
         <maven.source.plugin.version>3.0.1</maven.source.plugin.version>
@@ -127,7 +127,7 @@
             </dependency>
             <dependency>
                 <groupId>org.rdlinux</groupId>
-                <artifactId>ez-mybatis-spring-boot-starter</artifactId>
+                <artifactId>ez-mybatis-core</artifactId>
                 <version>${ez-mybatis.version}</version>
             </dependency>
             <dependency>

@@ -28,7 +28,11 @@
         </dependency>
         <dependency>
             <groupId>org.rdlinux</groupId>
-            <artifactId>ez-mybatis-spring-boot-starter</artifactId>
+            <artifactId>ez-mybatis-core</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework</groupId>
+            <artifactId>spring-context</artifactId>
         </dependency>
         <dependency>
             <groupId>org.projectlombok</groupId>

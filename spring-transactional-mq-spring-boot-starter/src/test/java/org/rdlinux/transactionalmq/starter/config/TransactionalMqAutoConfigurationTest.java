@@ -4,6 +4,8 @@ import org.junit.Assert;
 import org.junit.Test;
 import org.rdlinux.ezmybatis.constant.DbType;
 import org.rdlinux.ezmybatis.core.dao.EzDao;
+import org.rdlinux.ezmybatis.core.mapper.EzMapper;
+import org.rdlinux.ezmybatis.core.sqlstruct.table.DbTable;
 import org.rdlinux.transactionalmq.api.serialize.MessagePayloadSerializer;
 import org.rdlinux.transactionalmq.core.mq.MqProducerRouter;
 import org.rdlinux.transactionalmq.kafka.KafkaProducerAdapter;
@@ -25,6 +27,7 @@ import javax.sql.DataSource;
 import java.lang.reflect.Type;
 import java.sql.Connection;
 import java.sql.SQLException;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -223,7 +226,8 @@ public class TransactionalMqAutoConfigurationTest {
         when(sqlSessionFactory.getConfiguration()).thenReturn(new org.apache.ibatis.session.Configuration());
         this.contextRunner
                 .withBean(EzDao.class, () -> mock(EzDao.class))
-                .withBean(DataSource.class, NoOpDataSource::new)
+                .withBean(EzMapper.class, () -> mock(EzMapper.class))
+                .withBean("dataSource", DataSource.class, () -> new NoOpDataSource())
                 .withBean(org.apache.ibatis.session.SqlSessionFactory.class, () -> sqlSessionFactory)
                 .withBean(RabbitTemplate.class, () -> mock(RabbitTemplate.class))
                 .run(context -> Assert.assertTrue(context.containsBean("transactionalMqSchemaInitializer")));
@@ -236,7 +240,8 @@ public class TransactionalMqAutoConfigurationTest {
         this.contextRunner
                 .withPropertyValues(TransactionalMqProperties.PREFIX + ".auto-init-schema=false")
                 .withBean(EzDao.class, () -> mock(EzDao.class))
-                .withBean(DataSource.class, NoOpDataSource::new)
+                .withBean(EzMapper.class, () -> mock(EzMapper.class))
+                .withBean("dataSource", DataSource.class, () -> new NoOpDataSource())
                 .withBean(org.apache.ibatis.session.SqlSessionFactory.class, () -> sqlSessionFactory)
                 .withBean(RabbitTemplate.class, () -> mock(RabbitTemplate.class))
                 .run(context -> Assert.assertFalse(context.containsBean("transactionalMqSchemaInitializer")));
@@ -244,8 +249,9 @@ public class TransactionalMqAutoConfigurationTest {
 
     @Test
     public void schemaInitializerShouldSwallowExecutionException() throws Exception {
+        EzMapper ezMapper = mock(EzMapper.class);
         TransactionalMqSchemaInitializer initializer = new TransactionalMqSchemaInitializer(new BrokenDataSource(),
-                new org.apache.ibatis.session.Configuration()) {
+                new org.apache.ibatis.session.Configuration(), ezMapper) {
             @Override
             protected DbType resolveDbType() {
                 return DbType.MYSQL;
@@ -258,6 +264,53 @@ public class TransactionalMqAutoConfigurationTest {
         };
 
         initializer.afterPropertiesSet();
+    }
+
+    @Test
+    public void schemaInitializerShouldNotExecuteScriptWhenAllTablesExist() throws Exception {
+        EzMapper ezMapper = mock(EzMapper.class);
+        when(ezMapper.tableExists(org.mockito.ArgumentMatchers.any(DbTable.class))).thenReturn(true);
+        AtomicBoolean executed = new AtomicBoolean(false);
+        TransactionalMqSchemaInitializer initializer = new TransactionalMqSchemaInitializer(new NoOpDataSource(),
+                new org.apache.ibatis.session.Configuration(), ezMapper) {
+            @Override
+            protected DbType resolveDbType() {
+                return DbType.MYSQL;
+            }
+
+            @Override
+            protected void executeScript(String scriptLocation) {
+                executed.set(true);
+            }
+        };
+
+        initializer.afterPropertiesSet();
+
+        Assert.assertFalse(executed.get());
+    }
+
+    @Test
+    public void schemaInitializerShouldExecuteScriptWhenAnyTableMissing() throws Exception {
+        EzMapper ezMapper = mock(EzMapper.class);
+        when(ezMapper.tableExists(org.mockito.ArgumentMatchers.any(DbTable.class)))
+                .thenReturn(true, true, false);
+        AtomicBoolean executed = new AtomicBoolean(false);
+        TransactionalMqSchemaInitializer initializer = new TransactionalMqSchemaInitializer(new NoOpDataSource(),
+                new org.apache.ibatis.session.Configuration(), ezMapper) {
+            @Override
+            protected DbType resolveDbType() {
+                return DbType.MYSQL;
+            }
+
+            @Override
+            protected void executeScript(String scriptLocation) {
+                executed.set(true);
+            }
+        };
+
+        initializer.afterPropertiesSet();
+
+        Assert.assertTrue(executed.get());
     }
 
     private static final class SamplePayload {

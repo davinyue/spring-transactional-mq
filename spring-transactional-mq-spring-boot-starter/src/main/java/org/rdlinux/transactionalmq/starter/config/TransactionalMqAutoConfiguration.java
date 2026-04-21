@@ -3,6 +3,7 @@ package org.rdlinux.transactionalmq.starter.config;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.rdlinux.ezmybatis.core.dao.EzDao;
 import org.apache.ibatis.session.SqlSessionFactory;
+import org.rdlinux.ezmybatis.core.mapper.EzMapper;
 import org.rdlinux.transactionalmq.api.serialize.MessagePayloadSerializer;
 import org.rdlinux.transactionalmq.core.mq.MqProducerAdapter;
 import org.rdlinux.transactionalmq.core.mq.MqProducerRouter;
@@ -63,14 +64,15 @@ public class TransactionalMqAutoConfiguration {
     }
 
     @Bean
-    @ConditionalOnClass({EzDao.class, SqlSessionFactory.class, DataSource.class})
-    @ConditionalOnBean({EzDao.class, SqlSessionFactory.class, DataSource.class})
+    @ConditionalOnClass({EzDao.class, EzMapper.class, SqlSessionFactory.class, DataSource.class})
+    @ConditionalOnBean({EzDao.class, EzMapper.class, SqlSessionFactory.class, DataSource.class})
     @ConditionalOnProperty(prefix = TransactionalMqProperties.PREFIX, name = "auto-init-schema",
             havingValue = "true", matchIfMissing = true)
     @ConditionalOnMissingBean(TransactionalMqSchemaInitializer.class)
     public TransactionalMqSchemaInitializer transactionalMqSchemaInitializer(DataSource dataSource,
-                                                                             SqlSessionFactory sqlSessionFactory) {
-        return new TransactionalMqSchemaInitializer(dataSource, sqlSessionFactory.getConfiguration());
+                                                                             SqlSessionFactory sqlSessionFactory,
+                                                                             EzMapper ezMapper) {
+        return new TransactionalMqSchemaInitializer(dataSource, sqlSessionFactory.getConfiguration(), ezMapper);
     }
 
     @Bean

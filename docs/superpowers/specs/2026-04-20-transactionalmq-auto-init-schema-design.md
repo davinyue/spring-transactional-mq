@@ -20,9 +20,11 @@
 
 ## 方案对比
 
-### 方案一：启动时直接执行匹配脚本并吞掉异常
+### 方案一：启动时检查核心表，缺表时执行匹配脚本并吞掉异常
 
 - 通过 ez-mybatis `Configuration` 调用 `EzMybatisContent.getDbType(Configuration)` 获取 `DbType`。
+- 通过 `EzMapper.tableExists(EntityTable.of(实体类))` 判断 5 张事务消息核心表是否存在。
+- 全部存在时跳过建表。
 - 按 `DbType` 映射到 `classpath:sql/*.sql`。
 - 使用 `ResourceDatabasePopulator` 执行脚本。
 - 使用 `try/catch` 包裹初始化过程，异常直接吞掉。
@@ -31,6 +33,7 @@
 
 - 改动最小。
 - 满足“默认开启自动建表”的要求。
+- 避免在表已存在时反复执行建表脚本。
 - 不影响现有应用启动可用性。
 
 缺点：
@@ -70,6 +73,8 @@
 新增一个独立的 schema 初始化器，职责仅包括：
 
 - 获取 ez-mybatis `Configuration`
+- 获取 `EzMapper`
+- 判断核心表是否已存在
 - 解析数据库类型
 - 选择 SQL 脚本
 - 执行建表脚本
@@ -96,6 +101,7 @@
 - `transactionalmq.enabled=true`
 - `transactionalmq.auto-init-schema=true`
 - 容器中存在 `EzDao`
+- 容器中存在 `EzMapper`
 - 能拿到 ez-mybatis 的 `Configuration`
 
 ### 异常策略
@@ -113,6 +119,8 @@
 
 - 默认配置下会注册自动建表初始化器
 - `transactionalmq.auto-init-schema=false` 时不注册或不执行
+- 5 张核心表都存在时不执行脚本
+- 任一核心表缺失时执行脚本
 - 不同 `DbType` 选择正确的 SQL 路径
 - 建表过程抛异常时不会影响上下文启动
 
