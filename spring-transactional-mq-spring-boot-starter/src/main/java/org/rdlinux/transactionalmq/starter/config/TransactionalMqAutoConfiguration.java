@@ -1,8 +1,7 @@
 package org.rdlinux.transactionalmq.starter.config;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
+import org.mybatis.spring.boot.autoconfigure.MybatisProperties;
 import org.rdlinux.ezmybatis.core.dao.EzDao;
-import org.apache.ibatis.session.SqlSessionFactory;
 import org.rdlinux.ezmybatis.core.mapper.EzMapper;
 import org.rdlinux.transactionalmq.api.serialize.MessagePayloadSerializer;
 import org.rdlinux.transactionalmq.core.mq.MqProducerAdapter;
@@ -16,12 +15,12 @@ import org.rdlinux.transactionalmq.core.service.impl.MessageDispatchWakeupCoordi
 import org.rdlinux.transactionalmq.store.ezmybatis.repository.EzMybatisConsumedMessageRepository;
 import org.rdlinux.transactionalmq.store.ezmybatis.repository.EzMybatisMessageSendLogRepository;
 import org.rdlinux.transactionalmq.store.ezmybatis.repository.EzMybatisTransactionalMessageRepository;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
-import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.scheduling.annotation.EnableScheduling;
@@ -33,8 +32,7 @@ import javax.sql.DataSource;
  *
  * <p>在检测到 `EzDao` 时注册默认的 ez-mybatis 仓储实现，
  * 再基于这些仓储装配消息发布、派发和消费归档相关服务
- * 在检测到 `RabbitTemplate` 时注册 RabbitMQ 生产者适配器
- * 若容器里没有 `ObjectMapper`，则提供一个最小默认实例供消息序列化使用</p>
+ * 在检测到 `RabbitTemplate` 时注册 RabbitMQ 生产者适配器</p>
  */
 @Configuration
 @EnableScheduling
@@ -44,35 +42,25 @@ import javax.sql.DataSource;
 public class TransactionalMqAutoConfiguration {
 
     @Bean
-    @ConditionalOnClass(ObjectMapper.class)
-    @ConditionalOnMissingBean(ObjectMapper.class)
-    public ObjectMapper objectMapper() {
-        return new ObjectMapper();
-    }
-
-    @Bean
     @ConditionalOnMissingBean(MessageDispatchWakeupCoordinator.class)
     public MessageDispatchWakeupCoordinator messageDispatchWakeupCoordinator() {
         return new MessageDispatchWakeupCoordinator();
     }
 
     @Bean
-    @ConditionalOnClass(ObjectMapper.class)
     @ConditionalOnMissingBean(MessagePayloadSerializer.class)
-    public MessagePayloadSerializer messagePayloadSerializer(ObjectMapper objectMapper) {
+    public MessagePayloadSerializer messagePayloadSerializer() {
         return new LuavaJsonMessagePayloadSerializer();
     }
 
     @Bean
-    @ConditionalOnClass({EzDao.class, EzMapper.class, SqlSessionFactory.class, DataSource.class})
-    @ConditionalOnBean({EzDao.class, EzMapper.class, SqlSessionFactory.class, DataSource.class})
     @ConditionalOnProperty(prefix = TransactionalMqProperties.PREFIX, name = "auto-init-schema",
             havingValue = "true", matchIfMissing = true)
     @ConditionalOnMissingBean(TransactionalMqSchemaInitializer.class)
     public TransactionalMqSchemaInitializer transactionalMqSchemaInitializer(DataSource dataSource,
-                                                                             SqlSessionFactory sqlSessionFactory,
+                                                                             MybatisProperties mybatisProperties,
                                                                              EzMapper ezMapper) {
-        return new TransactionalMqSchemaInitializer(dataSource, sqlSessionFactory.getConfiguration(), ezMapper);
+        return new TransactionalMqSchemaInitializer(dataSource, mybatisProperties.getConfiguration(), ezMapper);
     }
 
     @Bean

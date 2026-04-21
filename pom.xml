@@ -132,6 +132,11 @@
             </dependency>
             <dependency>
                 <groupId>org.rdlinux</groupId>
+                <artifactId>ez-mybatis-spring-boot-starter</artifactId>
+                <version>${ez-mybatis.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.rdlinux</groupId>
                 <artifactId>luava-id</artifactId>
                 <version>${luava-id.version}</version>
             </dependency>
