@@ -4,6 +4,8 @@ import java.util.Date;
 
 import javax.persistence.Table;
 
+import org.apache.ibatis.type.EnumOrdinalTypeHandler;
+import org.rdlinux.ezmybatis.annotation.TypeHandler;
 import org.rdlinux.transactionalmq.common.entity.BaseEntity;
 import org.rdlinux.transactionalmq.common.enums.ConsumeStatus;
 
@@ -37,6 +39,7 @@ public class ConsumedMessageEntity extends BaseEntity<ConsumedMessageEntity> {
     /**
      * 消费状态
      */
+    @TypeHandler(EnumOrdinalTypeHandler.class)
     private ConsumeStatus consumeStatus;
     /**
      * 消费时间

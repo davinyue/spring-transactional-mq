@@ -4,6 +4,8 @@ import java.util.Date;
 
 import javax.persistence.Table;
 
+import org.apache.ibatis.type.EnumOrdinalTypeHandler;
+import org.rdlinux.ezmybatis.annotation.TypeHandler;
 import org.rdlinux.transactionalmq.common.entity.BaseEntity;
 import org.rdlinux.transactionalmq.common.enums.MessageStatus;
 import org.rdlinux.transactionalmq.common.enums.MqType;
@@ -34,6 +36,7 @@ public class TransactionalMessageEntity extends BaseEntity<TransactionalMessageE
     /**
      * MQ 类型
      */
+    @TypeHandler(EnumOrdinalTypeHandler.class)
     private MqType mqType;
     /**
      * 目标
@@ -62,6 +65,7 @@ public class TransactionalMessageEntity extends BaseEntity<TransactionalMessageE
     /**
      * 消息状态
      */
+    @TypeHandler(EnumOrdinalTypeHandler.class)
     private MessageStatus messageStatus;
     /**
      * 下次派发时间

@@ -1,16 +1,16 @@
 package org.rdlinux.transactionalmq.store.ezmybatis.entity;
 
-import java.util.Date;
-
-import javax.persistence.Table;
-
-import org.rdlinux.transactionalmq.common.entity.BaseEntity;
-import org.rdlinux.transactionalmq.common.enums.ConsumeStatus;
-
 import lombok.Getter;
 import lombok.Setter;
 import lombok.experimental.Accessors;
 import lombok.experimental.FieldNameConstants;
+import org.apache.ibatis.type.EnumOrdinalTypeHandler;
+import org.rdlinux.ezmybatis.annotation.TypeHandler;
+import org.rdlinux.transactionalmq.common.entity.BaseEntity;
+import org.rdlinux.transactionalmq.common.enums.ConsumeStatus;
+
+import javax.persistence.Table;
+import java.util.Date;
 
 /**
  * 已消费消息历史表实体
@@ -37,6 +37,7 @@ public class ConsumedMessageHistoryEntity extends BaseEntity<ConsumedMessageHist
     /**
      * 消费状态
      */
+    @TypeHandler(EnumOrdinalTypeHandler.class)
     private ConsumeStatus consumeStatus;
     /**
      * 消费时间
