@@ -1,23 +1,22 @@
 package org.rdlinux.transactionalmq.starter.config;
 
+import lombok.Getter;
+import lombok.Setter;
 import org.junit.Assert;
 import org.junit.Test;
 import org.rdlinux.ezmybatis.constant.DbType;
 import org.rdlinux.ezmybatis.core.dao.EzDao;
 import org.rdlinux.ezmybatis.core.mapper.EzMapper;
-import org.rdlinux.ezmybatis.core.sqlstruct.table.DbTable;
 import org.rdlinux.transactionalmq.api.serialize.MessagePayloadSerializer;
 import org.rdlinux.transactionalmq.core.mq.MqProducerRouter;
-import org.rdlinux.transactionalmq.kafka.KafkaProducerAdapter;
 import org.rdlinux.transactionalmq.core.serialize.LuavaJsonMessagePayloadSerializer;
 import org.rdlinux.transactionalmq.core.service.ConsumedMessageCleanupService;
 import org.rdlinux.transactionalmq.core.service.MessagePublishService;
-import org.rdlinux.transactionalmq.rabbitmq.RabbitMqProducerAdapter;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.boot.autoconfigure.AutoConfigurations;
 import org.springframework.boot.autoconfigure.EnableAutoConfiguration;
-import org.springframework.boot.test.context.runner.ApplicationContextRunner;
 import org.springframework.boot.test.context.FilteredClassLoader;
+import org.springframework.boot.test.context.runner.ApplicationContextRunner;
 import org.springframework.core.io.support.SpringFactoriesLoader;
 import org.springframework.jdbc.datasource.AbstractDataSource;
 import org.springframework.kafka.core.ConsumerFactory;
@@ -27,7 +26,7 @@ import javax.sql.DataSource;
 import java.lang.reflect.Type;
 import java.sql.Connection;
 import java.sql.SQLException;
-import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.Objects;
 
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -85,13 +84,13 @@ public class TransactionalMqAutoConfigurationTest {
         this.contextRunner
                 .withBean(RabbitTemplate.class, () -> mock(RabbitTemplate.class))
                 .run(context -> {
-            MessagePayloadSerializer serializer = context.getBean(MessagePayloadSerializer.class);
-            Assert.assertTrue(serializer instanceof LuavaJsonMessagePayloadSerializer);
-            SamplePayload payload = new SamplePayload("demo", 3);
-            String serialized = serializer.serialize(payload);
-            SamplePayload deserialized = serializer.deserialize(serialized, SamplePayload.class);
-            Assert.assertEquals(payload, deserialized);
-        });
+                    MessagePayloadSerializer serializer = context.getBean(MessagePayloadSerializer.class);
+                    Assert.assertTrue(serializer instanceof LuavaJsonMessagePayloadSerializer);
+                    SamplePayload payload = new SamplePayload("demo", 3);
+                    String serialized = serializer.serialize(payload);
+                    SamplePayload deserialized = serializer.deserialize(serialized, SamplePayload.class);
+                    Assert.assertEquals(payload, deserialized);
+                });
     }
 
     @Test
@@ -129,7 +128,6 @@ public class TransactionalMqAutoConfigurationTest {
                 .withBean(RabbitTemplate.class, () -> mock(RabbitTemplate.class))
                 .run(context -> {
                     Assert.assertTrue(context.containsBean("rabbitMqProducerAdapter"));
-                    Assert.assertTrue(context.getBean(RabbitMqProducerAdapter.class) instanceof RabbitMqProducerAdapter);
                     Assert.assertNotNull(context.getBean(MqProducerRouter.class));
                     Assert.assertTrue(context.containsBean("transactionalMessageRepository"));
                 });
@@ -143,7 +141,6 @@ public class TransactionalMqAutoConfigurationTest {
                 .withBean(KafkaTemplate.class, () -> mock(KafkaTemplate.class))
                 .run(context -> {
                     Assert.assertTrue(context.containsBean("kafkaProducerAdapter"));
-                    Assert.assertTrue(context.getBean(KafkaProducerAdapter.class) instanceof KafkaProducerAdapter);
                     Assert.assertNotNull(context.getBean(MqProducerRouter.class));
                 });
     }
@@ -227,7 +224,7 @@ public class TransactionalMqAutoConfigurationTest {
         this.contextRunner
                 .withBean(EzDao.class, () -> mock(EzDao.class))
                 .withBean(EzMapper.class, () -> mock(EzMapper.class))
-                .withBean("dataSource", DataSource.class, () -> new NoOpDataSource())
+                .withBean("dataSource", DataSource.class, NoOpDataSource::new)
                 .withBean(org.apache.ibatis.session.SqlSessionFactory.class, () -> sqlSessionFactory)
                 .withBean(RabbitTemplate.class, () -> mock(RabbitTemplate.class))
                 .run(context -> Assert.assertTrue(context.containsBean("transactionalMqSchemaInitializer")));
@@ -241,38 +238,21 @@ public class TransactionalMqAutoConfigurationTest {
                 .withPropertyValues(TransactionalMqProperties.PREFIX + ".auto-init-schema=false")
                 .withBean(EzDao.class, () -> mock(EzDao.class))
                 .withBean(EzMapper.class, () -> mock(EzMapper.class))
-                .withBean("dataSource", DataSource.class, () -> new NoOpDataSource())
+                .withBean("dataSource", DataSource.class, NoOpDataSource::new)
                 .withBean(org.apache.ibatis.session.SqlSessionFactory.class, () -> sqlSessionFactory)
                 .withBean(RabbitTemplate.class, () -> mock(RabbitTemplate.class))
                 .run(context -> Assert.assertFalse(context.containsBean("transactionalMqSchemaInitializer")));
     }
 
+    @Setter
+    @Getter
     private static final class SamplePayload {
 
         private String name;
         private int count;
 
-        private SamplePayload() {
-        }
-
         private SamplePayload(String name, int count) {
             this.name = name;
-            this.count = count;
-        }
-
-        public String getName() {
-            return this.name;
-        }
-
-        public void setName(String name) {
-            this.name = name;
-        }
-
-        public int getCount() {
-            return this.count;
-        }
-
-        public void setCount(int count) {
             this.count = count;
         }
 
@@ -285,7 +265,7 @@ public class TransactionalMqAutoConfigurationTest {
                 return false;
             }
             SamplePayload other = (SamplePayload) obj;
-            return this.count == other.count && (this.name == null ? other.name == null : this.name.equals(other.name));
+            return this.count == other.count && (Objects.equals(this.name, other.name));
         }
 
         @Override
@@ -319,19 +299,6 @@ public class TransactionalMqAutoConfigurationTest {
         @Override
         public Connection getConnection(String username, String password) throws SQLException {
             return this.getConnection();
-        }
-    }
-
-    private static final class BrokenDataSource extends AbstractDataSource {
-
-        @Override
-        public Connection getConnection() throws SQLException {
-            throw new SQLException("broken");
-        }
-
-        @Override
-        public Connection getConnection(String username, String password) throws SQLException {
-            throw new SQLException("broken");
         }
     }
 }
