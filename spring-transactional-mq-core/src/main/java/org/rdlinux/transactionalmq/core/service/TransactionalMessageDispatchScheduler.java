@@ -1,5 +1,6 @@
 package org.rdlinux.transactionalmq.core.service;
 
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.DisposableBean;
 import org.springframework.beans.factory.InitializingBean;
 
@@ -10,6 +11,7 @@ import org.springframework.beans.factory.InitializingBean;
  * 发送服务在事务提交成功后会通过 {@link MessageDispatchWakeupService#wakeup()} 提前唤醒它，
  * 减少新消息入库后的等待时间</p>
  */
+@Slf4j
 public class TransactionalMessageDispatchScheduler implements InitializingBean, DisposableBean {
     /**
      * 消息派发服务
@@ -67,6 +69,7 @@ public class TransactionalMessageDispatchScheduler implements InitializingBean, 
                 Thread.currentThread().interrupt();
                 return;
             } catch (Throwable ex) {
+                log.error("事务消息后台派发异常，将在 {} ms 后重试", this.dispatchIdleSleepMillis, ex);
                 try {
                     this.waitForNextRound(this.dispatchIdleSleepMillis);
                 } catch (InterruptedException interruptedException) {

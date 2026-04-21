@@ -1,5 +1,6 @@
 package org.rdlinux.transactionalmq.core.service;
 
+import lombok.extern.slf4j.Slf4j;
 import org.rdlinux.transactionalmq.common.entity.BaseEntity;
 import org.rdlinux.transactionalmq.common.enums.SendStatus;
 import org.rdlinux.transactionalmq.core.model.DispatchMessage;
@@ -17,6 +18,7 @@ import java.util.List;
 /**
  * 事务消息派发服务骨架
  */
+@Slf4j
 public class MessageDispatchService {
 
     private static final int MAX_DESCRIPTION_LENGTH = 512;
@@ -86,7 +88,6 @@ public class MessageDispatchService {
             return;
         }
         MessageSendLogRecord logRecord = new MessageSendLogRecord();
-        logRecord.setId(record.getId());
         logRecord.setMessageKey(record.getMessageKey());
         logRecord.setProducerCode(record.getProducerCode());
         logRecord.setMqType(record.getMqType());

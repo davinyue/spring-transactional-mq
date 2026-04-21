@@ -11,6 +11,7 @@ import org.rdlinux.transactionalmq.core.mq.MqProducerAdapter;
 import org.rdlinux.transactionalmq.core.mq.MqProducerRouter;
 import org.rdlinux.transactionalmq.core.repository.MessageSendLogRepository;
 import org.rdlinux.transactionalmq.core.repository.TransactionalMessageRepository;
+import org.springframework.dao.DuplicateKeyException;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -58,6 +59,24 @@ public class MessageDispatchServiceTest {
         Assert.assertEquals("msg-2", repository.successRecords.get(0).getId());
         Assert.assertEquals(1, repository.failedRecords.size());
         Assert.assertEquals("msg-3", repository.failedRecords.get(0).getId());
+    }
+
+    @Test
+    public void dispatchPendingMessagesShouldStillMarkResultWhenSaveLogFails() {
+        TransactionalMessageRecord successRecord = buildRecord("msg-11");
+
+        CapturingTransactionalMessageRepository repository = new CapturingTransactionalMessageRepository(successRecord);
+        CapturingMqProducerAdapter adapter = new CapturingMqProducerAdapter();
+        FailingMessageSendLogRepository logRepository = new FailingMessageSendLogRepository();
+        MessageDispatchService service = new MessageDispatchService(repository,
+                new MqProducerRouter(java.util.Collections.<MqProducerAdapter>singletonList(adapter)), logRepository);
+
+        int dispatched = service.dispatchPendingMessages(1);
+
+        Assert.assertEquals(1, dispatched);
+        Assert.assertEquals(1, repository.successRecords.size());
+        Assert.assertEquals("msg-11", repository.successRecords.get(0).getId());
+        Assert.assertTrue(repository.failedRecords.isEmpty());
     }
 
     private static TransactionalMessageRecord buildRecord(String id) {
@@ -158,6 +177,19 @@ public class MessageDispatchServiceTest {
         public MessageSendLogRecord save(MessageSendLogRecord record) {
             this.savedLogs.add(record);
             return record;
+        }
+
+        @Override
+        public List<MessageSendLogRecord> findRetryCandidates(int limit) {
+            return new ArrayList<MessageSendLogRecord>();
+        }
+    }
+
+    private static class FailingMessageSendLogRepository implements MessageSendLogRepository {
+
+        @Override
+        public MessageSendLogRecord save(MessageSendLogRecord record) {
+            throw new DuplicateKeyException("duplicate");
         }
 
         @Override
