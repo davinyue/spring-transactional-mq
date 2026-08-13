@@ -13,12 +13,17 @@ CREATE TABLE TXN_MESSAGE (
     biz_key VARCHAR2(128) NULL,
     message_status NUMBER(10) NOT NULL,
     next_dispatch_time TIMESTAMP NULL,
+    original_message_id VARCHAR2(24) NOT NULL,
+    retry_count NUMBER(10) NOT NULL,
+    consumer_code VARCHAR2(64) NULL,
+    last_error VARCHAR2(1000) NULL,
     parent_id VARCHAR2(24) NULL,
     root_id VARCHAR2(24) NULL,
     dispatch_owner VARCHAR2(128) NULL,
     dispatch_token VARCHAR2(24) NULL,
     dispatch_expire_time TIMESTAMP NULL,
-    CONSTRAINT PK_TXN_MESSAGE PRIMARY KEY (id)
+    CONSTRAINT PK_TXN_MESSAGE PRIMARY KEY (id),
+    CONSTRAINT UK_TXN_MESSAGE_ORIGINAL_RETRY UNIQUE (original_message_id, retry_count)
 );
 
 CREATE TABLE TXN_MESSAGE_HISTORY (
@@ -36,6 +41,10 @@ CREATE TABLE TXN_MESSAGE_HISTORY (
     biz_key VARCHAR2(128) NULL,
     message_status NUMBER(10) NOT NULL,
     next_dispatch_time TIMESTAMP NULL,
+    original_message_id VARCHAR2(24) NOT NULL,
+    retry_count NUMBER(10) NOT NULL,
+    consumer_code VARCHAR2(64) NULL,
+    last_error VARCHAR2(1000) NULL,
     parent_id VARCHAR2(24) NULL,
     root_id VARCHAR2(24) NULL,
     dispatch_owner VARCHAR2(128) NULL,
@@ -105,6 +114,10 @@ COMMENT ON COLUMN TXN_MESSAGE.headers_json IS '消息头 JSON';
 COMMENT ON COLUMN TXN_MESSAGE.biz_key IS '业务键';
 COMMENT ON COLUMN TXN_MESSAGE.message_status IS '消息状态';
 COMMENT ON COLUMN TXN_MESSAGE.next_dispatch_time IS '下次派发时间';
+COMMENT ON COLUMN TXN_MESSAGE.original_message_id IS '原始消息id';
+COMMENT ON COLUMN TXN_MESSAGE.retry_count IS '已执行的消费重试次数';
+COMMENT ON COLUMN TXN_MESSAGE.consumer_code IS '消费者编码';
+COMMENT ON COLUMN TXN_MESSAGE.last_error IS '最后消费失败信息';
 COMMENT ON COLUMN TXN_MESSAGE.parent_id IS '父消息id';
 COMMENT ON COLUMN TXN_MESSAGE.root_id IS '根消息id';
 COMMENT ON COLUMN TXN_MESSAGE.dispatch_owner IS '派发实例标识';
@@ -126,6 +139,10 @@ COMMENT ON COLUMN TXN_MESSAGE_HISTORY.headers_json IS '消息头 JSON';
 COMMENT ON COLUMN TXN_MESSAGE_HISTORY.biz_key IS '业务键';
 COMMENT ON COLUMN TXN_MESSAGE_HISTORY.message_status IS '消息状态';
 COMMENT ON COLUMN TXN_MESSAGE_HISTORY.next_dispatch_time IS '下次派发时间';
+COMMENT ON COLUMN TXN_MESSAGE_HISTORY.original_message_id IS '原始消息id';
+COMMENT ON COLUMN TXN_MESSAGE_HISTORY.retry_count IS '已执行的消费重试次数';
+COMMENT ON COLUMN TXN_MESSAGE_HISTORY.consumer_code IS '消费者编码';
+COMMENT ON COLUMN TXN_MESSAGE_HISTORY.last_error IS '最后消费失败信息';
 COMMENT ON COLUMN TXN_MESSAGE_HISTORY.parent_id IS '父消息id';
 COMMENT ON COLUMN TXN_MESSAGE_HISTORY.root_id IS '根消息id';
 COMMENT ON COLUMN TXN_MESSAGE_HISTORY.dispatch_owner IS '派发实例标识';

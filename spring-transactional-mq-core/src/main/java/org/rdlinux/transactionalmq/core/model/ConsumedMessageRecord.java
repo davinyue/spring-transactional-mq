@@ -44,13 +44,26 @@ public class ConsumedMessageRecord extends BaseEntity<ConsumedMessageRecord> {
     public static ConsumedMessageRecord from(ConsumeContext context) {
         ConsumedMessageRecord record = new ConsumedMessageRecord();
         if (context != null) {
-            record.setId(context.getId());
+            record.setId(resolveOriginalMessageId(context));
             record.setMessageKey(context.getMessageKey());
             record.setConsumerCode(context.getConsumerCode());
         }
         record.setConsumeStatus(ConsumeStatus.SUCCESS);
         record.setConsumeTime(new Date());
         return record;
+    }
+
+    /**
+     * 解析用于消费幂等的原始消息 id
+     *
+     * @param context 消费上下文
+     * @return 原始消息 id
+     */
+    private static String resolveOriginalMessageId(ConsumeContext context) {
+        if (context.getOriginalMessageId() == null || context.getOriginalMessageId().trim().isEmpty()) {
+            return context.getId();
+        }
+        return context.getOriginalMessageId();
     }
 
     /**

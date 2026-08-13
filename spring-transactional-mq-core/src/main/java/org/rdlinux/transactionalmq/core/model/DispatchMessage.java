@@ -58,6 +58,14 @@ public class DispatchMessage {
      * 根消息 id
      */
     private String rootId;
+    /**
+     * 原始消息 id
+     */
+    private String originalMessageId;
+    /**
+     * 已执行的消费重试次数
+     */
+    private int retryCount;
 
     /**
      * 从消息记录创建派发对象
@@ -80,6 +88,8 @@ public class DispatchMessage {
             message.setBizKey(record.getBizKey());
             message.setParentId(record.getParentId());
             message.setRootId(record.getRootId());
+            message.setOriginalMessageId(record.getOriginalMessageId());
+            message.setRetryCount(record.getRetryCount() == null ? 0 : record.getRetryCount());
         }
         return message;
     }
@@ -302,5 +312,41 @@ public class DispatchMessage {
      */
     public void setRootId(String rootId) {
         this.rootId = rootId;
+    }
+
+    /**
+     * 获取原始消息 id
+     *
+     * @return 原始消息 id
+     */
+    public String getOriginalMessageId() {
+        return this.originalMessageId;
+    }
+
+    /**
+     * 设置原始消息 id
+     *
+     * @param originalMessageId 原始消息 id
+     */
+    public void setOriginalMessageId(String originalMessageId) {
+        this.originalMessageId = originalMessageId;
+    }
+
+    /**
+     * 获取已执行的消费重试次数
+     *
+     * @return 已执行的消费重试次数
+     */
+    public int getRetryCount() {
+        return this.retryCount;
+    }
+
+    /**
+     * 设置已执行的消费重试次数
+     *
+     * @param retryCount 已执行的消费重试次数
+     */
+    public void setRetryCount(int retryCount) {
+        this.retryCount = retryCount;
     }
 }

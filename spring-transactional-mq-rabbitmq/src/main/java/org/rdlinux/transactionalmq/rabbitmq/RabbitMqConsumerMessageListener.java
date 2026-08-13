@@ -4,10 +4,14 @@ import com.rabbitmq.client.Channel;
 import lombok.extern.slf4j.Slf4j;
 import org.rdlinux.id.objectid.ObjectId;
 import org.rdlinux.transactionalmq.api.consumer.QueueMsgHandleRet;
+import org.rdlinux.transactionalmq.api.consumer.ConsumeRetryPolicy;
 import org.rdlinux.transactionalmq.api.consumer.TransactionalMessageConsumer;
 import org.rdlinux.transactionalmq.api.model.ConsumeContext;
+import org.rdlinux.transactionalmq.api.model.TransactionalMessage;
 import org.rdlinux.transactionalmq.api.serialize.MessagePayloadSerializer;
+import org.rdlinux.transactionalmq.common.enums.MqType;
 import org.rdlinux.transactionalmq.core.service.ConsumeIdempotentService;
+import org.rdlinux.transactionalmq.core.service.MessagePublishService;
 import org.rdlinux.transactionalmq.core.service.TxnMqTransactionalService;
 import org.slf4j.MDC;
 import org.springframework.amqp.core.Message;
@@ -20,9 +24,10 @@ import org.springframework.util.ClassUtils;
 
 import java.io.IOException;
 import java.lang.reflect.Type;
+import java.time.Duration;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.concurrent.TimeUnit;
+import java.util.Optional;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 
@@ -37,16 +42,48 @@ class RabbitMqConsumerMessageListener implements ChannelAwareMessageListener {
     private final MessagePayloadSerializer messagePayloadSerializer;
     private final ConsumeIdempotentService consumeIdempotentService;
     private final TxnMqTransactionalService txnMqTransactionalService;
+    private final MessagePublishService messagePublishService;
     private final Type payloadType;
 
+    /**
+     * 构造不带延迟重试发布服务的监听器
+     *
+     * @param consumer                    消费者
+     * @param rabbitMqConsumerInvoker     RabbitMQ 消费调用器
+     * @param messagePayloadSerializer    消息负载序列化器
+     * @param consumeIdempotentService    消费幂等服务
+     * @param txnMqTransactionalService   事务服务
+     */
+    RabbitMqConsumerMessageListener(TransactionalMessageConsumer<?> consumer,
+                                    RabbitMqConsumerInvoker rabbitMqConsumerInvoker,
+                                    MessagePayloadSerializer messagePayloadSerializer,
+                                    ConsumeIdempotentService consumeIdempotentService,
+                                    TxnMqTransactionalService txnMqTransactionalService) {
+        this(consumer, rabbitMqConsumerInvoker, messagePayloadSerializer, consumeIdempotentService,
+                txnMqTransactionalService, null);
+    }
+
+    /**
+     * 构造 RabbitMQ 消费监听器
+     *
+     * @param consumer                    消费者
+     * @param rabbitMqConsumerInvoker     RabbitMQ 消费调用器
+     * @param messagePayloadSerializer    消息负载序列化器
+     * @param consumeIdempotentService    消费幂等服务
+     * @param txnMqTransactionalService   事务服务
+     * @param messagePublishService       消息发布服务
+     */
     RabbitMqConsumerMessageListener(TransactionalMessageConsumer<?> consumer,
                                     RabbitMqConsumerInvoker rabbitMqConsumerInvoker, MessagePayloadSerializer messagePayloadSerializer,
-                                    ConsumeIdempotentService consumeIdempotentService, TxnMqTransactionalService txnMqTransactionalService) {
+                                    ConsumeIdempotentService consumeIdempotentService,
+                                    TxnMqTransactionalService txnMqTransactionalService,
+                                    MessagePublishService messagePublishService) {
         this.consumer = consumer;
         this.rabbitMqConsumerInvoker = rabbitMqConsumerInvoker;
         this.messagePayloadSerializer = messagePayloadSerializer;
         this.consumeIdempotentService = consumeIdempotentService;
         this.txnMqTransactionalService = txnMqTransactionalService;
+        this.messagePublishService = messagePublishService;
         this.payloadType = this.resolvePayloadType(consumer);
     }
 
@@ -62,7 +99,7 @@ class RabbitMqConsumerMessageListener implements ChannelAwareMessageListener {
                 context = this.buildContext(message.getMessageProperties());
             } catch (Exception e) {
                 log.error("队列{}消息context解析失败", this.consumer.getQueueName(), e);
-                this.requeueLater(message, channel, new ConsumeContext());
+                this.nAck(message, channel);
                 return;
             }
             Object payload;
@@ -70,11 +107,12 @@ class RabbitMqConsumerMessageListener implements ChannelAwareMessageListener {
                 payload = this.deserialize(message);
             } catch (Exception e) {
                 log.error("队列{}消息payload解析失败", this.consumer.getQueueName(), e);
-                this.requeueLater(message, channel, context);
+                this.nAck(message, channel);
                 return;
             }
             AtomicBoolean doAck = new AtomicBoolean(Boolean.FALSE);
             AtomicReference<QueueMsgHandleRet> retRef = new AtomicReference<>();
+            AtomicReference<String> failureMessageRef = new AtomicReference<String>("consume failed");
             try {
                 this.txnMqTransactionalService.required(() -> {
                     if (!this.consumeIdempotentService.recordIfAbsent(context)) {
@@ -100,6 +138,7 @@ class RabbitMqConsumerMessageListener implements ChannelAwareMessageListener {
                         log.info("处理队列事务回滚, 队列:{}, 消息id:{}, 上级消息id:{}, 根消息id:{}",
                                 this.consumer.getQueueName(),
                                 context.getId(), context.getParentId(), context.getRootId());
+                        failureMessageRef.set("consumer requested transaction rollback");
                         throw new RuntimeException("处理队列事务回滚");
                     }
                     //事务提交前回调
@@ -110,8 +149,10 @@ class RabbitMqConsumerMessageListener implements ChannelAwareMessageListener {
             } catch (UnexpectedRollbackException e) {
                 log.error("队列消息处理失败, 事务意外回滚, 队列:{}", this.consumer.getQueueName(), e);
                 doAck.set(false);
+                failureMessageRef.set(this.describeFailure(e));
             } catch (Exception e) {
                 log.error("队列消息处理失败, 队列:{}", this.consumer.getQueueName(), e);
+                failureMessageRef.set(this.describeFailure(e));
             } finally {
                 //执行finallyCall
                 try {
@@ -127,14 +168,17 @@ class RabbitMqConsumerMessageListener implements ChannelAwareMessageListener {
                             this.consumer.getQueueName(),
                             context.getId(), context.getParentId(), context.getRootId(), ex);
                     doAck.set(false);
+                    failureMessageRef.set(this.describeFailure(ex));
                 } finally {
                     if (doAck.get()) {
                         log.info("提交ack, 队列:{}, 消息id:{}, 上级消息id:{}, 根消息id:{}",
                                 this.consumer.getQueueName(),
                                 context.getId(), context.getParentId(), context.getRootId());
                         this.ack(message, channel);
+                    } else if (this.handleConsumeFailure(message, context, payload, failureMessageRef.get())) {
+                        this.ack(message, channel);
                     } else {
-                        this.requeueLater(message, channel, context);
+                        this.nAck(message, channel);
                     }
                 }
             }
@@ -164,21 +208,6 @@ class RabbitMqConsumerMessageListener implements ChannelAwareMessageListener {
         }
     }
 
-    private void requeueLater(Message message, Channel channel, ConsumeContext context) {
-        try {
-            TimeUnit.SECONDS.sleep(10);
-        } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
-            log.warn("等待重入队列期间线程被中断, 队列:{}, 消息id:{}, 上级消息id:{}, 根消息id:{}",
-                    this.consumer.getQueueName(),
-                    context.getId(), context.getParentId(), context.getRootId(), e);
-        }
-        log.info("拒绝ack重入队列, 队列:{}, 消息id:{}, 上级消息id:{}, 根消息id:{}",
-                this.consumer.getQueueName(),
-                context.getId(), context.getParentId(), context.getRootId());
-        this.nAck(message, channel);
-    }
-
     private Object deserialize(Message message) {
         String payloadText = RabbitMqPayloadCodec.decode(message.getBody(),
                 message.getMessageProperties().getContentEncoding());
@@ -199,14 +228,133 @@ class RabbitMqConsumerMessageListener implements ChannelAwareMessageListener {
         Object messageKey = properties.getHeaders().get("messageKey");
         Object parentId = properties.getHeaders().get("parentId");
         Object rootId = properties.getHeaders().get("rootId");
+        Object originalMessageId = properties.getHeaders().get("originalMessageId");
+        Object retryCount = properties.getHeaders().get("retryCount");
         Map<String, String> headers = this.toHeaders(properties);
         return new ConsumeContext()
                 .setId(messageId)
+                .setOriginalMessageId(originalMessageId == null ? messageId : String.valueOf(originalMessageId))
+                .setRetryCount(this.parseRetryCount(retryCount))
                 .setMessageKey(messageKey == null ? null : String.valueOf(messageKey))
                 .setParentId(parentId == null ? null : String.valueOf(parentId))
                 .setRootId(rootId == null ? messageId : String.valueOf(rootId))
                 .setHeaders(headers)
                 .setConsumerCode(this.consumer.consumerCode());
+    }
+
+    /**
+     * 保存下一轮消费重试或停止重试审计记录
+     *
+     * @param message        RabbitMQ 消息
+     * @param context        消费上下文
+     * @param payload        消息负载
+     * @param failureMessage 失败信息
+     * @return 是否可以确认当前 MQ 消息
+     */
+    private boolean handleConsumeFailure(Message message, ConsumeContext context, Object payload,
+                                         String failureMessage) {
+        if (this.messagePublishService == null) {
+            return false;
+        }
+        try {
+            TransactionalMessage<Object> retryMessage = this.buildRetryMessage(message, context, payload);
+            ConsumeRetryPolicy retryPolicy = this.consumer.getConsumeRetryPolicy();
+            if (retryPolicy == null) {
+                throw new IllegalStateException("consume retry policy must not be null");
+            }
+            Optional<Duration> nextDelay = retryPolicy.nextDelay(context.getRetryCount());
+            if (nextDelay.isPresent()) {
+                this.messagePublishService.scheduleConsumeRetry(MqType.RABBITMQ, retryMessage, context,
+                        nextDelay.get(), failureMessage);
+            } else {
+                this.messagePublishService.recordConsumeRetryStopped(MqType.RABBITMQ, retryMessage, context,
+                        failureMessage);
+            }
+            return true;
+        } catch (Exception ex) {
+            log.error("队列消息消费重试记录保存失败, 队列:{}, 消息id:{}, 原始消息id:{}, 重试次数:{}",
+                    this.consumer.getQueueName(), context.getId(), context.getOriginalMessageId(),
+                    context.getRetryCount(), ex);
+            return false;
+        }
+    }
+
+    /**
+     * 构建消费重试消息
+     *
+     * @param sourceMessage RabbitMQ 原消息
+     * @param context       消费上下文
+     * @param payload       消息负载
+     * @return 消费重试消息
+     */
+    private TransactionalMessage<Object> buildRetryMessage(Message sourceMessage, ConsumeContext context,
+                                                           Object payload) {
+        MessageProperties properties = sourceMessage.getMessageProperties();
+        String destination = this.headerValue(properties, "destination");
+        String route = this.headerValue(properties, "route");
+        if (destination == null || destination.trim().isEmpty()) {
+            String receivedExchange = properties.getReceivedExchange();
+            String receivedRoutingKey = properties.getReceivedRoutingKey();
+            if (receivedExchange == null || receivedExchange.trim().isEmpty()) {
+                destination = receivedRoutingKey == null ? this.consumer.getQueueName() : receivedRoutingKey;
+                route = null;
+            } else {
+                destination = receivedExchange;
+                route = receivedRoutingKey;
+            }
+        }
+        return new TransactionalMessage<Object>()
+                .setMessageKey(context.getMessageKey())
+                .setProducerCode(this.headerValue(properties, "producerCode"))
+                .setDestination(destination)
+                .setRoute(route)
+                .setShardingKey(this.headerValue(properties, "shardingKey"))
+                .setHeaders(context.getHeaders())
+                .setBizKey(this.headerValue(properties, "bizKey"))
+                .setPayload(payload);
+    }
+
+    /**
+     * 获取消息头文本
+     *
+     * @param properties 消息属性
+     * @param key        消息头键
+     * @return 消息头文本
+     */
+    private String headerValue(MessageProperties properties, String key) {
+        Object value = properties.getHeaders().get(key);
+        return value == null ? null : String.valueOf(value);
+    }
+
+    /**
+     * 解析重试次数
+     *
+     * @param retryCount 重试次数消息头
+     * @return 重试次数
+     */
+    private int parseRetryCount(Object retryCount) {
+        if (retryCount == null) {
+            return 0;
+        }
+        int parsedRetryCount = Integer.parseInt(String.valueOf(retryCount));
+        if (parsedRetryCount < 0) {
+            throw new IllegalArgumentException("retryCount must not be negative");
+        }
+        return parsedRetryCount;
+    }
+
+    /**
+     * 构建失败描述
+     *
+     * @param throwable 失败异常
+     * @return 失败描述
+     */
+    private String describeFailure(Throwable throwable) {
+        if (throwable == null) {
+            return "consume failed";
+        }
+        String message = throwable.getMessage();
+        return throwable.getClass().getName() + (message == null ? "" : ": " + message);
     }
 
     private Map<String, String> toHeaders(MessageProperties properties) {

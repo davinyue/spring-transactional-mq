@@ -2,18 +2,22 @@ package org.rdlinux.transactionalmq.rabbitmq;
 
 import com.rabbitmq.client.Channel;
 import org.junit.Test;
+import org.rdlinux.transactionalmq.api.consumer.ConsumeRetryPolicy;
 import org.rdlinux.transactionalmq.api.consumer.QueueMsgHandleRet;
 import org.rdlinux.transactionalmq.api.consumer.TransactionalMessageConsumer;
 import org.rdlinux.transactionalmq.api.model.ConsumeContext;
+import org.rdlinux.transactionalmq.api.model.TransactionalMessage;
 import org.rdlinux.transactionalmq.api.serialize.MessagePayloadSerializer;
 import org.rdlinux.transactionalmq.common.enums.MqType;
 import org.rdlinux.transactionalmq.core.service.ConsumeIdempotentService;
+import org.rdlinux.transactionalmq.core.service.MessagePublishService;
 import org.rdlinux.transactionalmq.core.service.TxnMqTransactionalService;
 import org.springframework.amqp.core.Message;
 import org.springframework.amqp.core.MessageProperties;
 
 import java.lang.reflect.Type;
 import java.nio.charset.StandardCharsets;
+import java.time.Duration;
 
 import static org.mockito.Mockito.*;
 
@@ -80,7 +84,7 @@ public class RabbitMqConsumerMessageListenerTest {
     }
 
     @Test
-    public void onMessageShouldNackAndKeepInterruptFlagWhenSleepInterrupted() throws Exception {
+    public void onMessageShouldNackWithoutBlockingWhenRetryPersistenceIsUnavailable() throws Exception {
         RabbitMqConsumerInvoker invoker = new RabbitMqConsumerInvoker();
         MessagePayloadSerializer serializer = mock(MessagePayloadSerializer.class);
         ConsumeIdempotentService consumeIdempotentService = mock(ConsumeIdempotentService.class);
@@ -98,16 +102,57 @@ public class RabbitMqConsumerMessageListenerTest {
         when(consumeIdempotentService.recordIfAbsent(any(ConsumeContext.class))).thenReturn(true);
         when(serializer.deserialize("\"payload-3\"", (Type) String.class)).thenReturn("payload-3");
 
-        Thread.currentThread().interrupt();
-        try {
-            listener.onMessage(message, channel);
+        listener.onMessage(message, channel);
 
-            verify(channel).basicNack(9L, false, true);
-            verify(channel, never()).basicAck(anyLong(), anyBoolean());
-            org.junit.Assert.assertTrue(Thread.currentThread().isInterrupted());
-        } finally {
-            Thread.interrupted();
-        }
+        verify(channel).basicNack(9L, false, true);
+        verify(channel, never()).basicAck(anyLong(), anyBoolean());
+    }
+
+    @Test
+    public void onMessageShouldScheduleRetryAndAckWhenBusinessRollback() throws Exception {
+        RabbitMqConsumerInvoker invoker = new RabbitMqConsumerInvoker();
+        MessagePayloadSerializer serializer = mock(MessagePayloadSerializer.class);
+        ConsumeIdempotentService consumeIdempotentService = mock(ConsumeIdempotentService.class);
+        MessagePublishService messagePublishService = mock(MessagePublishService.class);
+        RetryRollbackConsumer consumer = new RetryRollbackConsumer();
+        RabbitMqConsumerMessageListener listener = new RabbitMqConsumerMessageListener(consumer, invoker, serializer,
+                consumeIdempotentService, new TxnMqTransactionalService(), messagePublishService);
+        Channel channel = mock(Channel.class);
+
+        MessageProperties properties = new MessageProperties();
+        properties.setMessageId("msg-5");
+        properties.setDeliveryTag(11L);
+        properties.setHeader("messageKey", "key-5");
+        properties.setHeader("originalMessageId", "original-5");
+        properties.setHeader("retryCount", 1);
+        properties.setHeader("destination", "exchange.demo");
+        properties.setHeader("route", "route.demo");
+        properties.setHeader("parentId", "parent-5");
+        properties.setHeader("rootId", "root-5");
+        properties.setContentEncoding("gzip");
+        Message message = new Message(RabbitMqPayloadCodec.gzip("\"payload-5\""), properties);
+
+        when(consumeIdempotentService.recordIfAbsent(any(ConsumeContext.class))).thenReturn(true);
+        when(serializer.deserialize("\"payload-5\"", (Type) String.class)).thenReturn("payload-5");
+        when(messagePublishService.scheduleConsumeRetry(eq(MqType.RABBITMQ), any(TransactionalMessage.class),
+                any(ConsumeContext.class), eq(Duration.ofMinutes(4L)), anyString())).thenReturn(true);
+
+        listener.onMessage(message, channel);
+
+        verify(messagePublishService).scheduleConsumeRetry(eq(MqType.RABBITMQ),
+                org.mockito.ArgumentMatchers.argThat((TransactionalMessage<String> retryMessage) ->
+                        "exchange.demo".equals(retryMessage.getDestination())
+                                && "route.demo".equals(retryMessage.getRoute())
+                                && "payload-5".equals(retryMessage.getPayload())),
+                org.mockito.ArgumentMatchers.argThat(context ->
+                        "msg-5".equals(context.getId())
+                                && "original-5".equals(context.getOriginalMessageId())
+                                && context.getRetryCount() == 1
+                                && "parent-5".equals(context.getParentId())
+                                && "root-5".equals(context.getRootId())),
+                eq(Duration.ofMinutes(4L)), contains("RuntimeException"));
+        verify(channel).basicAck(11L, false);
+        verify(channel, never()).basicNack(anyLong(), anyBoolean(), anyBoolean());
     }
 
     @Test
@@ -179,6 +224,34 @@ public class RabbitMqConsumerMessageListenerTest {
         @Override
         public QueueMsgHandleRet consume(ConsumeContext context, String payload) {
             return QueueMsgHandleRet.DEFAULT().setRollBack(true).setRollBackAck(false);
+        }
+    }
+
+    private static final class RetryRollbackConsumer implements TransactionalMessageConsumer<String> {
+
+        @Override
+        public String getQueueName() {
+            return "queue.retry";
+        }
+
+        @Override
+        public MqType getSupportMqType() {
+            return MqType.RABBITMQ;
+        }
+
+        @Override
+        public String consumerCode() {
+            return "consumer-retry";
+        }
+
+        @Override
+        public ConsumeRetryPolicy getConsumeRetryPolicy() {
+            return ConsumeRetryPolicy.customDelays(Duration.ofMinutes(2L), Duration.ofMinutes(4L));
+        }
+
+        @Override
+        public QueueMsgHandleRet consume(ConsumeContext context, String payload) {
+            return QueueMsgHandleRet.DEFAULT().setRollBack(true);
         }
     }
 

@@ -43,7 +43,7 @@ public class TransactionalMqKafkaAutoConfiguration {
     @Bean
     @ConditionalOnClass({KafkaConsumerRegistrar.class, ConsumerFactory.class, TransactionalMessageConsumer.class})
     @ConditionalOnBean({ConsumerFactory.class, KafkaConsumerInvoker.class, MessagePayloadSerializer.class,
-            ConsumeIdempotentService.class})
+            ConsumeIdempotentService.class, MessagePublishService.class})
     @ConditionalOnMissingBean(KafkaConsumerRegistrar.class)
     public KafkaConsumerRegistrar kafkaConsumerRegistrar(ConsumerFactory<String, byte[]> consumerFactory,
                                                          KafkaConsumerInvoker kafkaConsumerInvoker,

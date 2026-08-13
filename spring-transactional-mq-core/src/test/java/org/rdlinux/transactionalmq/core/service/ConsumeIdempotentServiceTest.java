@@ -47,6 +47,24 @@ public class ConsumeIdempotentServiceTest {
         Assert.assertEquals(1, repository.saveIfAbsentCalls);
     }
 
+    /**
+     * 验证消费幂等使用原始消息 id
+     */
+    @Test
+    public void recordIfAbsentShouldUseOriginalMessageId() {
+        CapturingConsumedMessageRepository repository = new CapturingConsumedMessageRepository(true);
+        ConsumeIdempotentService service = new ConsumeIdempotentService(repository);
+
+        service.recordIfAbsent(new ConsumeContext()
+                .setId("retry-message-1")
+                .setOriginalMessageId("original-message-1")
+                .setRetryCount(1)
+                .setMessageKey("message-key-retry")
+                .setConsumerCode("consumer-retry"));
+
+        Assert.assertEquals("original-message-1", repository.savedRecord.getId());
+    }
+
     @Test
     public void consumedMessageRecordFromShouldDefaultToSuccessForArchiveFlow() {
         ConsumedMessageRecord record = ConsumedMessageRecord.from(new ConsumeContext()

@@ -39,6 +39,10 @@ final class TransactionalMessageEntityMapper {
         entity.setBizKey(record.getBizKey());
         entity.setMessageStatus(defaultMessageStatus(record.getMessageStatus()));
         entity.setNextDispatchTime(record.getNextDispatchTime());
+        entity.setOriginalMessageId(record.getOriginalMessageId());
+        entity.setRetryCount(defaultRetryCount(record.getRetryCount()));
+        entity.setConsumerCode(record.getConsumerCode());
+        entity.setLastError(record.getLastError());
         entity.setParentId(record.getParentId());
         entity.setRootId(record.getRootId());
         entity.setDispatchOwner(record.getDispatchOwner());
@@ -66,6 +70,10 @@ final class TransactionalMessageEntityMapper {
         record.setBizKey(entity.getBizKey());
         record.setMessageStatus(entity.getMessageStatus());
         record.setNextDispatchTime(entity.getNextDispatchTime());
+        record.setOriginalMessageId(entity.getOriginalMessageId());
+        record.setRetryCount(defaultRetryCount(entity.getRetryCount()));
+        record.setConsumerCode(entity.getConsumerCode());
+        record.setLastError(entity.getLastError());
         record.setParentId(entity.getParentId());
         record.setRootId(entity.getRootId());
         record.setDispatchOwner(entity.getDispatchOwner());
@@ -94,6 +102,10 @@ final class TransactionalMessageEntityMapper {
         entity.setBizKey(record.getBizKey());
         entity.setMessageStatus(defaultMessageStatus(record.getMessageStatus()));
         entity.setNextDispatchTime(record.getNextDispatchTime());
+        entity.setOriginalMessageId(record.getOriginalMessageId());
+        entity.setRetryCount(defaultRetryCount(record.getRetryCount()));
+        entity.setConsumerCode(record.getConsumerCode());
+        entity.setLastError(record.getLastError());
         entity.setParentId(record.getParentId());
         entity.setRootId(record.getRootId());
         entity.setDispatchOwner(record.getDispatchOwner());
@@ -112,6 +124,10 @@ final class TransactionalMessageEntityMapper {
 
     private static MessageStatus defaultMessageStatus(MessageStatus messageStatus) {
         return messageStatus == null ? MessageStatus.INIT : messageStatus;
+    }
+
+    private static int defaultRetryCount(Integer retryCount) {
+        return retryCount == null ? 0 : retryCount;
     }
 
     /**

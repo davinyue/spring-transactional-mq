@@ -60,6 +60,22 @@ public class TransactionalMessageRecord extends BaseEntity<TransactionalMessageR
      */
     private Date nextDispatchTime;
     /**
+     * 原始消息 id
+     */
+    private String originalMessageId;
+    /**
+     * 已执行的消费重试次数
+     */
+    private Integer retryCount;
+    /**
+     * 消费者编码
+     */
+    private String consumerCode;
+    /**
+     * 最后消费失败信息
+     */
+    private String lastError;
+    /**
      * 父消息 id
      */
     private String parentId;
@@ -106,6 +122,7 @@ public class TransactionalMessageRecord extends BaseEntity<TransactionalMessageR
         record.setPayloadText(payloadText);
         record.setMessageStatus(MessageStatus.INIT);
         record.setNextDispatchTime(new Date());
+        record.setRetryCount(0);
         return record;
     }
 
@@ -334,6 +351,78 @@ public class TransactionalMessageRecord extends BaseEntity<TransactionalMessageR
      */
     public void setNextDispatchTime(Date nextDispatchTime) {
         this.nextDispatchTime = nextDispatchTime;
+    }
+
+    /**
+     * 获取原始消息 id
+     *
+     * @return 原始消息 id
+     */
+    public String getOriginalMessageId() {
+        return this.originalMessageId;
+    }
+
+    /**
+     * 设置原始消息 id
+     *
+     * @param originalMessageId 原始消息 id
+     */
+    public void setOriginalMessageId(String originalMessageId) {
+        this.originalMessageId = originalMessageId;
+    }
+
+    /**
+     * 获取已执行的消费重试次数
+     *
+     * @return 已执行的消费重试次数
+     */
+    public Integer getRetryCount() {
+        return this.retryCount;
+    }
+
+    /**
+     * 设置已执行的消费重试次数
+     *
+     * @param retryCount 已执行的消费重试次数
+     */
+    public void setRetryCount(Integer retryCount) {
+        this.retryCount = retryCount;
+    }
+
+    /**
+     * 获取消费者编码
+     *
+     * @return 消费者编码
+     */
+    public String getConsumerCode() {
+        return this.consumerCode;
+    }
+
+    /**
+     * 设置消费者编码
+     *
+     * @param consumerCode 消费者编码
+     */
+    public void setConsumerCode(String consumerCode) {
+        this.consumerCode = consumerCode;
+    }
+
+    /**
+     * 获取最后消费失败信息
+     *
+     * @return 最后消费失败信息
+     */
+    public String getLastError() {
+        return this.lastError;
+    }
+
+    /**
+     * 设置最后消费失败信息
+     *
+     * @param lastError 最后消费失败信息
+     */
+    public void setLastError(String lastError) {
+        this.lastError = lastError;
     }
 
     /**

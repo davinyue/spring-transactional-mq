@@ -46,6 +46,36 @@ public class SqlEnumColumnTypeTest {
         assertContains(readSql("src/main/resources/sql/SQL_SERVER.sql"), "send_status INT NOT NULL");
     }
 
+    /**
+     * 验证五种数据库的完整建表与升级脚本包含消费重试字段和唯一键。
+     *
+     * @throws Exception SQL 文件读取失败
+     */
+    @Test
+    public void allDatabaseSqlShouldContainConsumeRetrySchema() throws Exception {
+        String[] databaseNames = {"MYSQL", "ORACLE", "DM", "POSTGRE_SQL", "SQL_SERVER"};
+        for (String databaseName : databaseNames) {
+            String createSql = readSql("src/main/resources/sql/" + databaseName + ".sql").toLowerCase();
+            String upgradeSql = readSql("src/main/resources/sql/upgrade/20260813_" + databaseName
+                    + "_CONSUME_RETRY.sql").toLowerCase();
+            this.assertConsumeRetrySchema(createSql);
+            this.assertConsumeRetrySchema(upgradeSql);
+        }
+    }
+
+    /**
+     * 验证 SQL 文本包含消费重试结构。
+     *
+     * @param sql SQL 文本
+     */
+    private void assertConsumeRetrySchema(String sql) {
+        assertContains(sql, "original_message_id");
+        assertContains(sql, "retry_count");
+        assertContains(sql, "consumer_code");
+        assertContains(sql, "last_error");
+        assertContains(sql, "uk_txn_message_original_retry");
+    }
+
     private String readSql(String path) throws Exception {
         return new String(Files.readAllBytes(new File(path).toPath()), StandardCharsets.UTF_8);
     }

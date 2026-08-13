@@ -43,6 +43,15 @@ public interface TransactionalMessageConsumer<T> {
     }
 
     /**
+     * 获取消费失败重试策略
+     *
+     * @return 消费失败重试策略
+     */
+    default ConsumeRetryPolicy getConsumeRetryPolicy() {
+        return ConsumeRetryPolicy.noRetry();
+    }
+
+    /**
      * 获取消费者编码
      *
      * @return 消费者编码

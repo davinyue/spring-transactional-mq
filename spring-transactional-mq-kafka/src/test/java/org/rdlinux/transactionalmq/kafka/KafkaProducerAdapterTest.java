@@ -78,6 +78,8 @@ public class KafkaProducerAdapterTest {
         message.setBizKey("biz-2");
         message.setParentId("parent-2");
         message.setRootId("root-2");
+        message.setOriginalMessageId("original-2");
+        message.setRetryCount(3);
         Map<String, String> headers = new HashMap<String, String>();
         headers.put("messageKey", "shadow-key");
         headers.put("producerCode", "shadow-producer");
@@ -88,6 +90,8 @@ public class KafkaProducerAdapterTest {
 
         verify(kafkaTemplate).send(org.mockito.ArgumentMatchers.argThat((ProducerRecord<String, byte[]> record) -> {
             assertEquals("msg-2", header(record, "messageId"));
+            assertEquals("original-2", header(record, "originalMessageId"));
+            assertEquals("3", header(record, "retryCount"));
             assertEquals("key-2", header(record, "messageKey"));
             assertEquals("producer-2", header(record, "producerCode"));
             assertEquals("KAFKA", header(record, "mqType"));

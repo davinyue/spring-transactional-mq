@@ -19,6 +19,17 @@ public interface TransactionalMessageRepository {
     TransactionalMessageRecord save(TransactionalMessageRecord record);
 
     /**
+     * 原子保存消费重试记录
+     *
+     * <p>默认实现用于兼容自定义仓储；正式仓储应通过数据库唯一约束实现原子去重</p>
+     *
+     * @param record 消费重试记录
+     */
+    default void saveConsumeRetry(TransactionalMessageRecord record) {
+        this.save(record);
+    }
+
+    /**
      * 查询待派发候选消息
      *
      * @param limit 查询条数

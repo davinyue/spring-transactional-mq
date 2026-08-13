@@ -123,6 +123,8 @@ public class RabbitMqProducerAdapterTest {
         message.setBizKey("biz-2");
         message.setParentId("parent-2");
         message.setRootId("root-2");
+        message.setOriginalMessageId("original-2");
+        message.setRetryCount(3);
 
         Map<String, String> headers = new HashMap<String, String>();
         headers.put("messageKey", "shadow-key");
@@ -150,6 +152,8 @@ public class RabbitMqProducerAdapterTest {
         assertEquals("gzip", processed.getMessageProperties().getContentEncoding());
         assertEquals(MessageProperties.CONTENT_TYPE_JSON, processed.getMessageProperties().getContentType());
         assertEquals("msg-2", processed.getMessageProperties().getMessageId());
+        assertEquals("original-2", processed.getMessageProperties().getHeaders().get("originalMessageId"));
+        assertEquals(3, processed.getMessageProperties().getHeaders().get("retryCount"));
         assertEquals("key-2", processed.getMessageProperties().getHeaders().get("messageKey"));
         assertEquals("producer-2", processed.getMessageProperties().getHeaders().get("producerCode"));
         assertEquals("RABBITMQ", processed.getMessageProperties().getHeaders().get("mqType"));

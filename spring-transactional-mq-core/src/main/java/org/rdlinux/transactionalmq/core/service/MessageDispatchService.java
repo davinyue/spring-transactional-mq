@@ -9,6 +9,7 @@ import org.rdlinux.transactionalmq.core.model.TransactionalMessageRecord;
 import org.rdlinux.transactionalmq.core.mq.MqProducerRouter;
 import org.rdlinux.transactionalmq.core.repository.MessageSendLogRepository;
 import org.rdlinux.transactionalmq.core.repository.TransactionalMessageRepository;
+import org.springframework.dao.DuplicateKeyException;
 
 import java.util.ArrayList;
 import java.util.Comparator;
@@ -88,16 +89,21 @@ public class MessageDispatchService {
             return;
         }
         MessageSendLogRecord logRecord = new MessageSendLogRecord();
+        logRecord.setId(record.getId());
         logRecord.setMessageKey(record.getMessageKey());
         logRecord.setProducerCode(record.getProducerCode());
         logRecord.setMqType(record.getMqType());
         logRecord.setParentId(record.getParentId());
         logRecord.setRootId(record.getRootId());
         logRecord.setSendStatus(sendStatus);
-        logRecord.setRetryCount(0);
+        logRecord.setRetryCount(record.getRetryCount() == null ? 0 : record.getRetryCount());
         logRecord.setLastSendTime(new Date());
         logRecord.setDescription(this.truncateDescription(description));
-        this.messageSendLogRepository.save(logRecord);
+        try {
+            this.messageSendLogRepository.save(logRecord);
+        } catch (DuplicateKeyException ex) {
+            log.debug("Ignore duplicate message send log, messageId={}", record.getId());
+        }
     }
 
     private String truncateDescription(String description) {

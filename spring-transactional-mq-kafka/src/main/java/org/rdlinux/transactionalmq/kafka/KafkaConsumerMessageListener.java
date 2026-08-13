@@ -5,6 +5,7 @@ import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.common.header.Header;
 import org.rdlinux.id.objectid.ObjectId;
 import org.rdlinux.transactionalmq.api.consumer.QueueMsgHandleRet;
+import org.rdlinux.transactionalmq.api.consumer.ConsumeRetryPolicy;
 import org.rdlinux.transactionalmq.api.consumer.TransactionalMessageConsumer;
 import org.rdlinux.transactionalmq.api.model.ConsumeContext;
 import org.rdlinux.transactionalmq.api.model.TransactionalMessage;
@@ -27,6 +28,7 @@ import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Optional;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 
@@ -81,8 +83,9 @@ class KafkaConsumerMessageListener implements AcknowledgingMessageListener<Strin
                 return;
             }
             AtomicBoolean doAck = new AtomicBoolean(false);
-            AtomicBoolean needRepublish = new AtomicBoolean(false);
+            AtomicBoolean needRetry = new AtomicBoolean(false);
             AtomicReference<QueueMsgHandleRet> retRef = new AtomicReference<>();
+            AtomicReference<String> failureMessageRef = new AtomicReference<String>("consume failed");
             try {
                 this.txnMqTransactionalService.required(() -> {
                     if (!this.consumeIdempotentService.recordIfAbsent(context)) {
@@ -95,7 +98,8 @@ class KafkaConsumerMessageListener implements AcknowledgingMessageListener<Strin
                     }
                     retRef.set(handleRet);
                     if (handleRet.isRollBack()) {
-                        needRepublish.set(true);
+                        needRetry.set(true);
+                        failureMessageRef.set("consumer requested transaction rollback");
                         throw new RuntimeException("处理队列事务回滚");
                     }
                     handleRet.executeCommitCall();
@@ -104,9 +108,12 @@ class KafkaConsumerMessageListener implements AcknowledgingMessageListener<Strin
             } catch (UnexpectedRollbackException e) {
                 log.error("topic 消息处理失败, 事务意外回滚, topic:{}", this.consumer.getQueueName(), e);
                 doAck.set(false);
+                needRetry.set(true);
+                failureMessageRef.set(this.describeFailure(e));
             } catch (Exception e) {
                 log.error("topic 消息处理失败, topic:{}", this.consumer.getQueueName(), e);
-                needRepublish.set(true);
+                needRetry.set(true);
+                failureMessageRef.set(this.describeFailure(e));
             } finally {
                 try {
                     QueueMsgHandleRet handleRet = retRef.get();
@@ -116,10 +123,13 @@ class KafkaConsumerMessageListener implements AcknowledgingMessageListener<Strin
                 } catch (Exception ex) {
                     log.error("执行事务提交或者回滚后回调异常, topic:{}", this.consumer.getQueueName(), ex);
                     doAck.set(false);
+                    needRetry.set(true);
+                    failureMessageRef.set(this.describeFailure(ex));
                 } finally {
                     if (doAck.get()) {
                         acknowledgment.acknowledge();
-                    } else if (needRepublish.get() && this.republishToTail(record, context, payload)) {
+                    } else if (needRetry.get()
+                            && this.handleConsumeFailure(record, context, payload, failureMessageRef.get())) {
                         acknowledgment.acknowledge();
                     } else {
                         this.nack(acknowledgment);
@@ -138,12 +148,22 @@ class KafkaConsumerMessageListener implements AcknowledgingMessageListener<Strin
         }
     }
 
-    private boolean republishToTail(ConsumerRecord<String, byte[]> record, ConsumeContext context, Object payload) {
+    /**
+     * 保存下一轮消费重试或停止重试审计记录
+     *
+     * @param record         Kafka 原消息
+     * @param context        消费上下文
+     * @param payload        消息负载
+     * @param failureMessage 失败信息
+     * @return 是否可以提交当前消息 offset
+     */
+    private boolean handleConsumeFailure(ConsumerRecord<String, byte[]> record, ConsumeContext context,
+                                         Object payload, String failureMessage) {
         if (this.messagePublishService == null) {
             return false;
         }
         try {
-            TransactionalMessage<Object> retryMessage = new TransactionalMessage<>()
+            TransactionalMessage<Object> retryMessage = new TransactionalMessage<Object>()
                     .setMessageKey(context.getMessageKey())
                     .setProducerCode(this.findHeader(record, "producerCode"))
                     .setDestination(record.topic())
@@ -152,10 +172,23 @@ class KafkaConsumerMessageListener implements AcknowledgingMessageListener<Strin
                     .setHeaders(this.toHeaders(record))
                     .setBizKey(this.findHeader(record, "bizKey"))
                     .setPayload(payload);
-            this.messagePublishService.sendWithParent(MqType.KAFKA, retryMessage, context);
+            ConsumeRetryPolicy retryPolicy = this.consumer.getConsumeRetryPolicy();
+            if (retryPolicy == null) {
+                throw new IllegalStateException("consume retry policy must not be null");
+            }
+            Optional<Duration> nextDelay = retryPolicy.nextDelay(context.getRetryCount());
+            if (nextDelay.isPresent()) {
+                this.messagePublishService.scheduleConsumeRetry(MqType.KAFKA, retryMessage, context,
+                        nextDelay.get(), failureMessage);
+            } else {
+                this.messagePublishService.recordConsumeRetryStopped(MqType.KAFKA, retryMessage, context,
+                        failureMessage);
+            }
             return true;
         } catch (Exception ex) {
-            log.error("topic 消息重投到末尾失败, topic:{}", this.consumer.getQueueName(), ex);
+            log.error("topic 消息消费重试记录保存失败, topic:{}, 消息id:{}, 原始消息id:{}, 重试次数:{}",
+                    this.consumer.getQueueName(), context.getId(), context.getOriginalMessageId(),
+                    context.getRetryCount(), ex);
             return false;
         }
     }
@@ -176,13 +209,48 @@ class KafkaConsumerMessageListener implements AcknowledgingMessageListener<Strin
             throw new IllegalArgumentException("message id must not be blank");
         }
         String rootId = this.findHeader(record, "rootId");
+        String originalMessageId = this.findHeader(record, "originalMessageId");
         return new ConsumeContext()
                 .setId(messageId)
+                .setOriginalMessageId(originalMessageId == null || originalMessageId.trim().isEmpty()
+                        ? messageId : originalMessageId)
+                .setRetryCount(this.parseRetryCount(this.findHeader(record, "retryCount")))
                 .setMessageKey(this.findHeader(record, "messageKey"))
                 .setParentId(this.findHeader(record, "parentId"))
                 .setRootId(rootId == null || rootId.trim().isEmpty() ? messageId : rootId)
                 .setHeaders(this.toHeaders(record))
                 .setConsumerCode(this.consumer.consumerCode());
+    }
+
+    /**
+     * 解析重试次数
+     *
+     * @param retryCount 重试次数消息头
+     * @return 重试次数
+     */
+    private int parseRetryCount(String retryCount) {
+        if (retryCount == null || retryCount.trim().isEmpty()) {
+            return 0;
+        }
+        int parsedRetryCount = Integer.parseInt(retryCount);
+        if (parsedRetryCount < 0) {
+            throw new IllegalArgumentException("retryCount must not be negative");
+        }
+        return parsedRetryCount;
+    }
+
+    /**
+     * 构建失败描述
+     *
+     * @param throwable 失败异常
+     * @return 失败描述
+     */
+    private String describeFailure(Throwable throwable) {
+        if (throwable == null) {
+            return "consume failed";
+        }
+        String message = throwable.getMessage();
+        return throwable.getClass().getName() + (message == null ? "" : ": " + message);
     }
 
     private Map<String, String> toHeaders(ConsumerRecord<String, byte[]> record) {

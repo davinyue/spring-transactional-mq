@@ -28,6 +28,10 @@ public class TransactionalMessageEntityMapperTest {
         record.setBizKey("biz-1");
         record.setMessageStatus(MessageStatus.INIT);
         record.setNextDispatchTime(new Date(1710003600000L));
+        record.setOriginalMessageId("original-1");
+        record.setRetryCount(2);
+        record.setConsumerCode("consumer-1");
+        record.setLastError("consume failed");
         record.setParentId("parent-1");
         record.setRootId("root-1");
         record.setDispatchOwner("node-1");
@@ -45,6 +49,10 @@ public class TransactionalMessageEntityMapperTest {
         Assert.assertEquals("{\"traceId\":\"t-1\"}", entity.getHeadersJson());
         Assert.assertEquals("biz-1", entity.getBizKey());
         Assert.assertEquals(MessageStatus.INIT, entity.getMessageStatus());
+        Assert.assertEquals("original-1", entity.getOriginalMessageId());
+        Assert.assertEquals(Integer.valueOf(2), entity.getRetryCount());
+        Assert.assertEquals("consumer-1", entity.getConsumerCode());
+        Assert.assertEquals("consume failed", entity.getLastError());
         Assert.assertEquals("parent-1", entity.getParentId());
         Assert.assertEquals("root-1", entity.getRootId());
         Assert.assertEquals("node-1", entity.getDispatchOwner());
@@ -62,6 +70,10 @@ public class TransactionalMessageEntityMapperTest {
         Assert.assertEquals("biz-1", mappedBack.getBizKey());
         Assert.assertEquals(MessageStatus.INIT, mappedBack.getMessageStatus());
         Assert.assertNotNull(mappedBack.getNextDispatchTime());
+        Assert.assertEquals("original-1", mappedBack.getOriginalMessageId());
+        Assert.assertEquals(Integer.valueOf(2), mappedBack.getRetryCount());
+        Assert.assertEquals("consumer-1", mappedBack.getConsumerCode());
+        Assert.assertEquals("consume failed", mappedBack.getLastError());
         Assert.assertEquals("parent-1", mappedBack.getParentId());
         Assert.assertEquals("root-1", mappedBack.getRootId());
         Assert.assertEquals("node-1", mappedBack.getDispatchOwner());

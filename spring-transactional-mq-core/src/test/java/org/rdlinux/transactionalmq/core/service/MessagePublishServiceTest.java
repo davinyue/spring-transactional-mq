@@ -10,10 +10,12 @@ import org.rdlinux.transactionalmq.core.mq.MqProducerAdapter;
 import org.rdlinux.transactionalmq.core.mq.MqProducerRouter;
 import org.rdlinux.transactionalmq.core.model.TransactionalMessageRecord;
 import org.rdlinux.transactionalmq.core.repository.TransactionalMessageRepository;
+import org.springframework.dao.DuplicateKeyException;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.lang.reflect.Method;
 import java.lang.reflect.Type;
+import java.time.Duration;
 import java.util.Collections;
 import java.util.Date;
 import java.util.List;
@@ -55,6 +57,8 @@ public class MessagePublishServiceTest {
         Assert.assertNotNull(repository.savedRecord);
         Assert.assertEquals(messageId, repository.savedRecord.getId());
         Assert.assertEquals(messageId, repository.savedRecord.getRootId());
+        Assert.assertEquals(messageId, repository.savedRecord.getOriginalMessageId());
+        Assert.assertEquals(Integer.valueOf(0), repository.savedRecord.getRetryCount());
         Assert.assertNull(repository.savedRecord.getParentId());
         Assert.assertEquals("serialized-payload-value", repository.savedRecord.getPayloadText());
         Assert.assertEquals("producer-1", repository.savedRecord.getProducerCode());
@@ -156,6 +160,109 @@ public class MessagePublishServiceTest {
         Assert.assertNull(repository.savedRecord);
     }
 
+    /**
+     * 验证消费重试记录生成新 id 并保留原始消息 id 和链路
+     */
+    @Test
+    public void scheduleConsumeRetryShouldPreserveOriginalMessageAndIncreaseRetryCount() {
+        CapturingTransactionalMessageRepository repository = new CapturingTransactionalMessageRepository();
+        MessagePublishService service = new MessagePublishService(repository, this.buildSerializer(), null,
+                this.buildRouter(MqType.KAFKA));
+        TransactionalMessage<String> message = new TransactionalMessage<String>()
+                .setMessageKey("message-key-retry")
+                .setProducerCode("producer-retry")
+                .setDestination("topic.retry")
+                .setPayload("payload-retry");
+        ConsumeContext context = new ConsumeContext()
+                .setId("attempt-2")
+                .setOriginalMessageId("original-1")
+                .setRetryCount(2)
+                .setParentId("parent-1")
+                .setRootId("root-1")
+                .setConsumerCode("consumer-retry");
+
+        boolean saved = service.scheduleConsumeRetry(MqType.KAFKA, message, context,
+                Duration.ofMinutes(4), "business failed");
+
+        Assert.assertTrue(saved);
+        Assert.assertNotEquals("attempt-2", repository.retryRecord.getId());
+        Assert.assertEquals("original-1", repository.retryRecord.getOriginalMessageId());
+        Assert.assertEquals(Integer.valueOf(3), repository.retryRecord.getRetryCount());
+        Assert.assertEquals("parent-1", repository.retryRecord.getParentId());
+        Assert.assertEquals("root-1", repository.retryRecord.getRootId());
+        Assert.assertEquals("consumer-retry", repository.retryRecord.getConsumerCode());
+        Assert.assertEquals("business failed", repository.retryRecord.getLastError());
+        Assert.assertTrue(repository.retryRecord.getNextDispatchTime().after(new Date()));
+    }
+
+    /**
+     * 验证停止重试时保存不可派发审计记录
+     */
+    @Test
+    public void recordConsumeRetryStoppedShouldSaveDeadRecord() {
+        CapturingTransactionalMessageRepository repository = new CapturingTransactionalMessageRepository();
+        MessagePublishService service = new MessagePublishService(repository, this.buildSerializer(), null,
+                this.buildRouter(MqType.RABBITMQ));
+        TransactionalMessage<String> message = new TransactionalMessage<String>()
+                .setMessageKey("message-key-dead")
+                .setDestination("queue.dead")
+                .setPayload("payload-dead");
+        ConsumeContext context = new ConsumeContext()
+                .setId("attempt-dead")
+                .setOriginalMessageId("original-dead")
+                .setRetryCount(0)
+                .setConsumerCode("consumer-dead");
+
+        service.recordConsumeRetryStopped(MqType.RABBITMQ, message, context, "stop retry");
+
+        Assert.assertEquals(org.rdlinux.transactionalmq.common.enums.MessageStatus.DEAD,
+                repository.retryRecord.getMessageStatus());
+        Assert.assertNull(repository.retryRecord.getNextDispatchTime());
+        Assert.assertEquals(Integer.valueOf(1), repository.retryRecord.getRetryCount());
+    }
+
+    /**
+     * 验证唯一重试键冲突按该轮记录已存在处理。
+     */
+    @Test
+    public void scheduleConsumeRetryShouldTreatDuplicateKeyAsAlreadySaved() {
+        CapturingTransactionalMessageRepository repository = new CapturingTransactionalMessageRepository();
+        repository.duplicateConsumeRetry = true;
+        MessagePublishService service = new MessagePublishService(repository, this.buildSerializer(), null,
+                this.buildRouter(MqType.KAFKA));
+        TransactionalMessage<String> message = new TransactionalMessage<String>()
+                .setDestination("topic.retry")
+                .setPayload("payload-retry");
+        ConsumeContext context = new ConsumeContext()
+                .setId("attempt-duplicate")
+                .setOriginalMessageId("original-duplicate")
+                .setRetryCount(1);
+
+        boolean saved = service.scheduleConsumeRetry(MqType.KAFKA, message, context,
+                Duration.ofMinutes(1L), "business failed");
+
+        Assert.assertFalse(saved);
+    }
+
+    /**
+     * 构建测试序列化器
+     *
+     * @return 测试序列化器
+     */
+    private MessagePayloadSerializer buildSerializer() {
+        return new MessagePayloadSerializer() {
+            @Override
+            public String serialize(Object payload) {
+                return "serialized-" + payload;
+            }
+
+            @Override
+            public <T> T deserialize(String payloadText, Type targetType) {
+                return null;
+            }
+        };
+    }
+
     private MqProducerRouter buildRouter(MqType mqType) {
         return new MqProducerRouter(Collections.<MqProducerAdapter>singletonList(new MqProducerAdapter() {
             @Override
@@ -172,11 +279,21 @@ public class MessagePublishServiceTest {
     private static class CapturingTransactionalMessageRepository implements TransactionalMessageRepository {
 
         private TransactionalMessageRecord savedRecord;
+        private TransactionalMessageRecord retryRecord;
+        private boolean duplicateConsumeRetry;
 
         @Override
         public TransactionalMessageRecord save(TransactionalMessageRecord record) {
             this.savedRecord = record;
             return record;
+        }
+
+        @Override
+        public void saveConsumeRetry(TransactionalMessageRecord record) {
+            if (this.duplicateConsumeRetry) {
+                throw new DuplicateKeyException("duplicate consume retry");
+            }
+            this.retryRecord = record;
         }
 
         @Override

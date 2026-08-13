@@ -3,6 +3,7 @@ package org.rdlinux.transactionalmq.starter.config;
 import org.rdlinux.transactionalmq.api.consumer.TransactionalMessageConsumer;
 import org.rdlinux.transactionalmq.api.serialize.MessagePayloadSerializer;
 import org.rdlinux.transactionalmq.core.service.ConsumeIdempotentService;
+import org.rdlinux.transactionalmq.core.service.MessagePublishService;
 import org.rdlinux.transactionalmq.core.service.TxnMqTransactionalService;
 import org.rdlinux.transactionalmq.rabbitmq.RabbitMqConsumerInvoker;
 import org.rdlinux.transactionalmq.rabbitmq.RabbitMqConsumerRegistrar;
@@ -45,15 +46,16 @@ public class TransactionalMqRabbitAutoConfiguration {
     @Bean
     @ConditionalOnClass({RabbitMqConsumerRegistrar.class, ConnectionFactory.class, TransactionalMessageConsumer.class})
     @ConditionalOnBean({ConnectionFactory.class, RabbitMqConsumerInvoker.class, MessagePayloadSerializer.class,
-            ConsumeIdempotentService.class})
+            ConsumeIdempotentService.class, MessagePublishService.class})
     @ConditionalOnMissingBean(RabbitMqConsumerRegistrar.class)
     public RabbitMqConsumerRegistrar rabbitMqConsumerRegistrar(ConnectionFactory connectionFactory,
                                                                RabbitMqConsumerInvoker rabbitMqConsumerInvoker,
                                                                MessagePayloadSerializer messagePayloadSerializer,
                                                                ConsumeIdempotentService consumeIdempotentService,
                                                                ApplicationContext applicationContext,
-                                                               TxnMqTransactionalService txnMqTransactionalService) {
+                                                               TxnMqTransactionalService txnMqTransactionalService,
+                                                               MessagePublishService messagePublishService) {
         return new RabbitMqConsumerRegistrar(connectionFactory, rabbitMqConsumerInvoker, messagePayloadSerializer,
-                consumeIdempotentService, applicationContext, txnMqTransactionalService);
+                consumeIdempotentService, applicationContext, txnMqTransactionalService, messagePublishService);
     }
 }

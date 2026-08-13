@@ -14,6 +14,7 @@ import org.rdlinux.transactionalmq.core.repository.TransactionalMessageRepositor
 import org.rdlinux.transactionalmq.store.ezmybatis.entity.TransactionalMessageEntity;
 import org.springframework.dao.DuplicateKeyException;
 import org.springframework.stereotype.Repository;
+import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 import javax.annotation.Resource;
@@ -40,6 +41,14 @@ public class EzMybatisTransactionalMessageRepository implements TransactionalMes
         this.ezDao.insert(entity);
         this.applyGeneratedIdentity(record, entity);
         return TransactionalMessageEntityMapper.toRecord(entity);
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class, propagation = Propagation.REQUIRES_NEW)
+    public void saveConsumeRetry(TransactionalMessageRecord record) {
+        TransactionalMessageEntity entity = TransactionalMessageEntityMapper.toEntity(record);
+        this.ezDao.insert(entity);
+        this.applyGeneratedIdentity(record, entity);
     }
 
     @Override

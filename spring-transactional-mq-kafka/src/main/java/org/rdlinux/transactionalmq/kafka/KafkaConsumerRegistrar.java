@@ -70,6 +70,7 @@ public class KafkaConsumerRegistrar implements SmartInitializingSingleton, Dispo
     }
 
     public void consume(TransactionalMessageConsumer<?> consumer) {
+        this.validateRetryPolicy(consumer);
         ConcurrentMessageListenerContainer<String, byte[]> container = this.createContainer(consumer);
         this.containers.add(container);
         this.startContainer(container);
@@ -100,6 +101,17 @@ public class KafkaConsumerRegistrar implements SmartInitializingSingleton, Dispo
         int minConcurrency = Math.max(consumer.getMinConcurrency(), 1);
         int maxConcurrency = Math.max(consumer.getMaxConcurrency(), 1);
         return Math.max(minConcurrency, maxConcurrency);
+    }
+
+    /**
+     * 校验消费者重试策略
+     *
+     * @param consumer 消费者
+     */
+    private void validateRetryPolicy(TransactionalMessageConsumer<?> consumer) {
+        if (consumer.getConsumeRetryPolicy() == null) {
+            throw new IllegalArgumentException("consume retry policy must not be null: " + consumer.consumerCode());
+        }
     }
 
     @Override

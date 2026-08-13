@@ -1,6 +1,7 @@
 # spring-transactional-mq
 
-`spring-transactional-mq` 是一个面向 Spring Boot 的事务消息组件。业务侧先把消息写入数据库，再由后台派发线程异步投递到 MQ；消费侧在执行业务逻辑前记录消费记录，通过数据库唯一约束实现幂等控制。
+`spring-transactional-mq` 是一个面向 Spring Boot 的事务消息组件。业务侧先把消息写入数据库，再由后台派发线程异步投递到
+MQ；消费侧在执行业务逻辑前记录消费记录，通过数据库唯一约束实现幂等控制。
 
 它更适合“本地事务成功后，再可靠地把事件投递到 MQ”这类场景，例如订单创建、支付完成、库存变更后的异步通知。
 
@@ -38,16 +39,16 @@
 
 ## 模块说明
 
-| 模块 | 说明 |
-| --- | --- |
-| `spring-transactional-mq-common` | 公共枚举、基础实体、ID 生成器 |
-| `spring-transactional-mq-api` | 对业务暴露的消息模型、生产/消费接口、序列化接口 |
-| `spring-transactional-mq-core` | 消息发布、消息派发、生产路由、消费幂等、清理服务 |
-| `spring-transactional-mq-store-ezmybatis` | 基于 `ez-mybatis` 的仓储实现和建表 SQL |
-| `spring-transactional-mq-rabbitmq` | RabbitMQ 生产者适配器、消费者自动注册与监听处理 |
-| `spring-transactional-mq-kafka` | Kafka 生产者适配器、消费者自动注册与监听处理 |
-| `spring-transactional-mq-spring-boot-starter` | Spring Boot 自动装配入口 |
-| `spring-transactional-mq-demo` | demo 工程与真实环境链路测试示例 |
+| 模块                                            | 说明                           |
+|-----------------------------------------------|------------------------------|
+| `spring-transactional-mq-common`              | 公共枚举、基础实体、ID 生成器             |
+| `spring-transactional-mq-api`                 | 对业务暴露的消息模型、生产/消费接口、序列化接口     |
+| `spring-transactional-mq-core`                | 消息发布、消息派发、生产路由、消费幂等、清理服务     |
+| `spring-transactional-mq-store-ezmybatis`     | 基于 `ez-mybatis` 的仓储实现和建表 SQL |
+| `spring-transactional-mq-rabbitmq`            | RabbitMQ 生产者适配器、消费者自动注册与监听处理 |
+| `spring-transactional-mq-kafka`               | Kafka 生产者适配器、消费者自动注册与监听处理    |
+| `spring-transactional-mq-spring-boot-starter` | Spring Boot 自动装配入口           |
+| `spring-transactional-mq-demo`                | demo 工程与真实环境链路测试示例           |
 
 ## 快速接入
 
@@ -61,12 +62,12 @@ RabbitMQ 场景：
 <dependency>
     <groupId>org.rdlinux</groupId>
     <artifactId>spring-transactional-mq-spring-boot-starter</artifactId>
-    <version>0.0.1</version>
+    <version>0.0.2</version>
 </dependency>
 <dependency>
     <groupId>org.rdlinux</groupId>
     <artifactId>spring-transactional-mq-rabbitmq</artifactId>
-    <version>0.0.1</version>
+    <version>0.0.2</version>
 </dependency>
 ```
 
@@ -76,12 +77,12 @@ Kafka 场景：
 <dependency>
     <groupId>org.rdlinux</groupId>
     <artifactId>spring-transactional-mq-spring-boot-starter</artifactId>
-    <version>0.0.1</version>
+    <version>0.0.2</version>
 </dependency>
 <dependency>
     <groupId>org.rdlinux</groupId>
     <artifactId>spring-transactional-mq-kafka</artifactId>
-    <version>0.0.1</version>
+    <version>0.0.2</version>
 </dependency>
 ```
 
@@ -102,15 +103,25 @@ Kafka 场景：
 - `spring-transactional-mq-store-ezmybatis/src/main/resources/sql/POSTGRE_SQL.sql`
 - `spring-transactional-mq-store-ezmybatis/src/main/resources/sql/SQL_SERVER.sql`
 
+已有数据库升级时，请执行对应的消费重试升级脚本：
+
+- `spring-transactional-mq-store-ezmybatis/src/main/resources/sql/upgrade/20260813_MYSQL_CONSUME_RETRY.sql`
+- `spring-transactional-mq-store-ezmybatis/src/main/resources/sql/upgrade/20260813_ORACLE_CONSUME_RETRY.sql`
+- `spring-transactional-mq-store-ezmybatis/src/main/resources/sql/upgrade/20260813_DM_CONSUME_RETRY.sql`
+- `spring-transactional-mq-store-ezmybatis/src/main/resources/sql/upgrade/20260813_POSTGRE_SQL_CONSUME_RETRY.sql`
+- `spring-transactional-mq-store-ezmybatis/src/main/resources/sql/upgrade/20260813_SQL_SERVER_CONSUME_RETRY.sql`
+
+自动建表只负责空库初始化，不会为已经存在的表自动增加升级字段或唯一键。
+
 核心表如下：
 
-| 表名 | 说明 |
-| --- | --- |
-| `TXN_MESSAGE` | 事务消息主表，保存待派发消息 |
-| `TXN_MESSAGE_HISTORY` | 成功消息历史表 |
-| `TXN_MESSAGE_SEND_LOG` | 发送日志表 |
-| `TXN_CONSUMED_MESSAGE` | 在线消费去重表 |
-| `TXN_CONSUMED_MESSAGE_HISTORY` | 消费记录历史表 |
+| 表名                             | 说明             |
+|--------------------------------|----------------|
+| `TXN_MESSAGE`                  | 事务消息主表，保存待派发消息 |
+| `TXN_MESSAGE_HISTORY`          | 成功消息历史表        |
+| `TXN_MESSAGE_SEND_LOG`         | 发送日志表          |
+| `TXN_CONSUMED_MESSAGE`         | 在线消费去重表        |
+| `TXN_CONSUMED_MESSAGE_HISTORY` | 消费记录历史表        |
 
 ### 3. 配置参数
 
@@ -350,6 +361,34 @@ public class UserCreatedConsumer implements TransactionalMessageConsumer<String>
 - 消费前框架会先记录消费记录，重复消息会被幂等逻辑拦截
 - 消费逻辑运行在事务中，返回 `QueueMsgHandleRet` 可控制提交或回滚
 
+### 消费失败退避重试
+
+消费者可覆盖 `getConsumeRetryPolicy()`，为当前消费者单独声明重试策略。例如首次失败后依次等待 2、4、8、16、32 分钟和 1、2、4 小时：
+
+```java
+@Override
+public ConsumeRetryPolicy getConsumeRetryPolicy() {
+    return ConsumeRetryPolicy.customDelays(
+            Duration.ofMinutes(2),
+            Duration.ofMinutes(4),
+            Duration.ofMinutes(8),
+            Duration.ofMinutes(16),
+            Duration.ofMinutes(32),
+            Duration.ofHours(1),
+            Duration.ofHours(2),
+            Duration.ofHours(4));
+}
+```
+
+也可以使用以下预置策略：
+
+- `ConsumeRetryPolicy.fixedDelay(5, Duration.ofMinutes(1))`：最多重试 5 次，每次间隔 1 分钟
+- `ConsumeRetryPolicy.fixedDelayForever(Duration.ofMinutes(1))`：每分钟重试一次，不限制次数
+- `ConsumeRetryPolicy.noRetry()`：不重试，也是消费者接口的默认策略
+
+自定义间隔的数量就是总重试次数，间隔不要求递增。业务失败后，框架先回滚业务事务，再用独立事务保存下一轮延迟消息；保存成功后才确认当前
+MQ 消息。context 或 payload 无法解析时不会盲目重建消息，而是使用 MQ 原生 nack/requeue。
+
 ## 消息链路能力
 
 - 每条消息都有唯一 `id`
@@ -371,6 +410,10 @@ String childId = messagePublishService.sendWithParent(MqType.RABBITMQ, childMess
 - 但如果消息已发到 MQ、数据库状态还未来得及更新时实例宕机，仍可能重复投递
 
 消费侧在调用业务消费者前，会先向消费记录表写入记录；如果发现相同消息已经消费过，框架会直接确认消息，不再调用业务系统的消费逻辑。因此业务消费逻辑通常不会因为同一条消息的重复到达而重复执行。
+
+首次投递时 `originalMessageId` 与 `messageId` 相同；每轮重试都会生成新的 `messageId`，同时保持 `originalMessageId`
+不变。消费记录以 `originalMessageId` 作为主键，所以一次原始消息的所有重试仍共享同一个幂等边界。不同业务系统使用各自独立的消费记录表，
+`consumerCode` 只用于审计，不参与幂等键。
 
 需要注意的是，框架消费记录表仍是这套语义的前提。消费记录被清理后，如果非常旧的重复消息再次到达，框架将无法再通过在线消费记录识别它；业务侧若对这种场景敏感，仍应基于业务唯一键做最终保护。
 

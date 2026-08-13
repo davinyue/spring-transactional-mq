@@ -52,8 +52,11 @@ public class RabbitMqProducerAdapter implements MqProducerAdapter {
                     }
                     messageProperties.setMessageId(message.getId());
                     messageProperties.setHeader("messageKey", message.getMessageKey());
+                    messageProperties.setHeader("originalMessageId", message.getOriginalMessageId());
+                    messageProperties.setHeader("retryCount", message.getRetryCount());
                     messageProperties.setHeader("producerCode", message.getProducerCode());
                     messageProperties.setHeader("mqType", message.getMqType() == null ? null : message.getMqType().name());
+                    messageProperties.setHeader("destination", message.getDestination());
                     messageProperties.setHeader("bizKey", message.getBizKey());
                     messageProperties.setHeader("route", message.getRoute());
                     messageProperties.setHeader("shardingKey", message.getShardingKey());

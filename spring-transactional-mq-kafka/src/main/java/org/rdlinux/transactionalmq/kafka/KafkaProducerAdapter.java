@@ -40,9 +40,12 @@ public class KafkaProducerAdapter implements MqProducerAdapter {
         }
         this.addHeader(record, "contentEncoding", "gzip");
         this.addHeader(record, "messageId", message.getId());
+        this.addHeader(record, "originalMessageId", message.getOriginalMessageId());
+        this.addHeader(record, "retryCount", String.valueOf(message.getRetryCount()));
         this.addHeader(record, "messageKey", message.getMessageKey());
         this.addHeader(record, "producerCode", message.getProducerCode());
         this.addHeader(record, "mqType", message.getMqType() == null ? null : message.getMqType().name());
+        this.addHeader(record, "destination", message.getDestination());
         this.addHeader(record, "bizKey", message.getBizKey());
         this.addHeader(record, "route", message.getRoute());
         this.addHeader(record, "shardingKey", message.getShardingKey());

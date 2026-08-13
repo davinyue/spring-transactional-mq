@@ -72,6 +72,22 @@ public class TransactionalMessageEntity extends BaseEntity<TransactionalMessageE
      */
     private Date nextDispatchTime;
     /**
+     * 原始消息 id
+     */
+    private String originalMessageId;
+    /**
+     * 已执行的消费重试次数
+     */
+    private Integer retryCount;
+    /**
+     * 消费者编码
+     */
+    private String consumerCode;
+    /**
+     * 最后消费失败信息
+     */
+    private String lastError;
+    /**
      * 父消息 id
      */
     private String parentId;

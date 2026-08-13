@@ -20,6 +20,16 @@ public class ConsumeContext {
     @Getter
     private String id;
     /**
+     * 原始消息 id
+     */
+    @Getter
+    private String originalMessageId;
+    /**
+     * 已执行的重试次数
+     */
+    @Getter
+    private int retryCount;
+    /**
      * 消息键
      */
     @Getter

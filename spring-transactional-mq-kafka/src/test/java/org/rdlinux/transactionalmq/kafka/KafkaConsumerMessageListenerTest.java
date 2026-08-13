@@ -4,6 +4,7 @@ import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.common.header.internals.RecordHeaders;
 import org.apache.kafka.common.record.TimestampType;
 import org.junit.Test;
+import org.rdlinux.transactionalmq.api.consumer.ConsumeRetryPolicy;
 import org.rdlinux.transactionalmq.api.consumer.QueueMsgHandleRet;
 import org.rdlinux.transactionalmq.api.consumer.TransactionalMessageConsumer;
 import org.rdlinux.transactionalmq.api.model.ConsumeContext;
@@ -103,7 +104,7 @@ public class KafkaConsumerMessageListenerTest {
     }
 
     @Test
-    public void onMessageShouldRepublishToTopicTailAndAckWhenBusinessRollback() {
+    public void onMessageShouldScheduleRetryAndAckWhenBusinessRollback() {
         KafkaConsumerInvoker invoker = new KafkaConsumerInvoker();
         MessagePayloadSerializer serializer = mock(MessagePayloadSerializer.class);
         ConsumeIdempotentService consumeIdempotentService = mock(ConsumeIdempotentService.class);
@@ -117,12 +118,12 @@ public class KafkaConsumerMessageListenerTest {
 
         when(consumeIdempotentService.recordIfAbsent(any(ConsumeContext.class))).thenReturn(true);
         when(serializer.deserialize("\"payload-5\"", (Type) String.class)).thenReturn("payload-5");
-        when(messagePublishService.sendWithParent(eq(MqType.KAFKA), any(TransactionalMessage.class),
-                any(ConsumeContext.class))).thenReturn("republished-1");
+        when(messagePublishService.scheduleConsumeRetry(eq(MqType.KAFKA), any(TransactionalMessage.class),
+                any(ConsumeContext.class), eq(Duration.ofMinutes(2L)), anyString())).thenReturn(true);
 
         listener.onMessage(record, acknowledgment);
 
-        verify(messagePublishService).sendWithParent(eq(MqType.KAFKA),
+        verify(messagePublishService).scheduleConsumeRetry(eq(MqType.KAFKA),
                 org.mockito.ArgumentMatchers.argThat((TransactionalMessage<String> message) ->
                         "topic.demo".equals(message.getDestination())
                                 && "key-5".equals(message.getRoute())
@@ -131,15 +132,18 @@ public class KafkaConsumerMessageListenerTest {
                                 && "trace-1".equals(message.getHeaders().get("traceId"))),
                 org.mockito.ArgumentMatchers.argThat(context ->
                         "msg-5".equals(context.getId())
+                                && "msg-5".equals(context.getOriginalMessageId())
+                                && context.getRetryCount() == 0
                                 && "key-5".equals(context.getMessageKey())
                                 && "parent-5".equals(context.getParentId())
-                                && "root-5".equals(context.getRootId())));
+                                && "root-5".equals(context.getRootId())),
+                eq(Duration.ofMinutes(2L)), contains("RuntimeException"));
         verify(acknowledgment).acknowledge();
         verify(acknowledgment, never()).nack(anyLong());
     }
 
     @Test
-    public void onMessageShouldNackWhenRepublishFailed() {
+    public void onMessageShouldNackWhenRetryRecordSaveFailed() {
         KafkaConsumerInvoker invoker = new KafkaConsumerInvoker();
         MessagePayloadSerializer serializer = mock(MessagePayloadSerializer.class);
         ConsumeIdempotentService consumeIdempotentService = mock(ConsumeIdempotentService.class);
@@ -153,8 +157,9 @@ public class KafkaConsumerMessageListenerTest {
 
         when(consumeIdempotentService.recordIfAbsent(any(ConsumeContext.class))).thenReturn(true);
         when(serializer.deserialize("\"payload-6\"", (Type) String.class)).thenReturn("payload-6");
-        when(messagePublishService.sendWithParent(eq(MqType.KAFKA), any(TransactionalMessage.class),
-                any(ConsumeContext.class))).thenThrow(new IllegalStateException("republish failed"));
+        when(messagePublishService.scheduleConsumeRetry(eq(MqType.KAFKA), any(TransactionalMessage.class),
+                any(ConsumeContext.class), eq(Duration.ofMinutes(2L)), anyString()))
+                .thenThrow(new IllegalStateException("retry save failed"));
 
         listener.onMessage(record, acknowledgment);
 
@@ -217,6 +222,11 @@ public class KafkaConsumerMessageListenerTest {
         @Override
         public String consumerCode() {
             return "consumer-rollback";
+        }
+
+        @Override
+        public ConsumeRetryPolicy getConsumeRetryPolicy() {
+            return ConsumeRetryPolicy.fixedDelay(2, Duration.ofMinutes(2L));
         }
 
         @Override
