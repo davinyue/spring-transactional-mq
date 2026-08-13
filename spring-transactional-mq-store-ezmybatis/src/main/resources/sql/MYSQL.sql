@@ -52,7 +52,8 @@ CREATE TABLE IF NOT EXISTS TXN_MESSAGE_HISTORY (
     dispatch_owner VARCHAR(128) NULL COMMENT '派发实例标识',
     dispatch_token VARCHAR(24) NULL COMMENT '派发令牌',
     dispatch_expire_time DATETIME NULL COMMENT '派发租约过期时间',
-    PRIMARY KEY (id)
+    PRIMARY KEY (id),
+    UNIQUE KEY uk_txn_message_history_original_retry (original_message_id, retry_count)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='事务消息历史表';
 
 CREATE TABLE IF NOT EXISTS TXN_CONSUMED_MESSAGE (

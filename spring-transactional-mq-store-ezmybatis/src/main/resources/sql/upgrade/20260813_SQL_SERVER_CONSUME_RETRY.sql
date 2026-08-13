@@ -34,6 +34,9 @@ ALTER TABLE TXN_MESSAGE_HISTORY ALTER COLUMN original_message_id NVARCHAR(24) NO
 GO
 ALTER TABLE TXN_MESSAGE_HISTORY DROP CONSTRAINT DF_TXN_MESSAGE_HISTORY_RETRY_COUNT;
 GO
+CREATE UNIQUE INDEX UK_TXN_MESSAGE_HISTORY_ORIGINAL_RETRY
+    ON TXN_MESSAGE_HISTORY(original_message_id, retry_count);
+GO
 
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'原始消息id', @level0type=N'SCHEMA',
     @level0name=N'dbo', @level1type=N'TABLE', @level1name=N'TXN_MESSAGE', @level2type=N'COLUMN', @level2name=N'original_message_id';

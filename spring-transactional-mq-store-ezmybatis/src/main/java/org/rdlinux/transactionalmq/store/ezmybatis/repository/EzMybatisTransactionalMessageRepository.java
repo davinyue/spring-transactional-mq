@@ -12,6 +12,7 @@ import org.rdlinux.transactionalmq.common.id.ObjectIdGenerator;
 import org.rdlinux.transactionalmq.core.model.TransactionalMessageRecord;
 import org.rdlinux.transactionalmq.core.repository.TransactionalMessageRepository;
 import org.rdlinux.transactionalmq.store.ezmybatis.entity.TransactionalMessageEntity;
+import org.rdlinux.transactionalmq.store.ezmybatis.entity.TransactionalMessageHistoryEntity;
 import org.springframework.dao.DuplicateKeyException;
 import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Propagation;
@@ -47,6 +48,19 @@ public class EzMybatisTransactionalMessageRepository implements TransactionalMes
     @Transactional(rollbackFor = Exception.class, propagation = Propagation.REQUIRES_NEW)
     public void saveConsumeRetry(TransactionalMessageRecord record) {
         TransactionalMessageEntity entity = TransactionalMessageEntityMapper.toEntity(record);
+        this.ezDao.insert(entity);
+        this.applyGeneratedIdentity(record, entity);
+    }
+
+    /**
+     * 将停止重试的死信记录直接写入事务消息历史表
+     *
+     * @param record 死信记录
+     */
+    @Override
+    @Transactional(rollbackFor = Exception.class, propagation = Propagation.REQUIRES_NEW)
+    public void saveDeadConsumeRetry(TransactionalMessageRecord record) {
+        TransactionalMessageHistoryEntity entity = TransactionalMessageEntityMapper.toHistoryEntity(record);
         this.ezDao.insert(entity);
         this.applyGeneratedIdentity(record, entity);
     }

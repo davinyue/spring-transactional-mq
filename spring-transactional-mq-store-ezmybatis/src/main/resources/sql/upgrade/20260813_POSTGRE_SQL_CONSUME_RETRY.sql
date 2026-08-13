@@ -25,6 +25,8 @@ WHERE original_message_id IS NULL;
 
 ALTER TABLE TXN_MESSAGE_HISTORY ALTER COLUMN original_message_id SET NOT NULL;
 ALTER TABLE TXN_MESSAGE_HISTORY ALTER COLUMN retry_count DROP DEFAULT;
+CREATE UNIQUE INDEX uk_txn_message_history_original_retry
+    ON TXN_MESSAGE_HISTORY (original_message_id, retry_count);
 
 COMMENT ON COLUMN TXN_MESSAGE.original_message_id IS '原始消息id';
 COMMENT ON COLUMN TXN_MESSAGE.retry_count IS '已执行的消费重试次数';

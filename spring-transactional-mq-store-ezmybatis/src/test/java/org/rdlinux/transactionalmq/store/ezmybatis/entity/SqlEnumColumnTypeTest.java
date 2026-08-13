@@ -60,6 +60,8 @@ public class SqlEnumColumnTypeTest {
                     + "_CONSUME_RETRY.sql").toLowerCase();
             this.assertConsumeRetrySchema(createSql);
             this.assertConsumeRetrySchema(upgradeSql);
+            this.assertHistoryRetryUniqueKey(createSql);
+            this.assertHistoryRetryUniqueKey(upgradeSql);
         }
     }
 
@@ -74,6 +76,17 @@ public class SqlEnumColumnTypeTest {
         assertContains(sql, "consumer_code");
         assertContains(sql, "last_error");
         assertContains(sql, "uk_txn_message_original_retry");
+    }
+
+    /**
+     * 验证历史表具有消费重试唯一键。
+     *
+     * @param sql SQL 文本
+     */
+    private void assertHistoryRetryUniqueKey(String sql) {
+        Assert.assertTrue("Missing history consume retry unique key",
+                sql.contains("uk_txn_message_history_original_retry")
+                        || sql.contains("uk_txn_msg_his_orig_retry"));
     }
 
     private String readSql(String path) throws Exception {

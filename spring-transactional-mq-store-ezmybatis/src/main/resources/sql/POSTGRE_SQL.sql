@@ -96,6 +96,8 @@ CREATE INDEX IF NOT EXISTS idx_txn_message_status_update
     ON TXN_MESSAGE (message_status, update_time, id);
 CREATE UNIQUE INDEX IF NOT EXISTS uk_txn_message_original_retry
     ON TXN_MESSAGE (original_message_id, retry_count);
+CREATE UNIQUE INDEX IF NOT EXISTS uk_txn_message_history_original_retry
+    ON TXN_MESSAGE_HISTORY (original_message_id, retry_count);
 
 COMMENT ON TABLE TXN_MESSAGE IS '事务消息表';
 COMMENT ON COLUMN TXN_MESSAGE.id IS '主键';

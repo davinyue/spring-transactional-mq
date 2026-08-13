@@ -96,7 +96,7 @@ public class MessagePublishService implements TransactionalMessageSender {
     }
 
     /**
-     * 在独立事务中保存消费者停止重试的失败审计记录
+     * 在独立事务中将消费者停止重试的失败记录直接保存到历史表
      *
      * @param mqType         MQ 类型
      * @param message        消费失败消息
@@ -111,7 +111,7 @@ public class MessagePublishService implements TransactionalMessageSender {
                 failureMessage);
         record.setMessageStatus(MessageStatus.DEAD);
         record.setNextDispatchTime(null);
-        this.saveConsumeRetryIfAbsent(record);
+        this.saveDeadConsumeRetryIfAbsent(record);
     }
 
     private <T> String doSave(MqType mqType, TransactionalMessage<T> message, ConsumeContext parentContext) {
@@ -239,6 +239,19 @@ public class MessagePublishService implements TransactionalMessageSender {
             return true;
         } catch (DuplicateKeyException ex) {
             return false;
+        }
+    }
+
+    /**
+     * 保存死信历史记录，并将唯一键冲突视为该死信已经可靠归档。
+     *
+     * @param record 死信记录
+     */
+    private void saveDeadConsumeRetryIfAbsent(TransactionalMessageRecord record) {
+        try {
+            this.transactionalMessageRepository.saveDeadConsumeRetry(record);
+        } catch (DuplicateKeyException ex) {
+            // ACK 或 offset 提交失败可能导致原消息再次到达，历史表唯一键可证明死信已经归档
         }
     }
 

@@ -196,10 +196,10 @@ public class MessagePublishServiceTest {
     }
 
     /**
-     * 验证停止重试时保存不可派发审计记录
+     * 验证停止重试时直接保存死信历史记录。
      */
     @Test
-    public void recordConsumeRetryStoppedShouldSaveDeadRecord() {
+    public void recordConsumeRetryStoppedShouldSaveDeadRecordDirectlyToHistory() {
         CapturingTransactionalMessageRepository repository = new CapturingTransactionalMessageRepository();
         MessagePublishService service = new MessagePublishService(repository, this.buildSerializer(), null,
                 this.buildRouter(MqType.RABBITMQ));
@@ -216,9 +216,35 @@ public class MessagePublishServiceTest {
         service.recordConsumeRetryStopped(MqType.RABBITMQ, message, context, "stop retry");
 
         Assert.assertEquals(org.rdlinux.transactionalmq.common.enums.MessageStatus.DEAD,
-                repository.retryRecord.getMessageStatus());
-        Assert.assertNull(repository.retryRecord.getNextDispatchTime());
-        Assert.assertEquals(Integer.valueOf(1), repository.retryRecord.getRetryCount());
+                repository.deadRetryRecord.getMessageStatus());
+        Assert.assertNull(repository.deadRetryRecord.getNextDispatchTime());
+        Assert.assertEquals(Integer.valueOf(1), repository.deadRetryRecord.getRetryCount());
+        Assert.assertNull(repository.retryRecord);
+        Assert.assertNull(repository.savedRecord);
+    }
+
+    /**
+     * 验证死信历史唯一键冲突按已经归档处理。
+     */
+    @Test
+    public void recordConsumeRetryStoppedShouldIgnoreDuplicateHistoryRecord() {
+        CapturingTransactionalMessageRepository repository = new CapturingTransactionalMessageRepository();
+        repository.duplicateDeadConsumeRetry = true;
+        MessagePublishService service = new MessagePublishService(repository, this.buildSerializer(), null,
+                this.buildRouter(MqType.RABBITMQ));
+        TransactionalMessage<String> message = new TransactionalMessage<String>()
+                .setDestination("queue.dead")
+                .setPayload("payload-dead");
+        ConsumeContext context = new ConsumeContext()
+                .setId("attempt-dead-duplicate")
+                .setOriginalMessageId("original-dead-duplicate")
+                .setRetryCount(2);
+
+        service.recordConsumeRetryStopped(MqType.RABBITMQ, message, context, "stop retry");
+
+        Assert.assertNull(repository.savedRecord);
+        Assert.assertNull(repository.retryRecord);
+        Assert.assertNull(repository.deadRetryRecord);
     }
 
     /**
@@ -280,7 +306,15 @@ public class MessagePublishServiceTest {
 
         private TransactionalMessageRecord savedRecord;
         private TransactionalMessageRecord retryRecord;
+        /**
+         * 捕获的死信历史记录。
+         */
+        private TransactionalMessageRecord deadRetryRecord;
         private boolean duplicateConsumeRetry;
+        /**
+         * 是否模拟死信历史记录唯一键冲突。
+         */
+        private boolean duplicateDeadConsumeRetry;
 
         @Override
         public TransactionalMessageRecord save(TransactionalMessageRecord record) {
@@ -294,6 +328,19 @@ public class MessagePublishServiceTest {
                 throw new DuplicateKeyException("duplicate consume retry");
             }
             this.retryRecord = record;
+        }
+
+        /**
+         * 捕获死信历史记录，或模拟唯一键冲突。
+         *
+         * @param record 死信记录
+         */
+        @Override
+        public void saveDeadConsumeRetry(TransactionalMessageRecord record) {
+            if (this.duplicateDeadConsumeRetry) {
+                throw new DuplicateKeyException("duplicate dead consume retry");
+            }
+            this.deadRetryRecord = record;
         }
 
         @Override

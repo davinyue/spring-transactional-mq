@@ -30,6 +30,18 @@ public interface TransactionalMessageRepository {
     }
 
     /**
+     * 将停止重试的死信记录直接保存到事务消息历史表
+     *
+     * <p>默认实现用于兼容已有自定义仓储，但会拒绝确认死信；自定义仓储必须实现历史表持久化，
+     * 不能将死信回写到事务消息主表。</p>
+     *
+     * @param record 死信记录
+     */
+    default void saveDeadConsumeRetry(TransactionalMessageRecord record) {
+        throw new UnsupportedOperationException("dead consume retry history storage is not supported");
+    }
+
+    /**
      * 查询待派发候选消息
      *
      * @param limit 查询条数

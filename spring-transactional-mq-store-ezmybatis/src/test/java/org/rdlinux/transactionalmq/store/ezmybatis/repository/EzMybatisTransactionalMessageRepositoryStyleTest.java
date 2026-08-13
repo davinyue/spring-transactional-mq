@@ -32,6 +32,8 @@ public class EzMybatisTransactionalMessageRepositoryStyleTest {
         Assert.assertFalse(source.contains("\"UPDATE "));
         Assert.assertFalse(source.contains("\"DELETE "));
         Assert.assertFalse(source.contains("TABLE.field(\""));
+        Assert.assertTrue(source.contains("saveDeadConsumeRetry(TransactionalMessageRecord record)"));
+        Assert.assertTrue(source.contains("TransactionalMessageEntityMapper.toHistoryEntity(record)"));
     }
 
     /**
@@ -42,6 +44,21 @@ public class EzMybatisTransactionalMessageRepositoryStyleTest {
     @Test
     public void consumeRetrySaveShouldUseRequiresNewTransaction() throws Exception {
         Method method = EzMybatisTransactionalMessageRepository.class.getMethod("saveConsumeRetry",
+                TransactionalMessageRecord.class);
+        Transactional transactional = method.getAnnotation(Transactional.class);
+
+        Assert.assertNotNull(transactional);
+        Assert.assertEquals(Propagation.REQUIRES_NEW, transactional.propagation());
+    }
+
+    /**
+     * 验证死信历史写入使用独立事务，使唯一键冲突完整回滚后可由上层按已归档处理。
+     *
+     * @throws Exception 方法反射失败
+     */
+    @Test
+    public void deadConsumeRetrySaveShouldUseRequiresNewTransaction() throws Exception {
+        Method method = EzMybatisTransactionalMessageRepository.class.getMethod("saveDeadConsumeRetry",
                 TransactionalMessageRecord.class);
         Transactional transactional = method.getAnnotation(Transactional.class);
 

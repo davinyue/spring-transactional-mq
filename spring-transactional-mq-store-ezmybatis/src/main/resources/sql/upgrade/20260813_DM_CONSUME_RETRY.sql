@@ -25,6 +25,8 @@ SET original_message_id = id
 WHERE original_message_id IS NULL;
 
 ALTER TABLE TXN_MESSAGE_HISTORY MODIFY original_message_id VARCHAR2(24) NOT NULL;
+ALTER TABLE TXN_MESSAGE_HISTORY ADD CONSTRAINT UK_TXN_MSG_HIS_ORIG_RETRY
+    UNIQUE (original_message_id, retry_count);
 
 COMMENT ON COLUMN TXN_MESSAGE.original_message_id IS '原始消息id';
 COMMENT ON COLUMN TXN_MESSAGE.retry_count IS '已执行的消费重试次数';

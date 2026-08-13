@@ -118,7 +118,7 @@ Kafka 场景：
 | 表名                             | 说明             |
 |--------------------------------|----------------|
 | `TXN_MESSAGE`                  | 事务消息主表，保存待派发消息 |
-| `TXN_MESSAGE_HISTORY`          | 成功消息历史表        |
+| `TXN_MESSAGE_HISTORY`          | 成功消息及消费死信历史表   |
 | `TXN_MESSAGE_SEND_LOG`         | 发送日志表          |
 | `TXN_CONSUMED_MESSAGE`         | 在线消费去重表        |
 | `TXN_CONSUMED_MESSAGE_HISTORY` | 消费记录历史表        |
@@ -380,14 +380,33 @@ public ConsumeRetryPolicy getConsumeRetryPolicy() {
 }
 ```
 
+消费方法抛出异常，或返回要求回滚且不提前确认 MQ 消息的结果时，会进入上述重试策略：
+
+```java
+@Override
+public QueueMsgHandleRet consume(ConsumeContext context, OrderCreatedMessage payload) {
+    if (!orderService.create(payload)) {
+        return QueueMsgHandleRet.DEFAULT()
+                .setRollBack(true)
+                .setRollBackAck(false);
+    }
+    return QueueMsgHandleRet.DEFAULT();
+}
+```
+
+`ConsumeContext#getRetryCount()` 表示当前消息已经执行过的消费重试次数：原始消息为 `0`，第一次重试消息为 `1`。策略根据该值选择下一段等待时间，业务代码不需要自行累加。
+
 也可以使用以下预置策略：
 
 - `ConsumeRetryPolicy.fixedDelay(5, Duration.ofMinutes(1))`：最多重试 5 次，每次间隔 1 分钟
 - `ConsumeRetryPolicy.fixedDelayForever(Duration.ofMinutes(1))`：每分钟重试一次，不限制次数
 - `ConsumeRetryPolicy.noRetry()`：不重试，也是消费者接口的默认策略
 
-自定义间隔的数量就是总重试次数，间隔不要求递增。业务失败后，框架先回滚业务事务，再用独立事务保存下一轮延迟消息；保存成功后才确认当前
-MQ 消息。context 或 payload 无法解析时不会盲目重建消息，而是使用 MQ 原生 nack/requeue。
+自定义间隔的数量就是总重试次数，间隔不要求递增。业务失败后，框架先回滚业务事务，再用独立事务将下一轮消息保存到 `TXN_MESSAGE`，通过 `next_dispatch_time` 延迟派发；保存成功后才确认当前 MQ 消息，不会长时间占用消费线程。
+
+当策略返回停止重试时，框架不会在 `TXN_MESSAGE` 创建 `DEAD` 记录，而是直接在独立事务中写入 `TXN_MESSAGE_HISTORY`。死信历史保留 `original_message_id`、`retry_count`、`consumer_code` 和 `last_error`，并通过 `(original_message_id, retry_count)` 唯一键避免 ACK 或 offset 提交失败造成重复归档。死信历史写入成功或已经存在后，框架才确认当前 MQ 消息。
+
+context 或 payload 无法解析时不会盲目重建消息，而是使用 MQ 原生 nack/requeue。当前组件尚未提供死信报警和人工重放接口，业务系统需要监控历史表中的 `message_status = 5`（`MessageStatus.DEAD`）记录并建立相应处置流程。
 
 ## 消息链路能力
 

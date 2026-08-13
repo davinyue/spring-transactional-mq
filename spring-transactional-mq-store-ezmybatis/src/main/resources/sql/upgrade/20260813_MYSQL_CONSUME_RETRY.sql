@@ -25,4 +25,5 @@ WHERE original_message_id IS NULL;
 
 ALTER TABLE TXN_MESSAGE_HISTORY
     MODIFY COLUMN original_message_id VARCHAR(24) NOT NULL COMMENT '原始消息id',
-    MODIFY COLUMN retry_count INT NOT NULL COMMENT '已执行的消费重试次数';
+    MODIFY COLUMN retry_count INT NOT NULL COMMENT '已执行的消费重试次数',
+    ADD UNIQUE KEY uk_txn_message_history_original_retry (original_message_id, retry_count);
