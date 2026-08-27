@@ -176,31 +176,14 @@ public class TransactionalMqRealSendConsumeTest {
     }
 
     private void rebuildSchemaIfOutdated() {
-        Integer oldColumnCount = this.jdbcTemplate.queryForObject(
-                "SELECT COUNT(*) FROM USER_TAB_COLUMNS WHERE COLUMN_NAME = 'MESSAGE_ID' "
-                        + "AND TABLE_NAME IN ('TXN_MESSAGE', 'TXN_MESSAGE_HISTORY', 'TXN_CONSUMED_MESSAGE', "
-                        + "'TXN_CONSUMED_MESSAGE_HISTORY', 'TXN_MESSAGE_SEND_LOG')",
-                Integer.class);
-        Integer dispatchTokenColumnCount = this.jdbcTemplate.queryForObject(
-                "SELECT COUNT(*) FROM USER_TAB_COLUMNS WHERE TABLE_NAME = 'TXN_MESSAGE' "
-                        + "AND COLUMN_NAME = 'DISPATCH_TOKEN'",
-                Integer.class);
-        Integer rootIdColumnCount = this.jdbcTemplate.queryForObject(
-                "SELECT COUNT(*) FROM USER_TAB_COLUMNS WHERE TABLE_NAME = 'TXN_MESSAGE' "
-                        + "AND COLUMN_NAME = 'ROOT_ID'",
-                Integer.class);
-        if ((oldColumnCount == null || oldColumnCount < 1)
-                && dispatchTokenColumnCount != null && dispatchTokenColumnCount > 0
-                && rootIdColumnCount != null && rootIdColumnCount > 0) {
-            return;
-        }
         this.dropTable("TXN_CONSUMED_MESSAGE_HISTORY");
         this.dropTable("TXN_CONSUMED_MESSAGE");
         this.dropTable("TXN_MESSAGE_SEND_LOG");
         this.dropTable("TXN_MESSAGE_HISTORY");
         this.dropTable("TXN_MESSAGE");
         ResourceDatabasePopulator populator = new ResourceDatabasePopulator(
-                new ClassPathResource("sql/ORACLE.sql"));
+                new ClassPathResource("db/migration/oracle/V1__init.sql"),
+                new ClassPathResource("db/migration/oracle/V2__consume_retry.sql"));
         DatabasePopulatorUtils.execute(populator, this.jdbcTemplate.getDataSource());
     }
 

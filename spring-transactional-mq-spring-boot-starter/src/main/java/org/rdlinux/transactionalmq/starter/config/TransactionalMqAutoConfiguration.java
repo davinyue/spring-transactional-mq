@@ -1,8 +1,11 @@
 package org.rdlinux.transactionalmq.starter.config;
 
+import org.flywaydb.core.Flyway;
+import org.flywaydb.core.api.configuration.FluentConfiguration;
 import org.mybatis.spring.boot.autoconfigure.MybatisProperties;
+import org.rdlinux.ezmybatis.constant.DbType;
+import org.rdlinux.ezmybatis.core.EzMybatisContent;
 import org.rdlinux.ezmybatis.core.dao.EzDao;
-import org.rdlinux.ezmybatis.core.mapper.EzMapper;
 import org.rdlinux.transactionalmq.api.serialize.MessagePayloadSerializer;
 import org.rdlinux.transactionalmq.core.mq.MqProducerAdapter;
 import org.rdlinux.transactionalmq.core.mq.MqProducerRouter;
@@ -16,16 +19,22 @@ import org.rdlinux.transactionalmq.store.ezmybatis.repository.EzMybatisConsumedM
 import org.rdlinux.transactionalmq.store.ezmybatis.repository.EzMybatisMessageSendLogRepository;
 import org.rdlinux.transactionalmq.store.ezmybatis.repository.EzMybatisTransactionalMessageRepository;
 import org.springframework.beans.factory.ObjectProvider;
+import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.boot.autoconfigure.AutoConfigureBefore;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
+import org.springframework.boot.autoconfigure.flyway.FlywayAutoConfiguration;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.scheduling.annotation.EnableScheduling;
+import org.springframework.util.StringUtils;
 
 import javax.sql.DataSource;
+import java.util.Collections;
+import java.util.List;
 
 /**
  * 事务消息 starter 自动装配
@@ -35,6 +44,7 @@ import javax.sql.DataSource;
  * 在检测到 `RabbitTemplate` 时注册 RabbitMQ 生产者适配器</p>
  */
 @Configuration
+@AutoConfigureBefore(FlywayAutoConfiguration.class)
 @EnableScheduling
 @EnableConfigurationProperties(TransactionalMqProperties.class)
 @ConditionalOnProperty(prefix = TransactionalMqProperties.PREFIX, name = "enabled",
@@ -53,16 +63,50 @@ public class TransactionalMqAutoConfiguration {
         return new LuavaJsonMessagePayloadSerializer();
     }
 
+    /**
+     * 创建事务消息表专用的 Flyway Bean。
+     *
+     * @param dataSource        数据源
+     * @param mybatisProperties MyBatis 配置
+     * @param properties        事务消息配置
+     * @return 事务消息表迁移使用的 Flyway Bean
+     */
+    @Bean
+    @ConditionalOnClass(Flyway.class)
+    @ConditionalOnBean({DataSource.class, EzDao.class})
+    @ConditionalOnMissingBean(name = "transactionalMqFlyway")
+    public Flyway transactionalMqFlyway(DataSource dataSource, MybatisProperties mybatisProperties,
+                                        TransactionalMqProperties properties) {
+        FluentConfiguration configuration = Flyway.configure().dataSource(dataSource);
+        if (properties.isAutoInitSchema()) {
+            DbType dbType = EzMybatisContent.getDbType(mybatisProperties.getConfiguration());
+            String scriptLocation = TransactionalMqFlywayInitializer.resolveScriptLocation(dbType);
+            if (scriptLocation == null) {
+                throw new IllegalStateException("Unsupported transactional message database type: " + dbType);
+            }
+            configuration.locations(scriptLocation);
+            if (StringUtils.hasText(properties.getSchemaBaselineVersion())) {
+                configuration.baselineOnMigrate(true)
+                        .baselineVersion(properties.getSchemaBaselineVersion());
+            }
+        }
+        return configuration.load();
+    }
+
+    /**
+     * 创建事务消息表 Flyway 迁移执行器。
+     *
+     * @param transactionalMqFlyway 事务消息表专用 Flyway Bean
+     * @return 迁移执行器
+     */
     @Bean
     @ConditionalOnProperty(prefix = TransactionalMqProperties.PREFIX, name = "auto-init-schema",
-            havingValue = "true", matchIfMissing = true)
-    @ConditionalOnMissingBean(TransactionalMqSchemaInitializer.class)
-    @ConditionalOnClass(EzDao.class)
-    @ConditionalOnBean(EzDao.class)
-    public TransactionalMqSchemaInitializer transactionalMqSchemaInitializer(DataSource dataSource,
-                                                                             MybatisProperties mybatisProperties,
-                                                                             EzDao ezDao) {
-        return new TransactionalMqSchemaInitializer(dataSource, mybatisProperties.getConfiguration(), ezDao);
+            havingValue = "true")
+    @ConditionalOnBean(name = "transactionalMqFlyway")
+    @ConditionalOnMissingBean(name = "transactionalMqFlywayInitializer")
+    public TransactionalMqFlywayInitializer transactionalMqFlywayInitializer(
+            @Qualifier("transactionalMqFlyway") Flyway transactionalMqFlyway) {
+        return new TransactionalMqFlywayInitializer(transactionalMqFlyway);
     }
 
     @Bean
@@ -151,9 +195,9 @@ public class TransactionalMqAutoConfiguration {
 
     @Bean
     @ConditionalOnMissingBean(MqProducerRouter.class)
-    public MqProducerRouter mqProducerRouter(ObjectProvider<java.util.List<MqProducerAdapter>> mqProducerAdapters) {
-        java.util.List<MqProducerAdapter> adapters = mqProducerAdapters.getIfAvailable();
-        return new MqProducerRouter(adapters == null ? java.util.Collections.<MqProducerAdapter>emptyList() : adapters);
+    public MqProducerRouter mqProducerRouter(ObjectProvider<List<MqProducerAdapter>> mqProducerAdapters) {
+        List<MqProducerAdapter> adapters = mqProducerAdapters.getIfAvailable();
+        return new MqProducerRouter(adapters == null ? Collections.emptyList() : adapters);
     }
 
     @Bean

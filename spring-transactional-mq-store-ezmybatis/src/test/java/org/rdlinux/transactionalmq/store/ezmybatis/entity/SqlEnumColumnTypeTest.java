@@ -11,7 +11,7 @@ public class SqlEnumColumnTypeTest {
 
     @Test
     public void mysqlSqlShouldUseIntColumnsForEnums() throws Exception {
-        String sql = readSql("src/main/resources/sql/MYSQL.sql");
+        String sql = readSql("src/main/resources/db/migration/mysql/V1__init.sql");
 
         assertContains(sql, "mq_type INT NOT NULL");
         assertContains(sql, "message_status INT NOT NULL");
@@ -25,42 +25,42 @@ public class SqlEnumColumnTypeTest {
 
     @Test
     public void otherDatabaseSqlShouldUseIntegerColumnsForEnums() throws Exception {
-        assertContains(readSql("src/main/resources/sql/POSTGRE_SQL.sql"), "mq_type INTEGER NOT NULL");
-        assertContains(readSql("src/main/resources/sql/POSTGRE_SQL.sql"), "message_status INTEGER NOT NULL");
-        assertContains(readSql("src/main/resources/sql/POSTGRE_SQL.sql"), "consume_status INTEGER NOT NULL");
-        assertContains(readSql("src/main/resources/sql/POSTGRE_SQL.sql"), "send_status INTEGER NOT NULL");
+        assertContains(readSql("src/main/resources/db/migration/postgresql/V1__init.sql"), "mq_type INTEGER NOT NULL");
+        assertContains(readSql("src/main/resources/db/migration/postgresql/V1__init.sql"), "message_status INTEGER NOT NULL");
+        assertContains(readSql("src/main/resources/db/migration/postgresql/V1__init.sql"), "consume_status INTEGER NOT NULL");
+        assertContains(readSql("src/main/resources/db/migration/postgresql/V1__init.sql"), "send_status INTEGER NOT NULL");
 
-        assertContains(readSql("src/main/resources/sql/ORACLE.sql"), "mq_type NUMBER(10) NOT NULL");
-        assertContains(readSql("src/main/resources/sql/ORACLE.sql"), "message_status NUMBER(10) NOT NULL");
-        assertContains(readSql("src/main/resources/sql/ORACLE.sql"), "consume_status NUMBER(10) NOT NULL");
-        assertContains(readSql("src/main/resources/sql/ORACLE.sql"), "send_status NUMBER(10) NOT NULL");
+        assertContains(readSql("src/main/resources/db/migration/oracle/V1__init.sql"), "mq_type NUMBER(10) NOT NULL");
+        assertContains(readSql("src/main/resources/db/migration/oracle/V1__init.sql"), "message_status NUMBER(10) NOT NULL");
+        assertContains(readSql("src/main/resources/db/migration/oracle/V1__init.sql"), "consume_status NUMBER(10) NOT NULL");
+        assertContains(readSql("src/main/resources/db/migration/oracle/V1__init.sql"), "send_status NUMBER(10) NOT NULL");
 
-        assertContains(readSql("src/main/resources/sql/DM.sql"), "mq_type NUMBER(10) NOT NULL");
-        assertContains(readSql("src/main/resources/sql/DM.sql"), "message_status NUMBER(10) NOT NULL");
-        assertContains(readSql("src/main/resources/sql/DM.sql"), "consume_status NUMBER(10) NOT NULL");
-        assertContains(readSql("src/main/resources/sql/DM.sql"), "send_status NUMBER(10) NOT NULL");
+        assertContains(readSql("src/main/resources/db/migration/dm/V1__init.sql"), "mq_type NUMBER(10) NOT NULL");
+        assertContains(readSql("src/main/resources/db/migration/dm/V1__init.sql"), "message_status NUMBER(10) NOT NULL");
+        assertContains(readSql("src/main/resources/db/migration/dm/V1__init.sql"), "consume_status NUMBER(10) NOT NULL");
+        assertContains(readSql("src/main/resources/db/migration/dm/V1__init.sql"), "send_status NUMBER(10) NOT NULL");
 
-        assertContains(readSql("src/main/resources/sql/SQL_SERVER.sql"), "mq_type INT NOT NULL");
-        assertContains(readSql("src/main/resources/sql/SQL_SERVER.sql"), "message_status INT NOT NULL");
-        assertContains(readSql("src/main/resources/sql/SQL_SERVER.sql"), "consume_status INT NOT NULL");
-        assertContains(readSql("src/main/resources/sql/SQL_SERVER.sql"), "send_status INT NOT NULL");
+        assertContains(readSql("src/main/resources/db/migration/sqlserver/V1__init.sql"), "mq_type INT NOT NULL");
+        assertContains(readSql("src/main/resources/db/migration/sqlserver/V1__init.sql"), "message_status INT NOT NULL");
+        assertContains(readSql("src/main/resources/db/migration/sqlserver/V1__init.sql"), "consume_status INT NOT NULL");
+        assertContains(readSql("src/main/resources/db/migration/sqlserver/V1__init.sql"), "send_status INT NOT NULL");
     }
 
     /**
-     * 验证五种数据库的完整建表与升级脚本包含消费重试字段和唯一键。
+     * 验证五种数据库的 V1 初始化与 V2 消费重试迁移脚本。
      *
      * @throws Exception SQL 文件读取失败
      */
     @Test
-    public void allDatabaseSqlShouldContainConsumeRetrySchema() throws Exception {
-        String[] databaseNames = {"MYSQL", "ORACLE", "DM", "POSTGRE_SQL", "SQL_SERVER"};
-        for (String databaseName : databaseNames) {
-            String createSql = readSql("src/main/resources/sql/" + databaseName + ".sql").toLowerCase();
-            String upgradeSql = readSql("src/main/resources/sql/upgrade/20260813_" + databaseName
-                    + "_CONSUME_RETRY.sql").toLowerCase();
-            this.assertConsumeRetrySchema(createSql);
+    public void allDatabaseMigrationsShouldContainConsumeRetrySchema() throws Exception {
+        String[] databaseDirectories = {"mysql", "oracle", "dm", "postgresql", "sqlserver"};
+        for (String databaseDirectory : databaseDirectories) {
+            String initialSql = readSql("src/main/resources/db/migration/" + databaseDirectory
+                    + "/V1__init.sql").toLowerCase();
+            String upgradeSql = readSql("src/main/resources/db/migration/" + databaseDirectory
+                    + "/V2__consume_retry.sql").toLowerCase();
+            Assert.assertFalse(initialSql.contains("original_message_id"));
             this.assertConsumeRetrySchema(upgradeSql);
-            this.assertHistoryRetryUniqueKey(createSql);
             this.assertHistoryRetryUniqueKey(upgradeSql);
         }
     }

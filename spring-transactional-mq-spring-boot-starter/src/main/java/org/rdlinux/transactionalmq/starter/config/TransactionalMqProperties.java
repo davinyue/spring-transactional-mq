@@ -21,9 +21,13 @@ public class TransactionalMqProperties {
      */
     private boolean enabled = true;
     /**
-     * 是否自动初始化事务消息表结构
+     * 是否自动执行事务消息表的 Flyway 迁移
      */
-    private boolean autoInitSchema = true;
+    private boolean autoInitSchema = false;
+    /**
+     * 存量数据库的 Flyway 基线版本，未配置时不执行基线操作
+     */
+    private String schemaBaselineVersion;
     /**
      * 默认派发批量大小
      */

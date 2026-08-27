@@ -2,11 +2,12 @@ package org.rdlinux.transactionalmq.starter.config;
 
 import lombok.Getter;
 import lombok.Setter;
+import org.flywaydb.core.Flyway;
 import org.junit.Assert;
 import org.junit.Test;
+import org.mybatis.spring.boot.autoconfigure.MybatisProperties;
 import org.rdlinux.ezmybatis.constant.DbType;
 import org.rdlinux.ezmybatis.core.dao.EzDao;
-import org.rdlinux.ezmybatis.core.mapper.EzMapper;
 import org.rdlinux.transactionalmq.api.serialize.MessagePayloadSerializer;
 import org.rdlinux.transactionalmq.core.mq.MqProducerRouter;
 import org.rdlinux.transactionalmq.core.serialize.LuavaJsonMessagePayloadSerializer;
@@ -15,21 +16,20 @@ import org.rdlinux.transactionalmq.core.service.MessagePublishService;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.boot.autoconfigure.AutoConfigurations;
 import org.springframework.boot.autoconfigure.EnableAutoConfiguration;
+import org.springframework.boot.autoconfigure.flyway.FlywayAutoConfiguration;
 import org.springframework.boot.test.context.FilteredClassLoader;
 import org.springframework.boot.test.context.runner.ApplicationContextRunner;
 import org.springframework.core.io.support.SpringFactoriesLoader;
-import org.springframework.jdbc.datasource.AbstractDataSource;
 import org.springframework.kafka.core.ConsumerFactory;
 import org.springframework.kafka.core.KafkaTemplate;
 
-import javax.sql.DataSource;
 import java.lang.reflect.Type;
-import java.sql.Connection;
-import java.sql.SQLException;
 import java.util.Objects;
 
+import javax.sql.DataSource;
+
 import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.verify;
 
 /**
  * starter 自动装配测试
@@ -69,14 +69,59 @@ public class TransactionalMqAutoConfigurationTest {
     }
 
     @Test
-    public void should_enable_auto_init_schema_by_default() {
+    public void should_not_register_flyway_initializer_by_default() {
         this.contextRunner
                 .withBean(EzDao.class, () -> mock(EzDao.class))
                 .withBean(RabbitTemplate.class, () -> mock(RabbitTemplate.class))
                 .run(context -> {
                     TransactionalMqProperties properties = context.getBean(TransactionalMqProperties.class);
-                    Assert.assertTrue(properties.isAutoInitSchema());
+                    Assert.assertFalse(properties.isAutoInitSchema());
+                    Assert.assertFalse(context.containsBean("transactionalMqFlywayInitializer"));
                 });
+    }
+
+    @Test
+    public void should_prevent_default_flyway_auto_configuration_when_auto_init_schema_disabled() {
+        new ApplicationContextRunner()
+                .withConfiguration(AutoConfigurations.of(TransactionalMqAutoConfiguration.class,
+                        TransactionalMqRabbitAutoConfiguration.class, FlywayAutoConfiguration.class))
+                .withBean(EzDao.class, () -> mock(EzDao.class))
+                .withBean(DataSource.class, () -> mock(DataSource.class))
+                .withBean(MybatisProperties.class, MybatisProperties::new)
+                .withBean(RabbitTemplate.class, () -> mock(RabbitTemplate.class))
+                .run(context -> {
+                    Assert.assertTrue(context.containsBean("transactionalMqFlyway"));
+                    Assert.assertFalse(context.containsBean("flyway"));
+                    Assert.assertFalse(context.containsBean("transactionalMqFlywayInitializer"));
+                });
+    }
+
+    @Test
+    public void should_register_flyway_initializer_when_auto_init_schema_enabled() {
+        Flyway flyway = mock(Flyway.class);
+        this.contextRunner
+                .withPropertyValues(TransactionalMqProperties.PREFIX + ".auto-init-schema=true")
+                .withBean(EzDao.class, () -> mock(EzDao.class))
+                .withBean("transactionalMqFlyway", Flyway.class, () -> flyway)
+                .withBean(RabbitTemplate.class, () -> mock(RabbitTemplate.class))
+                .run(context -> {
+                    Assert.assertTrue(context.containsBean("transactionalMqFlywayInitializer"));
+                    verify(flyway).migrate();
+                });
+    }
+
+    @Test
+    public void resolveFlywayScriptLocationShouldMatchDatabaseType() {
+        Assert.assertEquals("classpath:db/migration/mysql",
+                TransactionalMqFlywayInitializer.resolveScriptLocation(DbType.MYSQL));
+        Assert.assertEquals("classpath:db/migration/oracle",
+                TransactionalMqFlywayInitializer.resolveScriptLocation(DbType.ORACLE));
+        Assert.assertEquals("classpath:db/migration/dm",
+                TransactionalMqFlywayInitializer.resolveScriptLocation(DbType.DM));
+        Assert.assertEquals("classpath:db/migration/postgresql",
+                TransactionalMqFlywayInitializer.resolveScriptLocation(DbType.POSTGRE_SQL));
+        Assert.assertEquals("classpath:db/migration/sqlserver",
+                TransactionalMqFlywayInitializer.resolveScriptLocation(DbType.SQL_SERVER));
     }
 
     @Test
@@ -187,63 +232,6 @@ public class TransactionalMqAutoConfigurationTest {
                 this.getClass().getClassLoader()).contains(kafkaClassName));
     }
 
-    @Test
-    public void resolveScriptLocationShouldMatchMysql() {
-        Assert.assertEquals("sql/MYSQL.sql",
-                TransactionalMqSchemaInitializer.resolveScriptLocation(DbType.MYSQL));
-    }
-
-    @Test
-    public void resolveScriptLocationShouldMatchOracle() {
-        Assert.assertEquals("sql/ORACLE.sql",
-                TransactionalMqSchemaInitializer.resolveScriptLocation(DbType.ORACLE));
-    }
-
-    @Test
-    public void resolveScriptLocationShouldMatchDm() {
-        Assert.assertEquals("sql/DM.sql",
-                TransactionalMqSchemaInitializer.resolveScriptLocation(DbType.DM));
-    }
-
-    @Test
-    public void resolveScriptLocationShouldMatchPostgreSql() {
-        Assert.assertEquals("sql/POSTGRE_SQL.sql",
-                TransactionalMqSchemaInitializer.resolveScriptLocation(DbType.POSTGRE_SQL));
-    }
-
-    @Test
-    public void resolveScriptLocationShouldMatchSqlServer() {
-        Assert.assertEquals("sql/SQL_SERVER.sql",
-                TransactionalMqSchemaInitializer.resolveScriptLocation(DbType.SQL_SERVER));
-    }
-
-    @Test
-    public void should_register_schema_initializer_when_auto_init_schema_enabled() {
-        org.apache.ibatis.session.SqlSessionFactory sqlSessionFactory = mock(org.apache.ibatis.session.SqlSessionFactory.class);
-        when(sqlSessionFactory.getConfiguration()).thenReturn(new org.apache.ibatis.session.Configuration());
-        this.contextRunner
-                .withBean(EzDao.class, () -> mock(EzDao.class))
-                .withBean(EzMapper.class, () -> mock(EzMapper.class))
-                .withBean("dataSource", DataSource.class, NoOpDataSource::new)
-                .withBean(org.apache.ibatis.session.SqlSessionFactory.class, () -> sqlSessionFactory)
-                .withBean(RabbitTemplate.class, () -> mock(RabbitTemplate.class))
-                .run(context -> Assert.assertTrue(context.containsBean("transactionalMqSchemaInitializer")));
-    }
-
-    @Test
-    public void should_not_register_schema_initializer_when_auto_init_schema_disabled() {
-        org.apache.ibatis.session.SqlSessionFactory sqlSessionFactory = mock(org.apache.ibatis.session.SqlSessionFactory.class);
-        when(sqlSessionFactory.getConfiguration()).thenReturn(new org.apache.ibatis.session.Configuration());
-        this.contextRunner
-                .withPropertyValues(TransactionalMqProperties.PREFIX + ".auto-init-schema=false")
-                .withBean(EzDao.class, () -> mock(EzDao.class))
-                .withBean(EzMapper.class, () -> mock(EzMapper.class))
-                .withBean("dataSource", DataSource.class, NoOpDataSource::new)
-                .withBean(org.apache.ibatis.session.SqlSessionFactory.class, () -> sqlSessionFactory)
-                .withBean(RabbitTemplate.class, () -> mock(RabbitTemplate.class))
-                .run(context -> Assert.assertFalse(context.containsBean("transactionalMqSchemaInitializer")));
-    }
-
     @Setter
     @Getter
     private static final class SamplePayload {
@@ -289,16 +277,4 @@ public class TransactionalMqAutoConfigurationTest {
         }
     }
 
-    private static final class NoOpDataSource extends AbstractDataSource {
-
-        @Override
-        public Connection getConnection() throws SQLException {
-            return mock(Connection.class);
-        }
-
-        @Override
-        public Connection getConnection(String username, String password) throws SQLException {
-            return this.getConnection();
-        }
-    }
 }

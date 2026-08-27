@@ -1,104 +1,91 @@
-CREATE TABLE TXN_MESSAGE (
-    id VARCHAR2(24) NOT NULL,
+CREATE TABLE IF NOT EXISTS TXN_MESSAGE (
+    id VARCHAR(24) PRIMARY KEY,
     create_time TIMESTAMP NOT NULL,
     update_time TIMESTAMP NOT NULL,
-    message_key VARCHAR2(128) NOT NULL,
-    producer_code VARCHAR2(64) NOT NULL,
-    mq_type NUMBER(10) NOT NULL,
-    destination VARCHAR2(256) NOT NULL,
-    route VARCHAR2(256) NULL,
-    sharding_key VARCHAR2(128) NULL,
-    payload_text CLOB NOT NULL,
-    headers_json CLOB NOT NULL,
-    biz_key VARCHAR2(128) NULL,
-    message_status NUMBER(10) NOT NULL,
+    message_key VARCHAR(128) NOT NULL,
+    producer_code VARCHAR(64) NOT NULL,
+    mq_type INTEGER NOT NULL,
+    destination VARCHAR(256) NOT NULL,
+    route VARCHAR(256) NULL,
+    sharding_key VARCHAR(128) NULL,
+    payload_text TEXT NOT NULL,
+    headers_json TEXT NOT NULL,
+    biz_key VARCHAR(128) NULL,
+    message_status INTEGER NOT NULL,
     next_dispatch_time TIMESTAMP NULL,
-    original_message_id VARCHAR2(24) NOT NULL,
-    retry_count NUMBER(10) NOT NULL,
-    consumer_code VARCHAR2(64) NULL,
-    last_error VARCHAR2(1000) NULL,
-    parent_id VARCHAR2(24) NULL,
-    root_id VARCHAR2(24) NULL,
-    dispatch_owner VARCHAR2(128) NULL,
-    dispatch_token VARCHAR2(24) NULL,
-    dispatch_expire_time TIMESTAMP NULL,
-    CONSTRAINT PK_TXN_MESSAGE PRIMARY KEY (id),
-    CONSTRAINT UK_TXN_MESSAGE_ORIGINAL_RETRY UNIQUE (original_message_id, retry_count)
+    parent_id VARCHAR(24) NULL,
+    root_id VARCHAR(24) NULL,
+    dispatch_owner VARCHAR(128) NULL,
+    dispatch_token VARCHAR(24) NULL,
+    dispatch_expire_time TIMESTAMP NULL
 );
 
-CREATE TABLE TXN_MESSAGE_HISTORY (
-    id VARCHAR2(24) NOT NULL,
+CREATE TABLE IF NOT EXISTS TXN_MESSAGE_HISTORY (
+    id VARCHAR(24) PRIMARY KEY,
     create_time TIMESTAMP NOT NULL,
     update_time TIMESTAMP NOT NULL,
-    message_key VARCHAR2(128) NOT NULL,
-    producer_code VARCHAR2(64) NOT NULL,
-    mq_type NUMBER(10) NOT NULL,
-    destination VARCHAR2(256) NOT NULL,
-    route VARCHAR2(256) NULL,
-    sharding_key VARCHAR2(128) NULL,
-    payload_text CLOB NOT NULL,
-    headers_json CLOB NOT NULL,
-    biz_key VARCHAR2(128) NULL,
-    message_status NUMBER(10) NOT NULL,
+    message_key VARCHAR(128) NOT NULL,
+    producer_code VARCHAR(64) NOT NULL,
+    mq_type INTEGER NOT NULL,
+    destination VARCHAR(256) NOT NULL,
+    route VARCHAR(256) NULL,
+    sharding_key VARCHAR(128) NULL,
+    payload_text TEXT NOT NULL,
+    headers_json TEXT NOT NULL,
+    biz_key VARCHAR(128) NULL,
+    message_status INTEGER NOT NULL,
     next_dispatch_time TIMESTAMP NULL,
-    original_message_id VARCHAR2(24) NOT NULL,
-    retry_count NUMBER(10) NOT NULL,
-    consumer_code VARCHAR2(64) NULL,
-    last_error VARCHAR2(1000) NULL,
-    parent_id VARCHAR2(24) NULL,
-    root_id VARCHAR2(24) NULL,
-    dispatch_owner VARCHAR2(128) NULL,
-    dispatch_token VARCHAR2(24) NULL,
-    dispatch_expire_time TIMESTAMP NULL,
-    CONSTRAINT PK_TXN_MESSAGE_HISTORY PRIMARY KEY (id),
-    CONSTRAINT UK_TXN_MSG_HIS_ORIG_RETRY UNIQUE (original_message_id, retry_count)
+    parent_id VARCHAR(24) NULL,
+    root_id VARCHAR(24) NULL,
+    dispatch_owner VARCHAR(128) NULL,
+    dispatch_token VARCHAR(24) NULL,
+    dispatch_expire_time TIMESTAMP NULL
 );
 
-CREATE TABLE TXN_CONSUMED_MESSAGE (
-    id VARCHAR2(24) NOT NULL,
+CREATE TABLE IF NOT EXISTS TXN_CONSUMED_MESSAGE (
+    id VARCHAR(24) PRIMARY KEY,
     create_time TIMESTAMP NOT NULL,
     update_time TIMESTAMP NOT NULL,
-    message_key VARCHAR2(128) NOT NULL,
-    consumer_code VARCHAR2(64) NOT NULL,
-    biz_key VARCHAR2(128) NULL,
-    consume_status NUMBER(10) NOT NULL,
+    message_key VARCHAR(128) NOT NULL,
+    consumer_code VARCHAR(64) NOT NULL,
+    biz_key VARCHAR(128) NULL,
+    consume_status INTEGER NOT NULL,
     consume_time TIMESTAMP NOT NULL,
-    CONSTRAINT PK_TXN_CONSUMED_MESSAGE PRIMARY KEY (id),
-    CONSTRAINT UK_TXN_CONSUMED_MESSAGE UNIQUE (id, consumer_code)
+    UNIQUE (id, consumer_code)
 );
 
-CREATE TABLE TXN_CONSUMED_MESSAGE_HISTORY (
-    id VARCHAR2(24) NOT NULL,
+CREATE TABLE IF NOT EXISTS TXN_CONSUMED_MESSAGE_HISTORY (
+    id VARCHAR(24) PRIMARY KEY,
     create_time TIMESTAMP NOT NULL,
     update_time TIMESTAMP NOT NULL,
-    message_key VARCHAR2(128) NOT NULL,
-    consumer_code VARCHAR2(64) NOT NULL,
-    biz_key VARCHAR2(128) NULL,
-    consume_status NUMBER(10) NOT NULL,
+    message_key VARCHAR(128) NOT NULL,
+    consumer_code VARCHAR(64) NOT NULL,
+    biz_key VARCHAR(128) NULL,
+    consume_status INTEGER NOT NULL,
     consume_time TIMESTAMP NOT NULL,
     archive_time TIMESTAMP NOT NULL,
-    CONSTRAINT PK_TXN_CONSUMED_MESSAGE_HISTORY PRIMARY KEY (id),
-    CONSTRAINT UK_TXN_CONSUMED_MESSAGE_HISTORY UNIQUE (id, consumer_code)
+    UNIQUE (id, consumer_code)
 );
 
-CREATE TABLE TXN_MESSAGE_SEND_LOG (
-    id VARCHAR2(24) NOT NULL,
+CREATE TABLE IF NOT EXISTS TXN_MESSAGE_SEND_LOG (
+    id VARCHAR(24) PRIMARY KEY,
     create_time TIMESTAMP NOT NULL,
     update_time TIMESTAMP NOT NULL,
-    message_key VARCHAR2(128) NOT NULL,
-    parent_id VARCHAR2(24) NULL,
-    root_id VARCHAR2(24) NULL,
-    producer_code VARCHAR2(64) NOT NULL,
-    mq_type NUMBER(10) NOT NULL,
-    send_status NUMBER(10) NOT NULL,
-    retry_count NUMBER(10) NOT NULL,
+    message_key VARCHAR(128) NOT NULL,
+    parent_id VARCHAR(24) NULL,
+    root_id VARCHAR(24) NULL,
+    producer_code VARCHAR(64) NOT NULL,
+    mq_type INTEGER NOT NULL,
+    send_status INTEGER NOT NULL,
+    retry_count INT NOT NULL,
     last_send_time TIMESTAMP NOT NULL,
-    description VARCHAR2(512) NULL,
-    CONSTRAINT PK_TXN_MESSAGE_SEND_LOG PRIMARY KEY (id)
+    description VARCHAR(512) NULL
 );
 
-CREATE INDEX IDX_TXN_MESSAGE_STATUS_DISPATCH ON TXN_MESSAGE (message_status, next_dispatch_time, id);
-CREATE INDEX IDX_TXN_MESSAGE_STATUS_UPDATE ON TXN_MESSAGE (message_status, update_time, id);
+CREATE INDEX IF NOT EXISTS idx_txn_message_status_dispatch
+    ON TXN_MESSAGE (message_status, next_dispatch_time, id);
+CREATE INDEX IF NOT EXISTS idx_txn_message_status_update
+    ON TXN_MESSAGE (message_status, update_time, id);
 
 COMMENT ON TABLE TXN_MESSAGE IS '事务消息表';
 COMMENT ON COLUMN TXN_MESSAGE.id IS '主键';
@@ -115,10 +102,6 @@ COMMENT ON COLUMN TXN_MESSAGE.headers_json IS '消息头 JSON';
 COMMENT ON COLUMN TXN_MESSAGE.biz_key IS '业务键';
 COMMENT ON COLUMN TXN_MESSAGE.message_status IS '消息状态';
 COMMENT ON COLUMN TXN_MESSAGE.next_dispatch_time IS '下次派发时间';
-COMMENT ON COLUMN TXN_MESSAGE.original_message_id IS '原始消息id';
-COMMENT ON COLUMN TXN_MESSAGE.retry_count IS '已执行的消费重试次数';
-COMMENT ON COLUMN TXN_MESSAGE.consumer_code IS '消费者编码';
-COMMENT ON COLUMN TXN_MESSAGE.last_error IS '最后消费失败信息';
 COMMENT ON COLUMN TXN_MESSAGE.parent_id IS '父消息id';
 COMMENT ON COLUMN TXN_MESSAGE.root_id IS '根消息id';
 COMMENT ON COLUMN TXN_MESSAGE.dispatch_owner IS '派发实例标识';
@@ -140,10 +123,6 @@ COMMENT ON COLUMN TXN_MESSAGE_HISTORY.headers_json IS '消息头 JSON';
 COMMENT ON COLUMN TXN_MESSAGE_HISTORY.biz_key IS '业务键';
 COMMENT ON COLUMN TXN_MESSAGE_HISTORY.message_status IS '消息状态';
 COMMENT ON COLUMN TXN_MESSAGE_HISTORY.next_dispatch_time IS '下次派发时间';
-COMMENT ON COLUMN TXN_MESSAGE_HISTORY.original_message_id IS '原始消息id';
-COMMENT ON COLUMN TXN_MESSAGE_HISTORY.retry_count IS '已执行的消费重试次数';
-COMMENT ON COLUMN TXN_MESSAGE_HISTORY.consumer_code IS '消费者编码';
-COMMENT ON COLUMN TXN_MESSAGE_HISTORY.last_error IS '最后消费失败信息';
 COMMENT ON COLUMN TXN_MESSAGE_HISTORY.parent_id IS '父消息id';
 COMMENT ON COLUMN TXN_MESSAGE_HISTORY.root_id IS '根消息id';
 COMMENT ON COLUMN TXN_MESSAGE_HISTORY.dispatch_owner IS '派发实例标识';

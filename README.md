@@ -93,25 +93,33 @@ Kafka 场景：
 - 如果要发 Kafka，需要正常配置 `spring.kafka.*`
 - 当前仓储实现依赖 `EzDao`，因此业务项目需要正常接入 `ez-mybatis`
 
-### 2. 初始化数据库表
+### 2. starter 自动执行 Flyway 数据库迁移
 
-建表 SQL 位于：
+starter 内置 Flyway 依赖并注册事务消息专用的 `Flyway` Bean。开启 `transactionalmq.auto-init-schema` 后，starter 会在应用启动时执行未完成的迁移；迁移失败会阻止应用启动，不再吞掉异常。关闭时不会执行迁移。
 
-- `spring-transactional-mq-store-ezmybatis/src/main/resources/sql/MYSQL.sql`
-- `spring-transactional-mq-store-ezmybatis/src/main/resources/sql/ORACLE.sql`
-- `spring-transactional-mq-store-ezmybatis/src/main/resources/sql/DM.sql`
-- `spring-transactional-mq-store-ezmybatis/src/main/resources/sql/POSTGRE_SQL.sql`
-- `spring-transactional-mq-store-ezmybatis/src/main/resources/sql/SQL_SERVER.sql`
+迁移脚本位于 `spring-transactional-mq-store-ezmybatis/src/main/resources/db/migration`：
 
-已有数据库升级时，请执行对应的消费重试升级脚本：
+| 数据库 | Flyway location |
+| --- | --- |
+| MySQL | `classpath:db/migration/mysql` |
+| Oracle | `classpath:db/migration/oracle` |
+| DM | `classpath:db/migration/dm` |
+| PostgreSQL | `classpath:db/migration/postgresql` |
+| SQL Server | `classpath:db/migration/sqlserver` |
 
-- `spring-transactional-mq-store-ezmybatis/src/main/resources/sql/upgrade/20260813_MYSQL_CONSUME_RETRY.sql`
-- `spring-transactional-mq-store-ezmybatis/src/main/resources/sql/upgrade/20260813_ORACLE_CONSUME_RETRY.sql`
-- `spring-transactional-mq-store-ezmybatis/src/main/resources/sql/upgrade/20260813_DM_CONSUME_RETRY.sql`
-- `spring-transactional-mq-store-ezmybatis/src/main/resources/sql/upgrade/20260813_POSTGRE_SQL_CONSUME_RETRY.sql`
-- `spring-transactional-mq-store-ezmybatis/src/main/resources/sql/upgrade/20260813_SQL_SERVER_CONSUME_RETRY.sql`
+每个目录使用相同的不可变版本序列：
 
-自动建表只负责空库初始化，不会为已经存在的表自动增加升级字段或唯一键。
+- `V1__init.sql`：事务消息表初始结构。
+- `V2__consume_retry.sql`：消费重试字段、数据回填及唯一键。
+
+starter 使用 `ez-mybatis` 识别当前数据库类型，并自动选择表中的唯一一个 location；业务工程无需额外配置 `spring.flyway.locations`。自动初始化默认关闭，启用 Oracle 示例：
+
+```yaml
+transactionalmq:
+  auto-init-schema: true
+```
+
+空库会按 V1、V2 顺序创建到最新结构，并创建 Flyway schema history 表。已有数据库必须显式声明当前基线版本，避免重复执行已上线脚本：未包含消费重试字段的库配置 `schema-baseline-version: "1"`，已包含该字段的库配置 `schema-baseline-version: "2"`。baseline 仅在配置该项时启用。
 
 核心表如下：
 
@@ -130,7 +138,9 @@ Kafka 场景：
 ```yaml
 transactionalmq:
   enabled: true
-  auto-init-schema: true
+  auto-init-schema: false
+  # 存量库按实际结构选择 1 或 2；空库无需配置
+  # schema-baseline-version: "2"
   dispatch-batch-size: 100
   dispatch-idle-sleep-millis: 30000
   success-message-retention-days: 7
@@ -187,41 +197,18 @@ spring:
 判断条件大致如下：
 
 - 有 `EzDao` 时装配默认仓储实现
-- 有 `EzDao`、`DataSource` 和 `SqlSessionFactory` 时，默认尝试自动初始化事务消息表结构
+- 存在 `DataSource` 时，注册事务消息专用 Flyway Bean；开启 `transactionalmq.auto-init-schema` 后执行迁移
 - 有 RabbitMQ 相关类和连接工厂时装配 RabbitMQ 发送与消费
 - 有 Kafka 相关类和消费者工厂时装配 Kafka 发送与消费
 
-## 自动建表
+## 数据库迁移说明
 
-默认情况下，starter 会在启动时尝试自动初始化事务消息相关表结构：
-
-- 默认配置：`transactionalmq.auto-init-schema=true`
-- 数据库类型来源：`EzMybatisContent.getDbType(Configuration)`
-- 会使用 `EzMapper.tableExists(EntityTable.of(实体类))` 判断事务消息相关表是否存在
-- 当 5 张核心表都存在时会跳过建表
-- 当任一核心表不存在时，会根据 ez-mybatis 的数据库类型自动选择对应 SQL 脚本并执行
-
-当前映射关系如下：
-
-- `MYSQL -> sql/MYSQL.sql`
-- `ORACLE -> sql/ORACLE.sql`
-- `DM -> sql/DM.sql`
-- `POSTGRE_SQL -> sql/POSTGRE_SQL.sql`
-- `SQL_SERVER -> sql/SQL_SERVER.sql`
-
-如果你不希望框架在启动时尝试建表，可以显式关闭：
-
-```yaml
-transactionalmq:
-  auto-init-schema: false
-```
-
-说明：
-
-- 自动建表是“尽力而为”策略
-- 如果脚本执行失败，框架会直接吞掉异常，不影响应用启动
-- 建表失败后的处理由业务方自行负责
-- 业务工程仍需要自行正常接入 ez-mybatis，使容器中存在 `EzDao`、`EzMapper`、`SqlSessionFactory` 和 `DataSource`
+- starter 管理的 Flyway Bean 名称为 `transactionalMqFlyway`，只扫描事务消息对应数据库目录，并使 Spring Boot 默认的 Flyway 自动配置退避。业务工程若还需要其他迁移链，应自行提供独立的 Flyway Bean 与初始化器。
+- 业务工程仍需要正常接入 `ez-mybatis`，使容器中存在 `EzDao`。
+- `transactionalmq.auto-init-schema` 默认值为 `false`；开启后应确保当前数据库可被所使用 Flyway 版本识别。
+- 多数据库场景下，starter 仅使用当前数据源对应的一个 migration location，不会同时加载不同方言的目录。
+- 当前 Spring Boot 2.7 管理的 Flyway 8.5.13 核心包不包含达梦适配器；使用 DM 时需要在应用中额外提供与该 Flyway 版本兼容的达梦 Flyway 扩展及 JDBC 驱动。
+- 已发布的迁移脚本不可修改；后续结构变更必须新增更高版本的脚本。
 
 ## 发送消息
 
