@@ -182,8 +182,8 @@ public class TransactionalMqRealSendConsumeTest {
         this.dropTable("TXN_MESSAGE_HISTORY");
         this.dropTable("TXN_MESSAGE");
         ResourceDatabasePopulator populator = new ResourceDatabasePopulator(
-                new ClassPathResource("db/migration/oracle/V1__init.sql"),
-                new ClassPathResource("db/migration/oracle/V2__consume_retry.sql"));
+                new ClassPathResource("transactionalmq/db/migration/oracle/V1__init.sql"),
+                new ClassPathResource("transactionalmq/db/migration/oracle/V2__consume_retry.sql"));
         DatabasePopulatorUtils.execute(populator, this.jdbcTemplate.getDataSource());
     }
 

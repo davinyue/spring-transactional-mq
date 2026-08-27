@@ -5,7 +5,6 @@ import lombok.Setter;
 import org.flywaydb.core.Flyway;
 import org.junit.Assert;
 import org.junit.Test;
-import org.mybatis.spring.boot.autoconfigure.MybatisProperties;
 import org.rdlinux.ezmybatis.constant.DbType;
 import org.rdlinux.ezmybatis.core.dao.EzDao;
 import org.rdlinux.transactionalmq.api.serialize.MessagePayloadSerializer;
@@ -16,7 +15,6 @@ import org.rdlinux.transactionalmq.core.service.MessagePublishService;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.boot.autoconfigure.AutoConfigurations;
 import org.springframework.boot.autoconfigure.EnableAutoConfiguration;
-import org.springframework.boot.autoconfigure.flyway.FlywayAutoConfiguration;
 import org.springframework.boot.test.context.FilteredClassLoader;
 import org.springframework.boot.test.context.runner.ApplicationContextRunner;
 import org.springframework.core.io.support.SpringFactoriesLoader;
@@ -26,10 +24,7 @@ import org.springframework.kafka.core.KafkaTemplate;
 import java.lang.reflect.Type;
 import java.util.Objects;
 
-import javax.sql.DataSource;
-
 import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.verify;
 
 /**
  * starter 自动装配测试
@@ -81,46 +76,29 @@ public class TransactionalMqAutoConfigurationTest {
     }
 
     @Test
-    public void should_prevent_default_flyway_auto_configuration_when_auto_init_schema_disabled() {
-        new ApplicationContextRunner()
-                .withConfiguration(AutoConfigurations.of(TransactionalMqAutoConfiguration.class,
-                        TransactionalMqRabbitAutoConfiguration.class, FlywayAutoConfiguration.class))
-                .withBean(EzDao.class, () -> mock(EzDao.class))
-                .withBean(DataSource.class, () -> mock(DataSource.class))
-                .withBean(MybatisProperties.class, MybatisProperties::new)
-                .withBean(RabbitTemplate.class, () -> mock(RabbitTemplate.class))
-                .run(context -> {
-                    Assert.assertTrue(context.containsBean("transactionalMqFlyway"));
-                    Assert.assertFalse(context.containsBean("flyway"));
-                    Assert.assertFalse(context.containsBean("transactionalMqFlywayInitializer"));
-                });
-    }
-
-    @Test
-    public void should_register_flyway_initializer_when_auto_init_schema_enabled() {
+    public void should_not_register_transactional_mq_flyway_bean() {
         Flyway flyway = mock(Flyway.class);
         this.contextRunner
-                .withPropertyValues(TransactionalMqProperties.PREFIX + ".auto-init-schema=true")
                 .withBean(EzDao.class, () -> mock(EzDao.class))
-                .withBean("transactionalMqFlyway", Flyway.class, () -> flyway)
+                .withBean("businessFlyway", Flyway.class, () -> flyway)
                 .withBean(RabbitTemplate.class, () -> mock(RabbitTemplate.class))
                 .run(context -> {
-                    Assert.assertTrue(context.containsBean("transactionalMqFlywayInitializer"));
-                    verify(flyway).migrate();
+                    Assert.assertSame(flyway, context.getBean("businessFlyway"));
+                    Assert.assertFalse(context.containsBean("transactionalMqFlyway"));
                 });
     }
 
     @Test
     public void resolveFlywayScriptLocationShouldMatchDatabaseType() {
-        Assert.assertEquals("classpath:db/migration/mysql",
+        Assert.assertEquals("classpath:transactionalmq/db/migration/mysql",
                 TransactionalMqFlywayInitializer.resolveScriptLocation(DbType.MYSQL));
-        Assert.assertEquals("classpath:db/migration/oracle",
+        Assert.assertEquals("classpath:transactionalmq/db/migration/oracle",
                 TransactionalMqFlywayInitializer.resolveScriptLocation(DbType.ORACLE));
-        Assert.assertEquals("classpath:db/migration/dm",
+        Assert.assertEquals("classpath:transactionalmq/db/migration/dm",
                 TransactionalMqFlywayInitializer.resolveScriptLocation(DbType.DM));
-        Assert.assertEquals("classpath:db/migration/postgresql",
+        Assert.assertEquals("classpath:transactionalmq/db/migration/postgresql",
                 TransactionalMqFlywayInitializer.resolveScriptLocation(DbType.POSTGRE_SQL));
-        Assert.assertEquals("classpath:db/migration/sqlserver",
+        Assert.assertEquals("classpath:transactionalmq/db/migration/sqlserver",
                 TransactionalMqFlywayInitializer.resolveScriptLocation(DbType.SQL_SERVER));
     }
 

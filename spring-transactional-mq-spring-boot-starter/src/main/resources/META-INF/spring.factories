@@ -2,3 +2,6 @@ org.springframework.boot.autoconfigure.EnableAutoConfiguration=\
 org.rdlinux.transactionalmq.starter.config.TransactionalMqAutoConfiguration,\
 org.rdlinux.transactionalmq.starter.config.TransactionalMqRabbitAutoConfiguration,\
 org.rdlinux.transactionalmq.starter.config.TransactionalMqKafkaAutoConfiguration
+
+org.springframework.boot.env.EnvironmentPostProcessor=\
+org.rdlinux.transactionalmq.starter.config.TransactionalMqFlywayEnvironmentPostProcessor

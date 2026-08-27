@@ -29,6 +29,10 @@ public class TransactionalMqProperties {
      */
     private String schemaBaselineVersion;
     /**
+     * 事务消息 Flyway schema history 表名称
+     */
+    private String schemaHistoryTable = "txn_mq_flyway_schema_history";
+    /**
      * 默认派发批量大小
      */
     private int dispatchBatchSize = 100;

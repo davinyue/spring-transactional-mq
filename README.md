@@ -95,17 +95,17 @@ Kafka 场景：
 
 ### 2. starter 自动执行 Flyway 数据库迁移
 
-starter 内置 Flyway 依赖并注册事务消息专用的 `Flyway` Bean。开启 `transactionalmq.auto-init-schema` 后，starter 会在应用启动时执行未完成的迁移；迁移失败会阻止应用启动，不再吞掉异常。关闭时不会执行迁移。
+starter 内置 Flyway 依赖。开启 `transactionalmq.auto-init-schema` 后，starter 会在应用启动时内部创建事务消息专用 Flyway 并执行未完成的迁移；迁移失败会阻止应用启动，不再吞掉异常。该 Flyway 不注册为 Spring Bean，因此不会覆盖业务工程自己的 Flyway。关闭时不会执行事务消息迁移。
 
-迁移脚本位于 `spring-transactional-mq-store-ezmybatis/src/main/resources/db/migration`：
+迁移脚本位于 `spring-transactional-mq-store-ezmybatis/src/main/resources/transactionalmq/db/migration`，不使用 Spring Boot 默认的 `classpath:db/migration`：
 
 | 数据库 | Flyway location |
 | --- | --- |
-| MySQL | `classpath:db/migration/mysql` |
-| Oracle | `classpath:db/migration/oracle` |
-| DM | `classpath:db/migration/dm` |
-| PostgreSQL | `classpath:db/migration/postgresql` |
-| SQL Server | `classpath:db/migration/sqlserver` |
+| MySQL | `classpath:transactionalmq/db/migration/mysql` |
+| Oracle | `classpath:transactionalmq/db/migration/oracle` |
+| DM | `classpath:transactionalmq/db/migration/dm` |
+| PostgreSQL | `classpath:transactionalmq/db/migration/postgresql` |
+| SQL Server | `classpath:transactionalmq/db/migration/sqlserver` |
 
 每个目录使用相同的不可变版本序列：
 
@@ -119,7 +119,7 @@ transactionalmq:
   auto-init-schema: true
 ```
 
-空库会按 V1、V2 顺序创建到最新结构，并创建 Flyway schema history 表。已有数据库必须显式声明当前基线版本，避免重复执行已上线脚本：未包含消费重试字段的库配置 `schema-baseline-version: "1"`，已包含该字段的库配置 `schema-baseline-version: "2"`。baseline 仅在配置该项时启用。
+事务消息使用独立历史表 `txn_mq_flyway_schema_history`，可通过 `schema-history-table` 修改。空库会按 V1、V2 顺序创建到最新结构。已有非空数据库且尚未有该历史表时，必须显式声明基线版本：未创建事务消息表配置 `schema-baseline-version: "0"`，未包含消费重试字段配置 `"1"`，已包含该字段配置 `"2"`。baseline 仅在配置该项时启用。
 
 核心表如下：
 
@@ -139,8 +139,9 @@ transactionalmq:
 transactionalmq:
   enabled: true
   auto-init-schema: false
-  # 存量库按实际结构选择 1 或 2；空库无需配置
+  # 存量库按实际结构选择 0、1 或 2；空库无需配置
   # schema-baseline-version: "2"
+  # schema-history-table: txn_mq_flyway_schema_history
   dispatch-batch-size: 100
   dispatch-idle-sleep-millis: 30000
   success-message-retention-days: 7
@@ -197,13 +198,14 @@ spring:
 判断条件大致如下：
 
 - 有 `EzDao` 时装配默认仓储实现
-- 存在 `DataSource` 时，注册事务消息专用 Flyway Bean；开启 `transactionalmq.auto-init-schema` 后执行迁移
+- 存在 `DataSource` 和 `EzDao` 且开启 `transactionalmq.auto-init-schema` 时，注册事务消息 Flyway 迁移执行器
 - 有 RabbitMQ 相关类和连接工厂时装配 RabbitMQ 发送与消费
 - 有 Kafka 相关类和消费者工厂时装配 Kafka 发送与消费
 
 ## 数据库迁移说明
 
-- starter 管理的 Flyway Bean 名称为 `transactionalMqFlyway`，只扫描事务消息对应数据库目录，并使 Spring Boot 默认的 Flyway 自动配置退避。业务工程若还需要其他迁移链，应自行提供独立的 Flyway Bean 与初始化器。
+- starter 内部创建的事务消息 Flyway 使用 `classpath:transactionalmq/db/migration/<数据库>` 和独立历史表 `txn_mq_flyway_schema_history`，不会注册为 Spring `Flyway` Bean，也不会读取 `spring.flyway.*`。
+- starter 在业务工程没有显式配置 `spring.flyway.enabled` 时，默认关闭 Spring Boot 的 Flyway 自动配置，避免仅引入 starter 就启动一条空的默认迁移链。业务工程自身使用 Flyway 时，设置 `spring.flyway.enabled=true`，并按原有方式配置 `spring.flyway.locations`、默认历史表等；两条迁移链可同时运行。
 - 业务工程仍需要正常接入 `ez-mybatis`，使容器中存在 `EzDao`。
 - `transactionalmq.auto-init-schema` 默认值为 `false`；开启后应确保当前数据库可被所使用 Flyway 版本识别。
 - 多数据库场景下，starter 仅使用当前数据源对应的一个 migration location，不会同时加载不同方言的目录。

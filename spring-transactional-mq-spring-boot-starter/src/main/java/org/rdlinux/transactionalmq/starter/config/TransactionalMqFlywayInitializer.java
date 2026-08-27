@@ -1,8 +1,14 @@
 package org.rdlinux.transactionalmq.starter.config;
 
 import org.flywaydb.core.Flyway;
+import org.flywaydb.core.api.configuration.FluentConfiguration;
 import org.rdlinux.ezmybatis.constant.DbType;
+import org.rdlinux.ezmybatis.core.EzMybatisContent;
+import org.mybatis.spring.boot.autoconfigure.MybatisProperties;
 import org.springframework.beans.factory.InitializingBean;
+import org.springframework.util.StringUtils;
+
+import javax.sql.DataSource;
 
 /**
  * 事务消息 Flyway 迁移初始化器。
@@ -10,17 +16,32 @@ import org.springframework.beans.factory.InitializingBean;
 public class TransactionalMqFlywayInitializer implements InitializingBean {
 
     /**
-     * 事务消息专用 Flyway Bean
+     * 数据源。
      */
-    private final Flyway flyway;
+    private final DataSource dataSource;
+
+    /**
+     * MyBatis 配置。
+     */
+    private final MybatisProperties mybatisProperties;
+
+    /**
+     * 事务消息配置。
+     */
+    private final TransactionalMqProperties properties;
 
     /**
      * 创建事务消息 Flyway 迁移初始化器。
      *
-     * @param flyway 事务消息专用 Flyway Bean
+     * @param dataSource        数据源
+     * @param mybatisProperties MyBatis 配置
+     * @param properties        事务消息配置
      */
-    public TransactionalMqFlywayInitializer(Flyway flyway) {
-        this.flyway = flyway;
+    public TransactionalMqFlywayInitializer(DataSource dataSource, MybatisProperties mybatisProperties,
+                                            TransactionalMqProperties properties) {
+        this.dataSource = dataSource;
+        this.mybatisProperties = mybatisProperties;
+        this.properties = properties;
     }
 
     /**
@@ -28,7 +49,22 @@ public class TransactionalMqFlywayInitializer implements InitializingBean {
      */
     @Override
     public void afterPropertiesSet() {
-        this.flyway.migrate();
+        DbType dbType = EzMybatisContent.getDbType(this.mybatisProperties.getConfiguration());
+        String scriptLocation = resolveScriptLocation(dbType);
+        if (scriptLocation == null) {
+            throw new IllegalStateException("Unsupported transactional message database type: " + dbType);
+        }
+        if (!StringUtils.hasText(this.properties.getSchemaHistoryTable())) {
+            throw new IllegalStateException("Transactional message Flyway schema history table must not be empty");
+        }
+        FluentConfiguration configuration = Flyway.configure()
+                .dataSource(this.dataSource)
+                .locations(scriptLocation)
+                .table(this.properties.getSchemaHistoryTable());
+        if (StringUtils.hasText(this.properties.getSchemaBaselineVersion())) {
+            configuration.baselineOnMigrate(true).baselineVersion(this.properties.getSchemaBaselineVersion());
+        }
+        configuration.load().migrate();
     }
 
     /**
@@ -43,15 +79,15 @@ public class TransactionalMqFlywayInitializer implements InitializingBean {
         }
         switch (dbType) {
             case MYSQL:
-                return "classpath:db/migration/mysql";
+                return "classpath:transactionalmq/db/migration/mysql";
             case ORACLE:
-                return "classpath:db/migration/oracle";
+                return "classpath:transactionalmq/db/migration/oracle";
             case DM:
-                return "classpath:db/migration/dm";
+                return "classpath:transactionalmq/db/migration/dm";
             case POSTGRE_SQL:
-                return "classpath:db/migration/postgresql";
+                return "classpath:transactionalmq/db/migration/postgresql";
             case SQL_SERVER:
-                return "classpath:db/migration/sqlserver";
+                return "classpath:transactionalmq/db/migration/sqlserver";
             default:
                 return null;
         }
