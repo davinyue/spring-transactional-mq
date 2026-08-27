@@ -124,7 +124,7 @@ public class TransactionalMqRealSendConsumeTest {
         DemoConsumer consumer = new DemoConsumer();
 
         boolean firstRecord = this.consumeIdempotentService.recordIfAbsent(context);
-        this.rabbitMqConsumerInvoker.invoke(consumer, context, payload);
+        this.rabbitMqConsumerInvoker.invoke(consumer, context, ConsumeHandleContext.DEFAULT(), payload);
         boolean duplicatedRecord = this.consumeIdempotentService.recordIfAbsent(context);
 
         Assertions.assertTrue(firstRecord, "Consumed message should be recorded on first consume");
