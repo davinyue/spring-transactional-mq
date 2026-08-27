@@ -173,4 +173,19 @@ public class TransactionalMessageApiTest {
         exposedHeaders.put("newKey", "newValue");
         Assert.assertFalse(context.getHeaders().containsKey("newKey"));
     }
+
+    /**
+     * 验证消费后回调可获取消费处理异常。
+     */
+    @Test
+    public void queueMsgHandleRetShouldPassExceptionToFinallyCall() {
+        final Exception[] observedException = new Exception[1];
+        IllegalStateException failure = new IllegalStateException("consume failed");
+
+        QueueMsgHandleRet.DEFAULT()
+                .addFinallyCall(exception -> observedException[0] = exception)
+                .executeFinallyCall(failure);
+
+        Assert.assertSame(failure, observedException[0]);
+    }
 }

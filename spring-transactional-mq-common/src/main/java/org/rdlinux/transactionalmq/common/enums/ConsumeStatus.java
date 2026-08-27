@@ -1,8 +1,11 @@
 package org.rdlinux.transactionalmq.common.enums;
 
+import lombok.Getter;
+
 /**
  * 消费状态
  */
+@Getter
 public enum ConsumeStatus {
     INIT("init"),
     CONSUMING("consuming"),
@@ -13,10 +16,6 @@ public enum ConsumeStatus {
 
     ConsumeStatus(String code) {
         this.code = code;
-    }
-
-    public String getCode() {
-        return code;
     }
 
     public static ConsumeStatus fromCode(String code) {

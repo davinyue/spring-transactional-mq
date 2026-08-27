@@ -3,8 +3,8 @@ package org.rdlinux.transactionalmq.rabbitmq;
 import com.rabbitmq.client.Channel;
 import lombok.extern.slf4j.Slf4j;
 import org.rdlinux.id.objectid.ObjectId;
-import org.rdlinux.transactionalmq.api.consumer.QueueMsgHandleRet;
 import org.rdlinux.transactionalmq.api.consumer.ConsumeRetryPolicy;
+import org.rdlinux.transactionalmq.api.consumer.QueueMsgHandleRet;
 import org.rdlinux.transactionalmq.api.consumer.TransactionalMessageConsumer;
 import org.rdlinux.transactionalmq.api.model.ConsumeContext;
 import org.rdlinux.transactionalmq.api.model.TransactionalMessage;
@@ -48,11 +48,11 @@ class RabbitMqConsumerMessageListener implements ChannelAwareMessageListener {
     /**
      * 构造不带延迟重试发布服务的监听器
      *
-     * @param consumer                    消费者
-     * @param rabbitMqConsumerInvoker     RabbitMQ 消费调用器
-     * @param messagePayloadSerializer    消息负载序列化器
-     * @param consumeIdempotentService    消费幂等服务
-     * @param txnMqTransactionalService   事务服务
+     * @param consumer                  消费者
+     * @param rabbitMqConsumerInvoker   RabbitMQ 消费调用器
+     * @param messagePayloadSerializer  消息负载序列化器
+     * @param consumeIdempotentService  消费幂等服务
+     * @param txnMqTransactionalService 事务服务
      */
     RabbitMqConsumerMessageListener(TransactionalMessageConsumer<?> consumer,
                                     RabbitMqConsumerInvoker rabbitMqConsumerInvoker,
@@ -66,12 +66,12 @@ class RabbitMqConsumerMessageListener implements ChannelAwareMessageListener {
     /**
      * 构造 RabbitMQ 消费监听器
      *
-     * @param consumer                    消费者
-     * @param rabbitMqConsumerInvoker     RabbitMQ 消费调用器
-     * @param messagePayloadSerializer    消息负载序列化器
-     * @param consumeIdempotentService    消费幂等服务
-     * @param txnMqTransactionalService   事务服务
-     * @param messagePublishService       消息发布服务
+     * @param consumer                  消费者
+     * @param rabbitMqConsumerInvoker   RabbitMQ 消费调用器
+     * @param messagePayloadSerializer  消息负载序列化器
+     * @param consumeIdempotentService  消费幂等服务
+     * @param txnMqTransactionalService 事务服务
+     * @param messagePublishService     消息发布服务
      */
     RabbitMqConsumerMessageListener(TransactionalMessageConsumer<?> consumer,
                                     RabbitMqConsumerInvoker rabbitMqConsumerInvoker, MessagePayloadSerializer messagePayloadSerializer,
@@ -112,7 +112,8 @@ class RabbitMqConsumerMessageListener implements ChannelAwareMessageListener {
             }
             AtomicBoolean doAck = new AtomicBoolean(Boolean.FALSE);
             AtomicReference<QueueMsgHandleRet> retRef = new AtomicReference<>();
-            AtomicReference<String> failureMessageRef = new AtomicReference<String>("consume failed");
+            AtomicReference<String> failureMessageRef = new AtomicReference<>("consume failed");
+            Exception exeException = null;
             try {
                 this.txnMqTransactionalService.required(() -> {
                     if (!this.consumeIdempotentService.recordIfAbsent(context)) {
@@ -147,10 +148,12 @@ class RabbitMqConsumerMessageListener implements ChannelAwareMessageListener {
                     doAck.set(true);
                 });
             } catch (UnexpectedRollbackException e) {
+                exeException = e;
                 log.error("队列消息处理失败, 事务意外回滚, 队列:{}", this.consumer.getQueueName(), e);
                 doAck.set(false);
                 failureMessageRef.set(this.describeFailure(e));
             } catch (Exception e) {
+                exeException = e;
                 log.error("队列消息处理失败, 队列:{}", this.consumer.getQueueName(), e);
                 failureMessageRef.set(this.describeFailure(e));
             } finally {
@@ -161,7 +164,7 @@ class RabbitMqConsumerMessageListener implements ChannelAwareMessageListener {
                         log.info("执行事务提交或者回滚后回调, 队列:{}, 消息id:{}, 上级消息id:{}, 根消息id:{}",
                                 this.consumer.getQueueName(),
                                 context.getId(), context.getParentId(), context.getRootId());
-                        handleRet.executeFinallyCall();
+                        handleRet.executeFinallyCall(exeException);
                     }
                 } catch (Exception ex) {
                     log.error("执行事务提交或者回滚后回调异常, 队列:{}, 消息id:{}, 上级消息id:{}, 根消息id:{}",

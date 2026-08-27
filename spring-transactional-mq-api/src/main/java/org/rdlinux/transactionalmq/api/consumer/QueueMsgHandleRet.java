@@ -14,7 +14,7 @@ public class QueueMsgHandleRet {
     /**
      * 事务提交或回滚后回调
      */
-    private List<Runnable> finallyCalls;
+    private List<FinallyCall> finallyCalls;
     /**
      * 事务提交前回调
      */
@@ -31,7 +31,7 @@ public class QueueMsgHandleRet {
     /**
      * 添加事务提交或回滚后回调
      */
-    public QueueMsgHandleRet addFinallyCall(final Runnable unlockCall) {
+    public QueueMsgHandleRet addFinallyCall(final FinallyCall unlockCall) {
         if (this.finallyCalls == null) {
             this.finallyCalls = new ArrayList<>();
         }
@@ -42,10 +42,10 @@ public class QueueMsgHandleRet {
     /**
      * 执行事务提交或回滚后回调
      */
-    public void executeFinallyCall() {
+    public void executeFinallyCall(Exception e) {
         if (this.finallyCalls != null) {
-            for (Runnable call : this.finallyCalls) {
-                call.run();
+            for (FinallyCall call : this.finallyCalls) {
+                call.call(e);
             }
         }
     }

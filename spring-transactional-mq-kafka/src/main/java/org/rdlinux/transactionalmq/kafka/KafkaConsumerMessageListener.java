@@ -4,8 +4,8 @@ import lombok.extern.slf4j.Slf4j;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.common.header.Header;
 import org.rdlinux.id.objectid.ObjectId;
-import org.rdlinux.transactionalmq.api.consumer.QueueMsgHandleRet;
 import org.rdlinux.transactionalmq.api.consumer.ConsumeRetryPolicy;
+import org.rdlinux.transactionalmq.api.consumer.QueueMsgHandleRet;
 import org.rdlinux.transactionalmq.api.consumer.TransactionalMessageConsumer;
 import org.rdlinux.transactionalmq.api.model.ConsumeContext;
 import org.rdlinux.transactionalmq.api.model.TransactionalMessage;
@@ -86,6 +86,7 @@ class KafkaConsumerMessageListener implements AcknowledgingMessageListener<Strin
             AtomicBoolean needRetry = new AtomicBoolean(false);
             AtomicReference<QueueMsgHandleRet> retRef = new AtomicReference<>();
             AtomicReference<String> failureMessageRef = new AtomicReference<String>("consume failed");
+            Exception exeException = null;
             try {
                 this.txnMqTransactionalService.required(() -> {
                     if (!this.consumeIdempotentService.recordIfAbsent(context)) {
@@ -106,11 +107,13 @@ class KafkaConsumerMessageListener implements AcknowledgingMessageListener<Strin
                     doAck.set(true);
                 });
             } catch (UnexpectedRollbackException e) {
+                exeException = e;
                 log.error("topic 消息处理失败, 事务意外回滚, topic:{}", this.consumer.getQueueName(), e);
                 doAck.set(false);
                 needRetry.set(true);
                 failureMessageRef.set(this.describeFailure(e));
             } catch (Exception e) {
+                exeException = e;
                 log.error("topic 消息处理失败, topic:{}", this.consumer.getQueueName(), e);
                 needRetry.set(true);
                 failureMessageRef.set(this.describeFailure(e));
@@ -118,7 +121,7 @@ class KafkaConsumerMessageListener implements AcknowledgingMessageListener<Strin
                 try {
                     QueueMsgHandleRet handleRet = retRef.get();
                     if (handleRet != null) {
-                        handleRet.executeFinallyCall();
+                        handleRet.executeFinallyCall(exeException);
                     }
                 } catch (Exception ex) {
                     log.error("执行事务提交或者回滚后回调异常, topic:{}", this.consumer.getQueueName(), ex);

@@ -19,6 +19,8 @@ import java.lang.reflect.Type;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
 import static org.mockito.Mockito.*;
 
 public class RabbitMqConsumerMessageListenerTest {
@@ -57,6 +59,7 @@ public class RabbitMqConsumerMessageListenerTest {
                         && "trace-1".equals(context.getHeaders().get("traceId"))));
         verify(serializer).deserialize("\"payload-1\"", (Type) String.class);
         verify(channel).basicAck(7L, false);
+        assertNull(consumer.finallyException);
     }
 
     @Test
@@ -106,6 +109,7 @@ public class RabbitMqConsumerMessageListenerTest {
 
         verify(channel).basicNack(9L, false, true);
         verify(channel, never()).basicAck(anyLong(), anyBoolean());
+        assertNotNull(consumer.finallyException);
     }
 
     @Test
@@ -183,6 +187,8 @@ public class RabbitMqConsumerMessageListenerTest {
 
     private static final class RecordingConsumer implements TransactionalMessageConsumer<String> {
 
+        private Exception finallyException;
+
         @Override
         public String getQueueName() {
             return "queue.listener";
@@ -200,11 +206,13 @@ public class RabbitMqConsumerMessageListenerTest {
 
         @Override
         public QueueMsgHandleRet consume(ConsumeContext context, String payload) {
-            return QueueMsgHandleRet.DEFAULT();
+            return QueueMsgHandleRet.DEFAULT().addFinallyCall(exception -> this.finallyException = exception);
         }
     }
 
     private static final class InterruptRollbackConsumer implements TransactionalMessageConsumer<String> {
+
+        private Exception finallyException;
 
         @Override
         public String getQueueName() {
@@ -223,7 +231,10 @@ public class RabbitMqConsumerMessageListenerTest {
 
         @Override
         public QueueMsgHandleRet consume(ConsumeContext context, String payload) {
-            return QueueMsgHandleRet.DEFAULT().setRollBack(true).setRollBackAck(false);
+            return QueueMsgHandleRet.DEFAULT()
+                    .setRollBack(true)
+                    .setRollBackAck(false)
+                    .addFinallyCall(exception -> this.finallyException = exception);
         }
     }
 
