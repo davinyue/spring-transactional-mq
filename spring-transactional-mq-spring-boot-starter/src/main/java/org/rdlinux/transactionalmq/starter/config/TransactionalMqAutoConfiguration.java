@@ -96,8 +96,7 @@ public class TransactionalMqAutoConfiguration {
             }
             configuration.locations(scriptLocation);
             if (StringUtils.hasText(properties.getSchemaBaselineVersion())) {
-                configuration.baselineOnMigrate(true)
-                        .baselineVersion(properties.getSchemaBaselineVersion());
+                configuration.baselineOnMigrate(true).baselineVersion(properties.getSchemaBaselineVersion());
             }
         }
         return configuration.load();
@@ -110,8 +109,7 @@ public class TransactionalMqAutoConfiguration {
      * @return 迁移执行器
      */
     @Bean
-    @ConditionalOnProperty(prefix = TransactionalMqProperties.PREFIX, name = "auto-init-schema",
-            havingValue = "true")
+    @ConditionalOnProperty(prefix = TransactionalMqProperties.PREFIX, name = "auto-init-schema", havingValue = "true")
     @ConditionalOnBean(name = "transactionalMqFlyway")
     @ConditionalOnMissingBean(name = "transactionalMqFlywayInitializer")
     public TransactionalMqFlywayInitializer transactionalMqFlywayInitializer(
@@ -162,9 +160,9 @@ public class TransactionalMqAutoConfiguration {
      * 创建消息发布服务
      *
      * @param transactionalMessageRepository 事务消息仓储
-     * @param messagePayloadSerializer 消息负载序列化器
-     * @param wakeupCoordinator 派发线程唤醒协调器
-     * @param mqProducerRouter MQ 生产者路由器
+     * @param messagePayloadSerializer       消息负载序列化器
+     * @param wakeupCoordinator              派发线程唤醒协调器
+     * @param mqProducerRouter               MQ 生产者路由器
      * @return 消息发布服务
      */
     @Bean
@@ -209,7 +207,7 @@ public class TransactionalMqAutoConfiguration {
      * 创建已消费消息清理任务
      *
      * @param consumedMessageCleanupService 已消费消息清理服务
-     * @param properties 事务消息配置
+     * @param properties                    事务消息配置
      * @return 已消费消息清理任务
      */
     @Bean
@@ -239,7 +237,7 @@ public class TransactionalMqAutoConfiguration {
      * 创建事务消息清理任务
      *
      * @param transactionalMessageCleanupService 事务消息清理服务
-     * @param properties 事务消息配置
+     * @param properties                         事务消息配置
      * @return 事务消息清理任务
      */
     @Bean
@@ -293,8 +291,8 @@ public class TransactionalMqAutoConfiguration {
      * 创建消息派发服务
      *
      * @param transactionalMessageRepository 事务消息仓储
-     * @param mqProducerRouter MQ 生产者路由器
-     * @param messageSendLogRepository 发送日志仓储
+     * @param mqProducerRouter               MQ 生产者路由器
+     * @param messageSendLogRepository       发送日志仓储
      * @return 消息派发服务
      */
     @Bean
@@ -310,8 +308,8 @@ public class TransactionalMqAutoConfiguration {
      * 创建事务消息后台派发任务
      *
      * @param messageDispatchService 消息派发服务
-     * @param properties 事务消息配置
-     * @param wakeupCoordinator 派发线程唤醒协调器
+     * @param properties             事务消息配置
+     * @param wakeupCoordinator      派发线程唤醒协调器
      * @return 后台派发任务
      */
     @Bean
@@ -327,9 +325,9 @@ public class TransactionalMqAutoConfiguration {
     /**
      * 创建定时任务注册器
      *
-     * @param consumedMessageCleanupScheduler 已消费消息清理任务提供器
+     * @param consumedMessageCleanupScheduler      已消费消息清理任务提供器
      * @param transactionalMessageCleanupScheduler 事务消息清理任务提供器
-     * @param properties 事务消息配置
+     * @param properties                           事务消息配置
      * @return 定时任务注册器
      */
     @Bean
