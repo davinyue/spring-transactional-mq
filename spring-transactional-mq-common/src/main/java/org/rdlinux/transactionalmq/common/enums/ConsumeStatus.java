@@ -7,9 +7,21 @@ import lombok.Getter;
  */
 @Getter
 public enum ConsumeStatus {
+    /**
+     * 初始状态
+     */
     INIT("init"),
+    /**
+     * 消费中状态
+     */
     CONSUMING("consuming"),
+    /**
+     * 消费成功状态
+     */
     SUCCESS("success"),
+    /**
+     * 消费失败状态
+     */
     FAILED("failed");
 
     /**

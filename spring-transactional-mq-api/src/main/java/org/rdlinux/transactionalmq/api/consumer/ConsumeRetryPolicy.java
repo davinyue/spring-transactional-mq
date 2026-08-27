@@ -17,9 +17,21 @@ public final class ConsumeRetryPolicy {
      * 策略类型
      */
     private enum PolicyType {
+        /**
+         * 不重试
+         */
         NO_RETRY,
+        /**
+         * 固定间隔重试
+         */
         FIXED_DELAY,
+        /**
+         * 自定义间隔重试
+         */
         CUSTOM_DELAYS,
+        /**
+         * 无限次数固定间隔重试
+         */
         FIXED_DELAY_FOREVER
     }
 

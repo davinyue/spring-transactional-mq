@@ -4,11 +4,29 @@ package org.rdlinux.transactionalmq.common.enums;
  * 事务消息主状态
  */
 public enum MessageStatus {
+    /**
+     * 初始状态
+     */
     INIT("init"),
+    /**
+     * 发送中状态
+     */
     SENDING("sending"),
+    /**
+     * 发送成功状态
+     */
     SUCCESS("success"),
+    /**
+     * 归档中状态
+     */
     ARCHIVING("archiving"),
+    /**
+     * 重试中状态
+     */
     RETRYING("retrying"),
+    /**
+     * 死信状态
+     */
     DEAD("dead");
 
     /**

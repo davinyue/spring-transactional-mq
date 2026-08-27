@@ -4,7 +4,13 @@ package org.rdlinux.transactionalmq.common.enums;
  * MQ 类型
  */
 public enum MqType {
+    /**
+     * RabbitMQ 消息类型
+     */
     RABBITMQ("rabbitmq"),
+    /**
+     * Kafka 消息类型
+     */
     KAFKA("kafka");
 
     /**

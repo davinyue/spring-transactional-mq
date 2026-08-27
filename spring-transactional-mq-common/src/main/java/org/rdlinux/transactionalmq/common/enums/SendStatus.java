@@ -4,9 +4,21 @@ package org.rdlinux.transactionalmq.common.enums;
  * 发送历史状态
  */
 public enum SendStatus {
+    /**
+     * 初始状态
+     */
     INIT("init"),
+    /**
+     * 发送中状态
+     */
     SENDING("sending"),
+    /**
+     * 发送成功状态
+     */
     SUCCESS("success"),
+    /**
+     * 发送失败状态
+     */
     FAILED("failed");
 
     /**

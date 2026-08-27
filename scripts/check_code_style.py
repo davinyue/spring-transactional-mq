@@ -345,6 +345,101 @@ def check_jdk8_compatibility(line: str, line_number: int) -> List[Violation]:
     ]
 
 
+def find_enum_constant_violations(
+    lines: Sequence[str], enum_start_index: int
+) -> List[Violation]:
+    """检查枚举常量是否缺少或错误使用 JavaDoc 注释。"""
+    violations: List[Violation] = []
+    body_started = False
+    constants_finished = False
+    pending_constant = False
+    parenthesis_depth = 0
+    brace_depth = 0
+    in_block_comment = False
+
+    for index in range(enum_start_index, len(lines)):
+        source_line = lines[index]
+        if not body_started:
+            body_start = source_line.find("{")
+            if body_start < 0:
+                continue
+            body_started = True
+            source_line = source_line[body_start + 1:]
+        if constants_finished:
+            break
+
+        # 去除注释和字面量，避免注释或字符串中的符号影响枚举项边界判断。
+        code_line = source_line
+        while True:
+            if in_block_comment:
+                comment_end = code_line.find("*/")
+                if comment_end < 0:
+                    code_line = ""
+                    break
+                code_line = code_line[comment_end + 2:]
+                in_block_comment = False
+            comment_start = code_line.find("/*")
+            if comment_start < 0:
+                break
+            comment_end = code_line.find("*/", comment_start + 2)
+            if comment_end < 0:
+                code_line = code_line[:comment_start]
+                in_block_comment = True
+                break
+            code_line = code_line[:comment_start] + code_line[comment_end + 2:]
+        code_line = re.sub(r"//.*$", "", code_line)
+        code_line = re.sub(r'"(?:\\.|[^"\\])*"', '""', code_line)
+        code_line = re.sub(r"'(?:\\.|[^'\\])*'", "''", code_line)
+        stripped_line = code_line.strip()
+        if not stripped_line:
+            continue
+        if brace_depth == 0 and stripped_line.startswith("}"):
+            break
+
+        if not pending_constant and parenthesis_depth == 0 and brace_depth == 0:
+            constant_match = re.match(
+                r"^([A-Za-z_$][A-Za-z0-9_$]*)\b(.*)$", stripped_line
+            )
+            if constant_match:
+                remainder = constant_match.group(2).lstrip()
+                if not remainder or remainder.startswith(("(", "{", ",", ";")):
+                    constant_name = constant_match.group(1)
+                    constant_javadoc = find_javadoc(lines, index)
+                    if constant_javadoc is None:
+                        violations.append(
+                            (
+                                index + 1,
+                                "枚举项{}缺少JavaDoc注释。".format(constant_name),
+                            )
+                        )
+                    elif is_single_line_javadoc(constant_javadoc) \
+                            or is_malformed_multiline_javadoc(constant_javadoc):
+                        violations.append(
+                            (
+                                index + 1,
+                                "枚举项JavaDoc必须使用标准多行注释。",
+                            )
+                        )
+                    pending_constant = True
+
+        for character in stripped_line:
+            if character == "(":
+                parenthesis_depth += 1
+            elif character == ")":
+                parenthesis_depth = max(0, parenthesis_depth - 1)
+            elif character == "{":
+                brace_depth += 1
+            elif character == "}":
+                brace_depth = max(0, brace_depth - 1)
+            elif character in ",;" and parenthesis_depth == 0 and brace_depth == 0:
+                pending_constant = False
+                if character == ";":
+                    constants_finished = True
+                    break
+
+    return violations
+
+
 def check_file(file_path: Path) -> List[Violation]:
     """检查单个 Java 文件。"""
     content, violations = read_java_file(file_path)
@@ -478,6 +573,8 @@ def check_file(file_path: Path) -> List[Violation]:
                 violations.append(
                     (line_number, "类JavaDoc必须使用标准多行注释。")
                 )
+            if re.search(r"\benum\s+", stripped_line):
+                violations.extend(find_enum_constant_violations(lines, index))
 
         if has_inline_field_javadoc(stripped_line):
             violations.append(
