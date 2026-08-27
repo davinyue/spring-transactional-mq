@@ -8,8 +8,17 @@ import java.util.Date;
  */
 public class TransactionalMessageCleanupScheduler {
 
+    /**
+     * 事务消息主表清理服务
+     */
     private final TransactionalMessageCleanupService transactionalMessageCleanupService;
+    /**
+     * 成功消息保留天数
+     */
     private final int successMessageRetentionDays;
+    /**
+     * 单次清理批量大小
+     */
     private final int successMessageCleanupBatchSize;
 
     /**
@@ -40,6 +49,12 @@ public class TransactionalMessageCleanupScheduler {
         }
     }
 
+    /**
+     * 计算成功消息清理截止时间
+     *
+     * @param retentionDays 保留天数
+     * @return 清理截止时间
+     */
     private Date resolveCleanupBefore(int retentionDays) {
         int safeRetentionDays = Math.max(retentionDays, 1);
         Calendar calendar = Calendar.getInstance();

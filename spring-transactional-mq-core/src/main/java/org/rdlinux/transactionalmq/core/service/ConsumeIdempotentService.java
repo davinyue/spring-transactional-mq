@@ -9,6 +9,9 @@ import org.rdlinux.transactionalmq.core.repository.ConsumedMessageRepository;
  */
 public class ConsumeIdempotentService {
 
+    /**
+     * 已消费消息仓储
+     */
     private final ConsumedMessageRepository consumedMessageRepository;
 
     /**

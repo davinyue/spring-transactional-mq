@@ -15,8 +15,16 @@ import java.util.Map;
  */
 public class KafkaProducerAdapter implements MqProducerAdapter {
 
+    /**
+     * Kafka 消息模板
+     */
     private final KafkaTemplate<String, byte[]> kafkaTemplate;
 
+    /**
+     * 构造 Kafka 生产者适配器
+     *
+     * @param kafkaTemplate Kafka 消息模板
+     */
     public KafkaProducerAdapter(KafkaTemplate<String, byte[]> kafkaTemplate) {
         this.kafkaTemplate = kafkaTemplate;
     }
@@ -54,6 +62,13 @@ public class KafkaProducerAdapter implements MqProducerAdapter {
         this.kafkaTemplate.send(record);
     }
 
+    /**
+     * 添加 Kafka 消息头
+     *
+     * @param record Kafka 消息记录
+     * @param key 消息头名称
+     * @param value 消息头值
+     */
     private void addHeader(ProducerRecord<String, byte[]> record, String key, String value) {
         if (key == null || value == null) {
             return;

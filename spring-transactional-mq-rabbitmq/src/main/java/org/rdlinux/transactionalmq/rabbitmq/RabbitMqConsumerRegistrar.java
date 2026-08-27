@@ -22,15 +22,49 @@ import java.util.Map;
  */
 public class RabbitMqConsumerRegistrar implements SmartInitializingSingleton, DisposableBean {
 
+    /**
+     * RabbitMQ 连接工厂
+     */
     private final ConnectionFactory connectionFactory;
+    /**
+     * RabbitMQ 消费调用器
+     */
     private final RabbitMqConsumerInvoker rabbitMqConsumerInvoker;
+    /**
+     * 消息负载序列化器
+     */
     private final MessagePayloadSerializer messagePayloadSerializer;
+    /**
+     * 消费幂等服务
+     */
     private final ConsumeIdempotentService consumeIdempotentService;
+    /**
+     * Spring 应用上下文
+     */
     private final ApplicationContext applicationContext;
+    /**
+     * 事务消息事务服务
+     */
     private final TxnMqTransactionalService txnMqTransactionalService;
+    /**
+     * 消息发布服务
+     */
     private final MessagePublishService messagePublishService;
+    /**
+     * 已创建的 RabbitMQ 监听容器
+     */
     private final List<SimpleMessageListenerContainer> containers = new ArrayList<>();
 
+    /**
+     * 构造 RabbitMQ 消费者自动注册器
+     *
+     * @param connectionFactory RabbitMQ 连接工厂
+     * @param rabbitMqConsumerInvoker RabbitMQ 消费调用器
+     * @param messagePayloadSerializer 消息负载序列化器
+     * @param consumeIdempotentService 消费幂等服务
+     * @param applicationContext Spring 应用上下文
+     * @param txnMqTransactionalService 事务消息事务服务
+     */
     public RabbitMqConsumerRegistrar(ConnectionFactory connectionFactory,
                                      RabbitMqConsumerInvoker rabbitMqConsumerInvoker, MessagePayloadSerializer messagePayloadSerializer,
                                      ConsumeIdempotentService consumeIdempotentService, ApplicationContext applicationContext,
@@ -73,6 +107,9 @@ public class RabbitMqConsumerRegistrar implements SmartInitializingSingleton, Di
         this(connectionFactory, rabbitMqConsumerInvoker, null, null, null, txnMqTransactionalService);
     }
 
+    /**
+     * 初始化并注册 RabbitMQ 消费者
+     */
     @Override
     @SuppressWarnings("rawtypes")
     public void afterSingletonsInstantiated() {
@@ -101,6 +138,12 @@ public class RabbitMqConsumerRegistrar implements SmartInitializingSingleton, Di
         this.startContainer(container);
     }
 
+    /**
+     * 创建 RabbitMQ 消息监听容器
+     *
+     * @param mqConsumer 消费者
+     * @return RabbitMQ 监听容器
+     */
     protected SimpleMessageListenerContainer createContainer(TransactionalMessageConsumer<?> mqConsumer) {
         SimpleMessageListenerContainer container = new SimpleMessageListenerContainer();
         container.setConnectionFactory(this.connectionFactory);
@@ -117,10 +160,21 @@ public class RabbitMqConsumerRegistrar implements SmartInitializingSingleton, Di
         return container;
     }
 
+    /**
+     * 启动 RabbitMQ 消息监听容器
+     *
+     * @param container RabbitMQ 监听容器
+     */
     protected void startContainer(SimpleMessageListenerContainer container) {
         container.start();
     }
 
+    /**
+     * 构建 RabbitMQ 消费并发配置
+     *
+     * @param mqConsumer 消费者
+     * @return 并发配置
+     */
     private String buildConcurrency(TransactionalMessageConsumer<?> mqConsumer) {
         int minConcurrency = this.normalize(mqConsumer.getMinConcurrency());
         int maxConcurrency = this.normalize(mqConsumer.getMaxConcurrency());
@@ -130,6 +184,12 @@ public class RabbitMqConsumerRegistrar implements SmartInitializingSingleton, Di
         return minConcurrency + "-" + maxConcurrency;
     }
 
+    /**
+     * 规范化并发数
+     *
+     * @param concurrency 原始并发数
+     * @return 不小于 1 的并发数
+     */
     private int normalize(int concurrency) {
         return Math.max(concurrency, 1);
     }

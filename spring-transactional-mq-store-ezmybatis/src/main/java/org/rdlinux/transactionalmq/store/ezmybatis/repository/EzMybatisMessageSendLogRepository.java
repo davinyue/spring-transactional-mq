@@ -22,8 +22,14 @@ import java.util.List;
 @Repository
 public class EzMybatisMessageSendLogRepository implements MessageSendLogRepository {
 
+    /**
+     * 发送日志实体表
+     */
     private static final EntityTable TABLE = EntityTable.of(MessageSendLogEntity.class);
 
+    /**
+     * ez-mybatis 数据访问对象
+     */
     @Resource
     private EzDao ezDao;
 
@@ -96,6 +102,13 @@ public class EzMybatisMessageSendLogRepository implements MessageSendLogReposito
         return record;
     }
 
+    /**
+     * 使用默认时间填充空值
+     *
+     * @param date 原始时间
+     * @param defaultDate 默认时间
+     * @return 原始时间或默认时间
+     */
     private Date defaultDate(Date date, Date defaultDate) {
         return date == null ? defaultDate : date;
     }

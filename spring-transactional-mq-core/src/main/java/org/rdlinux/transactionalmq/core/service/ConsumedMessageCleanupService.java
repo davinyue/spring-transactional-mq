@@ -14,6 +14,9 @@ import java.util.List;
  */
 public class ConsumedMessageCleanupService {
 
+    /**
+     * 已消费消息仓储
+     */
     private final ConsumedMessageRepository consumedMessageRepository;
 
     /**

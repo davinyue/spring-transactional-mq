@@ -101,6 +101,7 @@ public class TransactionalMessageRecord extends BaseEntity<TransactionalMessageR
      *
      * <p>消息唯一标识统一使用 {@code id}，由存储层在入库时生成</p>
      *
+     * @param mqType      MQ 类型
      * @param message     API 消息
      * @param payloadText 负载文本
      * @param <T>         负载类型
@@ -131,6 +132,7 @@ public class TransactionalMessageRecord extends BaseEntity<TransactionalMessageR
      *
      * <p>该方法只继承消息链路信息，不会复制父消息的业务内容</p>
      *
+     * @param mqType        MQ 类型
      * @param message       API 消息
      * @param payloadText   负载文本
      * @param parentContext 父消息上下文

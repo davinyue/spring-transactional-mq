@@ -37,12 +37,33 @@ import java.util.concurrent.atomic.AtomicReference;
 @Slf4j
 class RabbitMqConsumerMessageListener implements ChannelAwareMessageListener {
 
+    /**
+     * 消息消费者
+     */
     private final TransactionalMessageConsumer<?> consumer;
+    /**
+     * RabbitMQ 消费调用器
+     */
     private final RabbitMqConsumerInvoker rabbitMqConsumerInvoker;
+    /**
+     * 消息负载序列化器
+     */
     private final MessagePayloadSerializer messagePayloadSerializer;
+    /**
+     * 消费幂等服务
+     */
     private final ConsumeIdempotentService consumeIdempotentService;
+    /**
+     * 事务消息事务服务
+     */
     private final TxnMqTransactionalService txnMqTransactionalService;
+    /**
+     * 消息发布服务
+     */
     private final MessagePublishService messagePublishService;
+    /**
+     * 消息负载类型
+     */
     private final Type payloadType;
 
     /**
@@ -191,6 +212,12 @@ class RabbitMqConsumerMessageListener implements ChannelAwareMessageListener {
         }
     }
 
+    /**
+     * 确认 RabbitMQ 消息
+     *
+     * @param message RabbitMQ 消息
+     * @param channel RabbitMQ 通道
+     */
     private void ack(Message message, Channel channel) {
         long deliveryTag = message.getMessageProperties().getDeliveryTag();
         try {
@@ -201,6 +228,12 @@ class RabbitMqConsumerMessageListener implements ChannelAwareMessageListener {
         }
     }
 
+    /**
+     * 否定确认 RabbitMQ 消息并重新入队
+     *
+     * @param message RabbitMQ 消息
+     * @param channel RabbitMQ 通道
+     */
     private void nAck(Message message, Channel channel) {
         long deliveryTag = message.getMessageProperties().getDeliveryTag();
         try {
@@ -211,18 +244,37 @@ class RabbitMqConsumerMessageListener implements ChannelAwareMessageListener {
         }
     }
 
+    /**
+     * 反序列化 RabbitMQ 消息负载
+     *
+     * @param message RabbitMQ 消息
+     * @return 反序列化后的消息负载
+     */
     private Object deserialize(Message message) {
         String payloadText = RabbitMqPayloadCodec.decode(message.getBody(),
                 message.getMessageProperties().getContentEncoding());
         return this.messagePayloadSerializer.deserialize(payloadText, this.payloadType);
     }
 
+    /**
+     * 调用业务消费者
+     *
+     * @param context 消费上下文
+     * @param payload 消息负载
+     * @return 消息处理结果
+     */
     @SuppressWarnings("unchecked")
     private QueueMsgHandleRet invokeConsumer(ConsumeContext context, Object payload) {
         return this.rabbitMqConsumerInvoker.invoke((TransactionalMessageConsumer<Object>) this.consumer, context,
                 payload);
     }
 
+    /**
+     * 从 RabbitMQ 消息属性构建消费上下文
+     *
+     * @param properties RabbitMQ 消息属性
+     * @return 消费上下文
+     */
     private ConsumeContext buildContext(MessageProperties properties) {
         String messageId = properties.getMessageId();
         if (messageId == null || messageId.trim().isEmpty()) {
@@ -360,6 +412,12 @@ class RabbitMqConsumerMessageListener implements ChannelAwareMessageListener {
         return throwable.getClass().getName() + (message == null ? "" : ": " + message);
     }
 
+    /**
+     * 转换 RabbitMQ 消息头
+     *
+     * @param properties RabbitMQ 消息属性
+     * @return 消息头映射
+     */
     private Map<String, String> toHeaders(MessageProperties properties) {
         Map<String, String> headers = new HashMap<>();
         for (Map.Entry<String, Object> entry : properties.getHeaders().entrySet()) {
@@ -368,6 +426,12 @@ class RabbitMqConsumerMessageListener implements ChannelAwareMessageListener {
         return headers;
     }
 
+    /**
+     * 解析消费者声明的负载类型
+     *
+     * @param consumer 消费者
+     * @return 负载类型
+     */
     private Type resolvePayloadType(TransactionalMessageConsumer<?> consumer) {
         Class<?> userClass = ClassUtils.getUserClass(consumer);
         Class<?> resolvedClass = GenericTypeResolver.resolveTypeArgument(userClass, TransactionalMessageConsumer.class);

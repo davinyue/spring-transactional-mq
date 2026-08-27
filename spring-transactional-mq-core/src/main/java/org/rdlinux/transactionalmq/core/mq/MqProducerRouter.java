@@ -12,6 +12,9 @@ import java.util.Map;
  */
 public class MqProducerRouter {
 
+    /**
+     * MQ 类型与生产者适配器的映射
+     */
     private final Map<MqType, MqProducerAdapter> adapters = new LinkedHashMap<>();
 
     /**

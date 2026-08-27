@@ -19,10 +19,21 @@ import java.util.Map;
         matchIfMissing = true)
 public class TransactionalMqDemoConsumer implements TransactionalMessageConsumer<Map<?, ?>> {
 
+    /**
+     * 日志记录器
+     */
     private static final Logger LOGGER = LoggerFactory.getLogger(TransactionalMqDemoConsumer.class);
 
+    /**
+     * Demo 消费者配置
+     */
     private final TransactionalMqDemoProperties properties;
 
+    /**
+     * 构造 Demo 消费者
+     *
+     * @param properties Demo 配置
+     */
     public TransactionalMqDemoConsumer(TransactionalMqDemoProperties properties) {
         this.properties = properties;
     }

@@ -30,7 +30,13 @@ public class TransactionalMessageDispatchScheduler implements InitializingBean, 
      */
     private final MessageDispatchWakeupService messageDispatchWakeupService;
 
+    /**
+     * 是否继续运行派发线程
+     */
     private volatile boolean running = true;
+    /**
+     * 后台派发工作线程
+     */
     private Thread workerThread;
 
     /**
@@ -57,6 +63,9 @@ public class TransactionalMessageDispatchScheduler implements InitializingBean, 
         this.workerThread.start();
     }
 
+    /**
+     * 执行后台派发循环
+     */
     private void runLoop() {
         while (this.running) {
             try {
@@ -89,6 +98,12 @@ public class TransactionalMessageDispatchScheduler implements InitializingBean, 
         return this.messageDispatchService.dispatchPendingMessages(this.dispatchBatchSize);
     }
 
+    /**
+     * 等待下一轮派发或被提前唤醒
+     *
+     * @param sleepMillis 最大等待毫秒数
+     * @throws InterruptedException 等待过程被中断
+     */
     private void waitForNextRound(long sleepMillis) throws InterruptedException {
         this.messageDispatchWakeupService.await(sleepMillis);
     }

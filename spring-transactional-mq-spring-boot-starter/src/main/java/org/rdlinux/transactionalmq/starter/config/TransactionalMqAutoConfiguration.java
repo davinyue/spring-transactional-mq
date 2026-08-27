@@ -51,12 +51,22 @@ import java.util.List;
         havingValue = "true", matchIfMissing = true)
 public class TransactionalMqAutoConfiguration {
 
+    /**
+     * 创建派发线程唤醒协调器
+     *
+     * @return 派发线程唤醒协调器
+     */
     @Bean
     @ConditionalOnMissingBean(MessageDispatchWakeupCoordinator.class)
     public MessageDispatchWakeupCoordinator messageDispatchWakeupCoordinator() {
         return new MessageDispatchWakeupCoordinator();
     }
 
+    /**
+     * 创建默认消息负载序列化器
+     *
+     * @return 消息负载序列化器
+     */
     @Bean
     @ConditionalOnMissingBean(MessagePayloadSerializer.class)
     public MessagePayloadSerializer messagePayloadSerializer() {
@@ -109,6 +119,11 @@ public class TransactionalMqAutoConfiguration {
         return new TransactionalMqFlywayInitializer(transactionalMqFlyway);
     }
 
+    /**
+     * 创建事务消息仓储
+     *
+     * @return 事务消息仓储
+     */
     @Bean
     @ConditionalOnClass(EzDao.class)
     @ConditionalOnBean(EzDao.class)
@@ -117,6 +132,11 @@ public class TransactionalMqAutoConfiguration {
         return new EzMybatisTransactionalMessageRepository();
     }
 
+    /**
+     * 创建已消费消息仓储
+     *
+     * @return 已消费消息仓储
+     */
     @Bean
     @ConditionalOnClass(EzDao.class)
     @ConditionalOnBean(EzDao.class)
@@ -125,6 +145,11 @@ public class TransactionalMqAutoConfiguration {
         return new EzMybatisConsumedMessageRepository();
     }
 
+    /**
+     * 创建发送日志仓储
+     *
+     * @return 发送日志仓储
+     */
     @Bean
     @ConditionalOnClass(EzDao.class)
     @ConditionalOnBean(EzDao.class)
@@ -133,6 +158,15 @@ public class TransactionalMqAutoConfiguration {
         return new EzMybatisMessageSendLogRepository();
     }
 
+    /**
+     * 创建消息发布服务
+     *
+     * @param transactionalMessageRepository 事务消息仓储
+     * @param messagePayloadSerializer 消息负载序列化器
+     * @param wakeupCoordinator 派发线程唤醒协调器
+     * @param mqProducerRouter MQ 生产者路由器
+     * @return 消息发布服务
+     */
     @Bean
     @ConditionalOnBean({TransactionalMessageRepository.class, MessagePayloadSerializer.class})
     @ConditionalOnMissingBean(MessagePublishService.class)
@@ -144,6 +178,12 @@ public class TransactionalMqAutoConfiguration {
                 wakeupCoordinator, mqProducerRouter);
     }
 
+    /**
+     * 创建消费幂等服务
+     *
+     * @param consumedMessageRepository 已消费消息仓储
+     * @return 消费幂等服务
+     */
     @Bean
     @ConditionalOnBean(ConsumedMessageRepository.class)
     @ConditionalOnMissingBean(ConsumeIdempotentService.class)
@@ -151,6 +191,12 @@ public class TransactionalMqAutoConfiguration {
         return new ConsumeIdempotentService(consumedMessageRepository);
     }
 
+    /**
+     * 创建已消费消息清理服务
+     *
+     * @param consumedMessageRepository 已消费消息仓储
+     * @return 已消费消息清理服务
+     */
     @Bean
     @ConditionalOnBean(ConsumedMessageRepository.class)
     @ConditionalOnMissingBean(ConsumedMessageCleanupService.class)
@@ -159,6 +205,13 @@ public class TransactionalMqAutoConfiguration {
         return new ConsumedMessageCleanupService(consumedMessageRepository);
     }
 
+    /**
+     * 创建已消费消息清理任务
+     *
+     * @param consumedMessageCleanupService 已消费消息清理服务
+     * @param properties 事务消息配置
+     * @return 已消费消息清理任务
+     */
     @Bean
     @ConditionalOnBean(ConsumedMessageCleanupService.class)
     @ConditionalOnMissingBean(ConsumedMessageCleanupScheduler.class)
@@ -168,6 +221,12 @@ public class TransactionalMqAutoConfiguration {
                 properties.getConsumeRecordRetentionDays(), properties.getConsumeRecordCleanupBatchSize());
     }
 
+    /**
+     * 创建事务消息清理服务
+     *
+     * @param transactionalMessageRepository 事务消息仓储
+     * @return 事务消息清理服务
+     */
     @Bean
     @ConditionalOnBean(TransactionalMessageRepository.class)
     @ConditionalOnMissingBean(TransactionalMessageCleanupService.class)
@@ -176,6 +235,13 @@ public class TransactionalMqAutoConfiguration {
         return new TransactionalMessageCleanupService(transactionalMessageRepository);
     }
 
+    /**
+     * 创建事务消息清理任务
+     *
+     * @param transactionalMessageCleanupService 事务消息清理服务
+     * @param properties 事务消息配置
+     * @return 事务消息清理任务
+     */
     @Bean
     @ConditionalOnBean(TransactionalMessageCleanupService.class)
     @ConditionalOnMissingBean(TransactionalMessageCleanupScheduler.class)
@@ -186,6 +252,11 @@ public class TransactionalMqAutoConfiguration {
                 properties.getSuccessMessageRetentionDays(), properties.getSuccessMessageCleanupBatchSize());
     }
 
+    /**
+     * 创建事务消息事务边界服务
+     *
+     * @return 事务消息事务边界服务
+     */
     @Bean
     @ConditionalOnClass(TxnMqTransactionalService.class)
     @ConditionalOnMissingBean(TxnMqTransactionalService.class)
@@ -193,6 +264,12 @@ public class TransactionalMqAutoConfiguration {
         return new TxnMqTransactionalService();
     }
 
+    /**
+     * 创建 MQ 生产者路由器
+     *
+     * @param mqProducerAdapters MQ 生产者适配器提供器
+     * @return MQ 生产者路由器
+     */
     @Bean
     @ConditionalOnMissingBean(MqProducerRouter.class)
     public MqProducerRouter mqProducerRouter(ObjectProvider<List<MqProducerAdapter>> mqProducerAdapters) {
@@ -200,12 +277,26 @@ public class TransactionalMqAutoConfiguration {
         return new MqProducerRouter(adapters == null ? Collections.emptyList() : adapters);
     }
 
+    /**
+     * 创建事务消息启动校验器
+     *
+     * @param mqProducerRouter MQ 生产者路由器
+     * @return 启动校验器
+     */
     @Bean
     @ConditionalOnMissingBean(TransactionalMqStartupValidator.class)
     public TransactionalMqStartupValidator transactionalMqStartupValidator(MqProducerRouter mqProducerRouter) {
         return new TransactionalMqStartupValidator(mqProducerRouter);
     }
 
+    /**
+     * 创建消息派发服务
+     *
+     * @param transactionalMessageRepository 事务消息仓储
+     * @param mqProducerRouter MQ 生产者路由器
+     * @param messageSendLogRepository 发送日志仓储
+     * @return 消息派发服务
+     */
     @Bean
     @ConditionalOnBean({TransactionalMessageRepository.class, MqProducerRouter.class, MessageSendLogRepository.class})
     @ConditionalOnMissingBean(MessageDispatchService.class)
@@ -215,6 +306,14 @@ public class TransactionalMqAutoConfiguration {
         return new MessageDispatchService(transactionalMessageRepository, mqProducerRouter, messageSendLogRepository);
     }
 
+    /**
+     * 创建事务消息后台派发任务
+     *
+     * @param messageDispatchService 消息派发服务
+     * @param properties 事务消息配置
+     * @param wakeupCoordinator 派发线程唤醒协调器
+     * @return 后台派发任务
+     */
     @Bean
     @ConditionalOnBean(MessageDispatchService.class)
     @ConditionalOnMissingBean(TransactionalMessageDispatchScheduler.class)
@@ -225,6 +324,14 @@ public class TransactionalMqAutoConfiguration {
                 properties.getDispatchIdleSleepMillis(), wakeupCoordinator);
     }
 
+    /**
+     * 创建定时任务注册器
+     *
+     * @param consumedMessageCleanupScheduler 已消费消息清理任务提供器
+     * @param transactionalMessageCleanupScheduler 事务消息清理任务提供器
+     * @param properties 事务消息配置
+     * @return 定时任务注册器
+     */
     @Bean
     @ConditionalOnMissingBean(TransactionalMqScheduledTaskConfigurer.class)
     public TransactionalMqScheduledTaskConfigurer transactionalMqScheduledTaskConfigurer(

@@ -12,9 +12,18 @@ import java.util.zip.GZIPOutputStream;
  */
 public final class KafkaPayloadCodec {
 
+    /**
+     * 禁止实例化编解码工具类
+     */
     private KafkaPayloadCodec() {
     }
 
+    /**
+     * 使用 gzip 压缩消息负载
+     *
+     * @param payloadText 消息负载文本
+     * @return 压缩后的字节数组
+     */
     public static byte[] gzip(String payloadText) {
         if (payloadText == null) {
             return new byte[0];
@@ -31,6 +40,13 @@ public final class KafkaPayloadCodec {
         }
     }
 
+    /**
+     * 解码 Kafka 消息负载
+     *
+     * @param body 消息体
+     * @param contentEncoding 内容编码
+     * @return 解码后的消息负载文本
+     */
     public static String decode(byte[] body, String contentEncoding) {
         if (body == null || body.length == 0) {
             return "";

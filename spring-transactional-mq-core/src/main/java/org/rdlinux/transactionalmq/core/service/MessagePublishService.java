@@ -24,11 +24,26 @@ import java.util.Date;
  */
 public class MessagePublishService implements TransactionalMessageSender {
 
+    /**
+     * 失败信息最大长度
+     */
     private static final int MAX_ERROR_LENGTH = 1000;
 
+    /**
+     * 事务消息仓储
+     */
     private final TransactionalMessageRepository transactionalMessageRepository;
+    /**
+     * 消息负载序列化器
+     */
     private final MessagePayloadSerializer messagePayloadSerializer;
+    /**
+     * 派发线程唤醒器
+     */
     private final MessageDispatchWakeupService messageDispatchWakeupService;
+    /**
+     * MQ 生产者路由器
+     */
     private final MqProducerRouter mqProducerRouter;
 
     /**
@@ -62,6 +77,15 @@ public class MessagePublishService implements TransactionalMessageSender {
         return this.doSave(mqType, message, null);
     }
 
+    /**
+     * 保存带父消息上下文的消息并返回消息 id
+     *
+     * @param mqType       MQ 类型
+     * @param message      事务消息
+     * @param parentContext 父消息上下文
+     * @param <T>           负载类型
+     * @return 消息 id
+     */
     @Override
     @Transactional(rollbackFor = Exception.class)
     public <T> String sendWithParent(MqType mqType, TransactionalMessage<T> message, ConsumeContext parentContext) {
@@ -114,6 +138,15 @@ public class MessagePublishService implements TransactionalMessageSender {
         this.saveDeadConsumeRetryIfAbsent(record);
     }
 
+    /**
+     * 保存消息记录
+     *
+     * @param mqType       MQ 类型
+     * @param message      事务消息
+     * @param parentContext 父消息上下文
+     * @param <T>           负载类型
+     * @return 保存后的消息 id
+     */
     private <T> String doSave(MqType mqType, TransactionalMessage<T> message, ConsumeContext parentContext) {
         this.validateMqType(mqType);
         String payloadText = this.messagePayloadSerializer.serialize(message.getPayload());
@@ -126,6 +159,11 @@ public class MessagePublishService implements TransactionalMessageSender {
         return saved.getId();
     }
 
+    /**
+     * 校验 MQ 类型及其生产者适配器
+     *
+     * @param mqType MQ 类型
+     */
     private void validateMqType(MqType mqType) {
         if (mqType == null) {
             throw new IllegalArgumentException("mqType must not be null");
@@ -135,6 +173,11 @@ public class MessagePublishService implements TransactionalMessageSender {
         }
     }
 
+    /**
+     * 补充消息记录所需的标识字段
+     *
+     * @param record 消息记录
+     */
     private void ensureIds(TransactionalMessageRecord record) {
         if (record.getId() == null || record.getId().trim().isEmpty()) {
             record.setId(ObjectIdGenerator.generate());
@@ -255,6 +298,9 @@ public class MessagePublishService implements TransactionalMessageSender {
         }
     }
 
+    /**
+     * 在事务提交后唤醒派发线程
+     */
     private void notifyDispatchAfterCommit() {
         if (this.messageDispatchWakeupService == null) {
             return;

@@ -46,6 +46,12 @@ public class ConsumedMessageCleanupScheduler {
         }
     }
 
+    /**
+     * 计算消费记录清理截止时间
+     *
+     * @param retentionDays 保留天数
+     * @return 清理截止时间
+     */
     private Date resolveCleanupBefore(int retentionDays) {
         int safeRetentionDays = Math.max(retentionDays, 1);
         Calendar calendar = Calendar.getInstance();

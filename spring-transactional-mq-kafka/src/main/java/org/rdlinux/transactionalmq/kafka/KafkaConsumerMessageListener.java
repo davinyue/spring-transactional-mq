@@ -38,12 +38,33 @@ import java.util.concurrent.atomic.AtomicReference;
 @Slf4j
 class KafkaConsumerMessageListener implements AcknowledgingMessageListener<String, byte[]> {
 
+    /**
+     * 消息消费者
+     */
     private final TransactionalMessageConsumer<?> consumer;
+    /**
+     * Kafka 消费调用器
+     */
     private final KafkaConsumerInvoker kafkaConsumerInvoker;
+    /**
+     * 消息负载序列化器
+     */
     private final MessagePayloadSerializer messagePayloadSerializer;
+    /**
+     * 消费幂等服务
+     */
     private final ConsumeIdempotentService consumeIdempotentService;
+    /**
+     * 事务消息事务服务
+     */
     private final TxnMqTransactionalService txnMqTransactionalService;
+    /**
+     * 消息发布服务
+     */
     private final MessagePublishService messagePublishService;
+    /**
+     * 消息负载类型
+     */
     private final Type payloadType;
 
     KafkaConsumerMessageListener(TransactionalMessageConsumer<?> consumer, KafkaConsumerInvoker kafkaConsumerInvoker,
@@ -145,6 +166,11 @@ class KafkaConsumerMessageListener implements AcknowledgingMessageListener<Strin
         }
     }
 
+    /**
+     * 否定确认 Kafka 消息
+     *
+     * @param acknowledgment Kafka 消息确认器
+     */
     private void nack(Acknowledgment acknowledgment) {
         if (acknowledgment != null) {
             acknowledgment.nack(Duration.ofMillis(10000L));
@@ -196,16 +222,35 @@ class KafkaConsumerMessageListener implements AcknowledgingMessageListener<Strin
         }
     }
 
+    /**
+     * 反序列化 Kafka 消息负载
+     *
+     * @param record Kafka 消息记录
+     * @return 反序列化后的消息负载
+     */
     private Object deserialize(ConsumerRecord<String, byte[]> record) {
         String payloadText = KafkaPayloadCodec.decode(record.value(), this.findHeader(record, "contentEncoding"));
         return this.messagePayloadSerializer.deserialize(payloadText, this.payloadType);
     }
 
+    /**
+     * 调用业务消费者
+     *
+     * @param context 消费上下文
+     * @param payload 消息负载
+     * @return 消息处理结果
+     */
     @SuppressWarnings("unchecked")
     private QueueMsgHandleRet invokeConsumer(ConsumeContext context, Object payload) {
         return this.kafkaConsumerInvoker.invoke((TransactionalMessageConsumer<Object>) this.consumer, context, payload);
     }
 
+    /**
+     * 从 Kafka 消息构建消费上下文
+     *
+     * @param record Kafka 消息记录
+     * @return 消费上下文
+     */
     private ConsumeContext buildContext(ConsumerRecord<String, byte[]> record) {
         String messageId = this.findHeader(record, "messageId");
         if (messageId == null || messageId.trim().isEmpty()) {
@@ -256,6 +301,12 @@ class KafkaConsumerMessageListener implements AcknowledgingMessageListener<Strin
         return throwable.getClass().getName() + (message == null ? "" : ": " + message);
     }
 
+    /**
+     * 转换 Kafka 消息头
+     *
+     * @param record Kafka 消息记录
+     * @return 消息头映射
+     */
     private Map<String, String> toHeaders(ConsumerRecord<String, byte[]> record) {
         Map<String, String> headers = new HashMap<>();
         for (Header header : record.headers()) {
@@ -264,6 +315,13 @@ class KafkaConsumerMessageListener implements AcknowledgingMessageListener<Strin
         return headers;
     }
 
+    /**
+     * 读取 Kafka 消息头
+     *
+     * @param record Kafka 消息记录
+     * @param key 消息头名称
+     * @return 消息头值，不存在时返回 null
+     */
     private String findHeader(ConsumerRecord<String, byte[]> record, String key) {
         Header header = record.headers().lastHeader(key);
         if (header == null || header.value() == null) {
@@ -272,6 +330,12 @@ class KafkaConsumerMessageListener implements AcknowledgingMessageListener<Strin
         return new String(header.value(), StandardCharsets.UTF_8);
     }
 
+    /**
+     * 解析消费者声明的负载类型
+     *
+     * @param consumer 消费者
+     * @return 负载类型
+     */
     private Type resolvePayloadType(TransactionalMessageConsumer<?> consumer) {
         Class<?> userClass = ClassUtils.getUserClass(consumer);
         Class<?> resolvedClass = GenericTypeResolver.resolveTypeArgument(userClass, TransactionalMessageConsumer.class);

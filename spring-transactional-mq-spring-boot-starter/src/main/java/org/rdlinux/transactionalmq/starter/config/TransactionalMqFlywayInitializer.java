@@ -9,6 +9,9 @@ import org.springframework.beans.factory.InitializingBean;
  */
 public class TransactionalMqFlywayInitializer implements InitializingBean {
 
+    /**
+     * 事务消息专用 Flyway Bean
+     */
     private final Flyway flyway;
 
     /**

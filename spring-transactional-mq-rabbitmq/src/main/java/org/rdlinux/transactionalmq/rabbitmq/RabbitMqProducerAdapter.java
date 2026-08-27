@@ -18,6 +18,9 @@ import java.util.Map;
 @Slf4j
 public class RabbitMqProducerAdapter implements MqProducerAdapter {
 
+    /**
+     * RabbitMQ 消息模板
+     */
     private final RabbitTemplate rabbitTemplate;
 
     /**
@@ -67,6 +70,13 @@ public class RabbitMqProducerAdapter implements MqProducerAdapter {
         log.info("消息发送成功, 交换机{}, 路由键{}, 消息id{}", target.exchange, target.routingKey, message.getId());
     }
 
+    /**
+     * 解析 RabbitMQ 目标地址
+     *
+     * @param destination 目标地址
+     * @param route 路由键
+     * @return 交换机与路由键目标
+     */
     private DestinationTarget resolveDestination(String destination, String route) {
         if (route != null && !route.trim().isEmpty()) {
             return new DestinationTarget(destination, route.trim());
@@ -83,11 +93,26 @@ public class RabbitMqProducerAdapter implements MqProducerAdapter {
         return new DestinationTarget(exchange, routingKey);
     }
 
+    /**
+     * RabbitMQ 目标地址
+     */
     private static final class DestinationTarget {
 
+        /**
+         * 交换机名称
+         */
         private final String exchange;
+        /**
+         * 路由键
+         */
         private final String routingKey;
 
+        /**
+         * 构造 RabbitMQ 目标地址
+         *
+         * @param exchange 交换机名称
+         * @param routingKey 路由键
+         */
         private DestinationTarget(String exchange, String routingKey) {
             this.exchange = exchange;
             this.routingKey = routingKey;

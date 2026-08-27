@@ -12,6 +12,9 @@ import java.util.List;
  */
 public class TransactionalMessageCleanupService {
 
+    /**
+     * 事务消息仓储
+     */
     private final TransactionalMessageRepository transactionalMessageRepository;
 
     /**

@@ -16,6 +16,9 @@ import java.util.Map;
  */
 final class TransactionalMessageEntityMapper {
 
+    /**
+     * 禁止实例化转换工具类
+     */
     private TransactionalMessageEntityMapper() {
     }
 
@@ -114,18 +117,43 @@ final class TransactionalMessageEntityMapper {
         return entity;
     }
 
+    /**
+     * 使用默认时间填充空值
+     *
+     * @param date 原始时间
+     * @param defaultDate 默认时间
+     * @return 原始时间或默认时间
+     */
     private static Date defaultDate(Date date, Date defaultDate) {
         return date == null ? defaultDate : date;
     }
 
+    /**
+     * 使用空字符串填充文本空值
+     *
+     * @param text 原始文本
+     * @return 原始文本或空字符串
+     */
     private static String defaultString(String text) {
         return text == null ? "" : text;
     }
 
+    /**
+     * 使用初始状态填充状态空值
+     *
+     * @param messageStatus 原始消息状态
+     * @return 原始消息状态或初始状态
+     */
     private static MessageStatus defaultMessageStatus(MessageStatus messageStatus) {
         return messageStatus == null ? MessageStatus.INIT : messageStatus;
     }
 
+    /**
+     * 使用零值填充重试次数空值
+     *
+     * @param retryCount 原始重试次数
+     * @return 原始重试次数或零
+     */
     private static int defaultRetryCount(Integer retryCount) {
         return retryCount == null ? 0 : retryCount;
     }
@@ -197,6 +225,13 @@ final class TransactionalMessageEntityMapper {
         return headers;
     }
 
+    /**
+     * 跳过文本中的空白字符
+     *
+     * @param text 待处理文本
+     * @param index 起始位置
+     * @return 下一个非空白字符位置
+     */
     private static int skipBlank(String text, int index) {
         int cursor = index;
         while (cursor < text.length() && Character.isWhitespace(text.charAt(cursor))) {
@@ -205,6 +240,13 @@ final class TransactionalMessageEntityMapper {
         return cursor;
     }
 
+    /**
+     * 读取指定位置的引号包裹文本
+     *
+     * @param text 待读取文本
+     * @param index 起始位置
+     * @return 解析结果
+     */
     private static ParseResult readQuoted(String text, int index) {
         int cursor = skipBlank(text, index);
         if (cursor >= text.length() || text.charAt(cursor) != '"') {
@@ -229,6 +271,12 @@ final class TransactionalMessageEntityMapper {
         return new ParseResult(builder.toString(), cursor);
     }
 
+    /**
+     * 转义 JSON 文本中的特殊字符
+     *
+     * @param text 原始文本
+     * @return 转义后的文本
+     */
     private static String escape(String text) {
         if (text == null) {
             return "";
@@ -236,10 +284,25 @@ final class TransactionalMessageEntityMapper {
         return text.replace("\\", "\\\\").replace("\"", "\\\"");
     }
 
+    /**
+     * 引号文本解析结果
+     */
     private static final class ParseResult {
+        /**
+         * 解析出的文本值
+         */
         private final String value;
+        /**
+         * 解析结束位置
+         */
         private final int nextIndex;
 
+        /**
+         * 创建解析结果
+         *
+         * @param value 解析出的文本值
+         * @param nextIndex 解析结束位置
+         */
         private ParseResult(String value, int nextIndex) {
             this.value = value;
             this.nextIndex = nextIndex;

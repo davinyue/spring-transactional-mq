@@ -22,15 +22,50 @@ import java.util.Map;
  */
 public class KafkaConsumerRegistrar implements SmartInitializingSingleton, DisposableBean {
 
+    /**
+     * Kafka 消费者工厂
+     */
     private final ConsumerFactory<String, byte[]> consumerFactory;
+    /**
+     * Kafka 消费调用器
+     */
     private final KafkaConsumerInvoker kafkaConsumerInvoker;
+    /**
+     * 消息负载序列化器
+     */
     private final MessagePayloadSerializer messagePayloadSerializer;
+    /**
+     * 消费幂等服务
+     */
     private final ConsumeIdempotentService consumeIdempotentService;
+    /**
+     * Spring 应用上下文
+     */
     private final ApplicationContext applicationContext;
+    /**
+     * 事务消息事务服务
+     */
     private final TxnMqTransactionalService txnMqTransactionalService;
+    /**
+     * 消息发布服务
+     */
     private final MessagePublishService messagePublishService;
+    /**
+     * 已创建的 Kafka 监听容器
+     */
     private final List<ConcurrentMessageListenerContainer<String, byte[]>> containers = new ArrayList<>();
 
+    /**
+     * 构造 Kafka 消费者注册器
+     *
+     * @param consumerFactory Kafka 消费者工厂
+     * @param kafkaConsumerInvoker Kafka 消费调用器
+     * @param messagePayloadSerializer 消息负载序列化器
+     * @param consumeIdempotentService 消费幂等服务
+     * @param applicationContext Spring 应用上下文
+     * @param txnMqTransactionalService 事务消息事务服务
+     * @param messagePublishService 消息发布服务
+     */
     public KafkaConsumerRegistrar(ConsumerFactory<String, byte[]> consumerFactory,
                                   KafkaConsumerInvoker kafkaConsumerInvoker,
                                   MessagePayloadSerializer messagePayloadSerializer,
@@ -53,6 +88,9 @@ public class KafkaConsumerRegistrar implements SmartInitializingSingleton, Dispo
         this(consumerFactory, kafkaConsumerInvoker, null, null, null, txnMqTransactionalService, null);
     }
 
+    /**
+     * 初始化并注册 Kafka 消费者
+     */
     @Override
     @SuppressWarnings("rawtypes")
     public void afterSingletonsInstantiated() {
@@ -69,6 +107,11 @@ public class KafkaConsumerRegistrar implements SmartInitializingSingleton, Dispo
         }
     }
 
+    /**
+     * 注册并启动 Kafka 消费者
+     *
+     * @param consumer 消费者
+     */
     public void consume(TransactionalMessageConsumer<?> consumer) {
         this.validateRetryPolicy(consumer);
         ConcurrentMessageListenerContainer<String, byte[]> container = this.createContainer(consumer);
@@ -76,6 +119,12 @@ public class KafkaConsumerRegistrar implements SmartInitializingSingleton, Dispo
         this.startContainer(container);
     }
 
+    /**
+     * 创建 Kafka 消息监听容器
+     *
+     * @param consumer 消费者
+     * @return Kafka 监听容器
+     */
     protected ConcurrentMessageListenerContainer<String, byte[]> createContainer(
             TransactionalMessageConsumer<?> consumer) {
         ContainerProperties containerProperties = new ContainerProperties(consumer.getQueueName());
@@ -93,10 +142,21 @@ public class KafkaConsumerRegistrar implements SmartInitializingSingleton, Dispo
         return container;
     }
 
+    /**
+     * 启动 Kafka 消息监听容器
+     *
+     * @param container Kafka 监听容器
+     */
     protected void startContainer(ConcurrentMessageListenerContainer<String, byte[]> container) {
         container.start();
     }
 
+    /**
+     * 计算消费者并发数
+     *
+     * @param consumer 消费者
+     * @return 并发数
+     */
     private int resolveConcurrency(TransactionalMessageConsumer<?> consumer) {
         int minConcurrency = Math.max(consumer.getMinConcurrency(), 1);
         int maxConcurrency = Math.max(consumer.getMaxConcurrency(), 1);

@@ -7,6 +7,9 @@ import org.rdlinux.id.objectid.ObjectId;
  */
 public final class ObjectIdGenerator {
 
+    /**
+     * 禁止实例化 ID 生成工具类
+     */
     private ObjectIdGenerator() {
     }
 

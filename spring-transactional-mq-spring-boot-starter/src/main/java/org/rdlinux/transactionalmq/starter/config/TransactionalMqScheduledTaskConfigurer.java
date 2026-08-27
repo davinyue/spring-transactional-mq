@@ -11,8 +11,17 @@ import org.springframework.scheduling.config.ScheduledTaskRegistrar;
  */
 public class TransactionalMqScheduledTaskConfigurer implements SchedulingConfigurer {
 
+    /**
+     * 已消费消息清理任务
+     */
     private final ConsumedMessageCleanupScheduler consumedMessageCleanupScheduler;
+    /**
+     * 事务消息清理任务
+     */
     private final TransactionalMessageCleanupScheduler transactionalMessageCleanupScheduler;
+    /**
+     * 事务消息配置
+     */
     private final TransactionalMqProperties properties;
 
     /**

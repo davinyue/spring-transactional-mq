@@ -30,6 +30,12 @@ import org.springframework.context.annotation.Configuration;
         havingValue = "true", matchIfMissing = true)
 public class TransactionalMqRabbitAutoConfiguration {
 
+    /**
+     * 创建 RabbitMQ 生产者适配器
+     *
+     * @param rabbitTemplate RabbitMQ 模板
+     * @return RabbitMQ 生产者适配器
+     */
     @Bean
     @ConditionalOnBean(RabbitTemplate.class)
     @ConditionalOnMissingBean(RabbitMqProducerAdapter.class)
@@ -37,12 +43,29 @@ public class TransactionalMqRabbitAutoConfiguration {
         return new RabbitMqProducerAdapter(rabbitTemplate);
     }
 
+    /**
+     * 创建 RabbitMQ 消费调用器
+     *
+     * @return RabbitMQ 消费调用器
+     */
     @Bean
     @ConditionalOnMissingBean(RabbitMqConsumerInvoker.class)
     public RabbitMqConsumerInvoker rabbitMqConsumerInvoker() {
         return new RabbitMqConsumerInvoker();
     }
 
+    /**
+     * 创建 RabbitMQ 消费者注册器
+     *
+     * @param connectionFactory RabbitMQ 连接工厂
+     * @param rabbitMqConsumerInvoker RabbitMQ 消费调用器
+     * @param messagePayloadSerializer 消息负载序列化器
+     * @param consumeIdempotentService 消费幂等服务
+     * @param applicationContext Spring 应用上下文
+     * @param txnMqTransactionalService 事务消息事务服务
+     * @param messagePublishService 消息发布服务
+     * @return RabbitMQ 消费者注册器
+     */
     @Bean
     @ConditionalOnClass({RabbitMqConsumerRegistrar.class, ConnectionFactory.class, TransactionalMessageConsumer.class})
     @ConditionalOnBean({ConnectionFactory.class, RabbitMqConsumerInvoker.class, MessagePayloadSerializer.class,

@@ -7,6 +7,9 @@ import lombok.experimental.Accessors;
 import java.util.ArrayList;
 import java.util.List;
 
+/**
+ * 消费消息处理结果
+ */
 @Getter
 @Setter
 @Accessors(chain = true)
@@ -30,6 +33,9 @@ public class QueueMsgHandleRet {
 
     /**
      * 添加事务提交或回滚后回调
+     *
+     * @param unlockCall 事务提交或回滚后的回调
+     * @return 当前处理结果对象
      */
     public QueueMsgHandleRet addFinallyCall(final FinallyCall unlockCall) {
         if (this.finallyCalls == null) {
@@ -41,6 +47,8 @@ public class QueueMsgHandleRet {
 
     /**
      * 执行事务提交或回滚后回调
+     *
+     * @param e 消费过程中抛出的异常，无异常时为空
      */
     public void executeFinallyCall(Exception e) {
         if (this.finallyCalls != null) {
@@ -52,6 +60,9 @@ public class QueueMsgHandleRet {
 
     /**
      * 添加事务提交前回调
+     *
+     * @param commitCall 事务提交前的回调
+     * @return 当前处理结果对象
      */
     public QueueMsgHandleRet addCommitBeforeCall(final Runnable commitCall) {
         if (this.commitBeforeCalls == null) {
@@ -74,6 +85,8 @@ public class QueueMsgHandleRet {
 
     /**
      * 创建默认提交结果
+     *
+     * @return 默认提交结果
      */
     public static QueueMsgHandleRet DEFAULT() {
         return new QueueMsgHandleRet().setRollBack(false).setRollBackAck(false);

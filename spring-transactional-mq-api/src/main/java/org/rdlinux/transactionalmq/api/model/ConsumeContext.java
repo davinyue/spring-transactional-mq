@@ -69,6 +69,11 @@ public class ConsumeContext {
         return this;
     }
 
+    /**
+     * 获取原始消息头
+     *
+     * @return 原始消息头副本
+     */
     public Map<String, String> getHeaders() {
         return new HashMap<>(this.headers);
     }

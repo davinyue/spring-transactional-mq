@@ -27,14 +27,35 @@ import java.util.*;
 @Repository
 public class EzMybatisTransactionalMessageRepository implements TransactionalMessageRepository {
 
+    /**
+     * 派发锁持有时间（毫秒）
+     */
     private static final long DISPATCH_LOCK_MILLIS = 5 * 60 * 1000L;
+    /**
+     * 派发失败后的重试间隔（毫秒）
+     */
     private static final long RETRY_DELAY_MILLIS = 60 * 1000L;
+    /**
+     * 事务消息实体表
+     */
     private static final EntityTable TABLE = EntityTable.of(TransactionalMessageEntity.class);
+    /**
+     * 当前实例的派发所有者标识
+     */
     private static final String DISPATCH_OWNER = ObjectIdGenerator.generate();
 
+    /**
+     * ez-mybatis 数据访问对象
+     */
     @Resource
     private EzDao ezDao;
 
+    /**
+     * 保存事务消息记录
+     *
+     * @param record 事务消息记录
+     * @return 保存后的事务消息记录
+     */
     @Override
     @Transactional(rollbackFor = Exception.class)
     public TransactionalMessageRecord save(TransactionalMessageRecord record) {
@@ -44,6 +65,11 @@ public class EzMybatisTransactionalMessageRepository implements TransactionalMes
         return TransactionalMessageEntityMapper.toRecord(entity);
     }
 
+    /**
+     * 保存消费重试消息记录
+     *
+     * @param record 消费重试消息记录
+     */
     @Override
     @Transactional(rollbackFor = Exception.class, propagation = Propagation.REQUIRES_NEW)
     public void saveConsumeRetry(TransactionalMessageRecord record) {
@@ -57,6 +83,12 @@ public class EzMybatisTransactionalMessageRepository implements TransactionalMes
      *
      * @param record 死信记录
      */
+    /**
+     * 查询待派发的事务消息
+     *
+     * @param limit 最大查询条数
+     * @return 待派发事务消息
+     */
     @Override
     @Transactional(rollbackFor = Exception.class, propagation = Propagation.REQUIRES_NEW)
     public void saveDeadConsumeRetry(TransactionalMessageRecord record) {
@@ -65,6 +97,12 @@ public class EzMybatisTransactionalMessageRepository implements TransactionalMes
         this.applyGeneratedIdentity(record, entity);
     }
 
+    /**
+     * 领取一条待派发消息并设置派发锁
+     *
+     * @param record 待领取消息
+     * @return 领取成功后的消息，领取失败时返回 null
+     */
     @Override
     public List<TransactionalMessageRecord> findDispatchCandidates(int limit) {
         if (limit < 1) {
@@ -91,6 +129,11 @@ public class EzMybatisTransactionalMessageRepository implements TransactionalMes
         return records;
     }
 
+    /**
+     * 标记消息派发成功
+     *
+     * @param records 已成功派发的消息
+     */
     @Override
     @Transactional(rollbackFor = Exception.class)
     public TransactionalMessageRecord claimDispatchMessage(TransactionalMessageRecord record) {
@@ -120,6 +163,11 @@ public class EzMybatisTransactionalMessageRepository implements TransactionalMes
         return updated > 0 ? TransactionalMessageEntityMapper.toRecord(entity) : null;
     }
 
+    /**
+     * 标记消息派发成功
+     *
+     * @param records 已成功派发的消息
+     */
     @Override
     @Transactional(rollbackFor = Exception.class)
     public void markDispatchSuccess(List<TransactionalMessageRecord> records) {
@@ -131,6 +179,11 @@ public class EzMybatisTransactionalMessageRepository implements TransactionalMes
         }
     }
 
+    /**
+     * 标记消息派发失败并安排重试
+     *
+     * @param records 派发失败的消息
+     */
     @Override
     @Transactional(rollbackFor = Exception.class)
     public void markDispatchFailed(List<TransactionalMessageRecord> records) {
@@ -143,6 +196,13 @@ public class EzMybatisTransactionalMessageRepository implements TransactionalMes
         }
     }
 
+    /**
+     * 更新消息派发结果
+     *
+     * @param record 消息记录
+     * @param messageStatus 消息状态
+     * @param nextDispatchTime 下一次派发时间
+     */
     private void markDispatchResult(TransactionalMessageRecord record, MessageStatus messageStatus,
                                     Date nextDispatchTime) {
         Date now = new Date();
@@ -166,6 +226,13 @@ public class EzMybatisTransactionalMessageRepository implements TransactionalMes
         this.ezDao.ezUpdate(builder.build());
     }
 
+    /**
+     * 查询待清理的成功消息
+     *
+     * @param cleanupBefore 清理截止时间
+     * @param limit 最大查询条数
+     * @return 待清理成功消息
+     */
     @Override
     public List<TransactionalMessageRecord> findSuccessCleanupCandidates(Date cleanupBefore, int limit) {
         if (cleanupBefore == null || limit < 1) {
@@ -190,6 +257,13 @@ public class EzMybatisTransactionalMessageRepository implements TransactionalMes
         return records;
     }
 
+    /**
+     * 归档并删除一条成功消息
+     *
+     * @param record 成功消息记录
+     * @param cleanupBefore 清理截止时间
+     * @return 删除记录数
+     */
     @Override
     @Transactional(rollbackFor = Exception.class)
     public int archiveSuccessMessage(TransactionalMessageRecord record, Date cleanupBefore) {
@@ -205,6 +279,13 @@ public class EzMybatisTransactionalMessageRepository implements TransactionalMes
         return this.deleteArchivedMessage(entity);
     }
 
+    /**
+     * 将成功消息标记为归档中
+     *
+     * @param entity 事务消息实体
+     * @param cleanupBefore 清理截止时间
+     * @return 更新记录数
+     */
     private int claimArchiveMessage(TransactionalMessageEntity entity, Date cleanupBefore) {
         return this.ezDao.ezUpdate(EzUpdate.update(TABLE)
                 .set(s -> s
@@ -217,6 +298,11 @@ public class EzMybatisTransactionalMessageRepository implements TransactionalMes
                 .build());
     }
 
+    /**
+     * 插入历史记录，重复记录直接忽略
+     *
+     * @param record 事务消息记录
+     */
     private void insertHistoryIfAbsent(TransactionalMessageRecord record) {
         try {
             this.ezDao.insert(TransactionalMessageEntityMapper.toHistoryEntity(record));
@@ -225,6 +311,12 @@ public class EzMybatisTransactionalMessageRepository implements TransactionalMes
         }
     }
 
+    /**
+     * 删除已归档的主表消息
+     *
+     * @param entity 已归档事务消息实体
+     * @return 删除记录数
+     */
     private int deleteArchivedMessage(TransactionalMessageEntity entity) {
         return this.ezDao.ezDelete(EzDelete.delete(TABLE)
                 .where(w -> w
@@ -233,6 +325,12 @@ public class EzMybatisTransactionalMessageRepository implements TransactionalMes
                 .build());
     }
 
+    /**
+     * 将实体生成的主键回写到记录
+     *
+     * @param record 事务消息记录
+     * @param entity 事务消息实体
+     */
     private void applyGeneratedIdentity(TransactionalMessageRecord record, TransactionalMessageEntity entity) {
         record.setId(entity.getId());
     }

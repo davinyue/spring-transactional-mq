@@ -22,10 +22,22 @@ import java.util.List;
 @Slf4j
 public class MessageDispatchService {
 
+    /**
+     * 发送描述最大长度
+     */
     private static final int MAX_DESCRIPTION_LENGTH = 512;
 
+    /**
+     * 事务消息仓储
+     */
     private final TransactionalMessageRepository transactionalMessageRepository;
+    /**
+     * MQ 生产者路由器
+     */
     private final MqProducerRouter mqProducerRouter;
+    /**
+     * 发送日志仓储
+     */
     private final MessageSendLogRepository messageSendLogRepository;
 
     /**
@@ -84,6 +96,13 @@ public class MessageDispatchService {
         return successRecords.size() + failedRecords.size();
     }
 
+    /**
+     * 保存消息发送日志
+     *
+     * @param record 消息记录
+     * @param sendStatus 发送状态
+     * @param description 发送描述
+     */
     private void saveSendLog(TransactionalMessageRecord record, SendStatus sendStatus, String description) {
         if (this.messageSendLogRepository == null) {
             return;
@@ -106,6 +125,12 @@ public class MessageDispatchService {
         }
     }
 
+    /**
+     * 截断发送描述
+     *
+     * @param description 原始发送描述
+     * @return 截断后的发送描述
+     */
     private String truncateDescription(String description) {
         if (description == null || description.length() <= MAX_DESCRIPTION_LENGTH) {
             return description;

@@ -8,6 +8,9 @@ import org.springframework.beans.factory.InitializingBean;
  */
 public class TransactionalMqStartupValidator implements InitializingBean {
 
+    /**
+     * MQ 生产者路由器
+     */
     private final MqProducerRouter mqProducerRouter;
 
     /**

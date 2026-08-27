@@ -20,9 +20,18 @@ import java.util.Map;
 @ConditionalOnProperty(prefix = "demo.transactional-mq", name = "run-on-startup", havingValue = "true")
 public class TransactionalMqRealDataRunner implements ApplicationRunner {
 
+    /**
+     * 日志记录器
+     */
     private static final Logger LOGGER = LoggerFactory.getLogger(TransactionalMqRealDataRunner.class);
 
+    /**
+     * 消息发布服务
+     */
     private final MessagePublishService messagePublishService;
+    /**
+     * Demo 配置
+     */
     private final TransactionalMqDemoProperties properties;
 
     /**
@@ -52,6 +61,12 @@ public class TransactionalMqRealDataRunner implements ApplicationRunner {
                 messageId, message.getMessageKey());
     }
 
+    /**
+     * 构建 Demo 消息负载
+     *
+     * @param messageKey 消息键
+     * @return 消息负载
+     */
     private Map<String, Object> buildPayload(String messageKey) {
         Map<String, Object> payload = new LinkedHashMap<>();
         payload.put("messageKey", messageKey);

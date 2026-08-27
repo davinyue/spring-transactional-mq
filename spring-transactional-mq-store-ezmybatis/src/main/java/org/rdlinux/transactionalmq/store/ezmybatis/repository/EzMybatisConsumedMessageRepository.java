@@ -24,11 +24,23 @@ import java.util.*;
 @Repository
 public class EzMybatisConsumedMessageRepository implements ConsumedMessageRepository {
 
+    /**
+     * 已消费消息实体表
+     */
     private static final EntityTable TABLE = EntityTable.of(ConsumedMessageEntity.class);
 
+    /**
+     * ez-mybatis 数据访问对象
+     */
     @Resource
     private EzDao ezDao;
 
+    /**
+     * 保存首次消费记录及其历史记录
+     *
+     * @param record 消费记录
+     * @return 是否首次保存成功
+     */
     @Override
     @Transactional(rollbackFor = Exception.class)
     public boolean saveIfAbsent(ConsumedMessageRecord record) {
@@ -43,6 +55,13 @@ public class EzMybatisConsumedMessageRepository implements ConsumedMessageReposi
         }
     }
 
+    /**
+     * 查询待归档的消费记录
+     *
+     * @param archiveBefore 归档截止时间
+     * @param limit 最大查询条数
+     * @return 待归档消费记录
+     */
     @Override
     public List<ConsumedMessageRecord> findArchiveCandidates(Date archiveBefore, int limit) {
         if (archiveBefore == null || limit < 1) {
@@ -64,6 +83,12 @@ public class EzMybatisConsumedMessageRepository implements ConsumedMessageReposi
         return records;
     }
 
+    /**
+     * 归档并删除消费主表记录
+     *
+     * @param records 待归档消费记录
+     * @return 删除记录数
+     */
     @Override
     @Transactional(rollbackFor = Exception.class)
     public int archive(List<ConsumedMessageRecord> records) {
@@ -83,6 +108,12 @@ public class EzMybatisConsumedMessageRepository implements ConsumedMessageReposi
         return deleted;
     }
 
+    /**
+     * 将消费记录转换为实体
+     *
+     * @param record 消费记录
+     * @return 消费记录实体
+     */
     private ConsumedMessageEntity toEntity(ConsumedMessageRecord record) {
         if (record == null) {
             return null;
@@ -100,6 +131,13 @@ public class EzMybatisConsumedMessageRepository implements ConsumedMessageReposi
         return entity;
     }
 
+    /**
+     * 将消费记录转换为历史实体
+     *
+     * @param record 消费记录
+     * @param archiveTime 归档时间
+     * @return 消费历史实体
+     */
     private ConsumedMessageHistoryEntity toHistoryEntity(ConsumedMessageRecord record, Date archiveTime) {
         Date now = new Date();
         ConsumedMessageHistoryEntity entity = new ConsumedMessageHistoryEntity();
@@ -115,6 +153,12 @@ public class EzMybatisConsumedMessageRepository implements ConsumedMessageReposi
         return entity;
     }
 
+    /**
+     * 将消费实体转换为记录
+     *
+     * @param entity 消费记录实体
+     * @return 消费记录
+     */
     private ConsumedMessageRecord toRecord(ConsumedMessageEntity entity) {
         ConsumedMessageRecord record = new ConsumedMessageRecord();
         record.setId(entity.getId());
@@ -128,14 +172,33 @@ public class EzMybatisConsumedMessageRepository implements ConsumedMessageReposi
         return record;
     }
 
+    /**
+     * 将实体生成的主键回写到记录
+     *
+     * @param record 消费记录
+     * @param entity 消费记录实体
+     */
     private void applyGeneratedIdentity(ConsumedMessageRecord record, ConsumedMessageEntity entity) {
         record.setId(entity.getId());
     }
 
+    /**
+     * 使用默认时间填充空值
+     *
+     * @param date 原始时间
+     * @param defaultDate 默认时间
+     * @return 原始时间或默认时间
+     */
     private Date defaultDate(Date date, Date defaultDate) {
         return date == null ? defaultDate : date;
     }
 
+    /**
+     * 使用默认消费状态填充空值
+     *
+     * @param consumeStatus 原始消费状态
+     * @return 原始消费状态或成功状态
+     */
     private ConsumeStatus defaultConsumeStatus(ConsumeStatus consumeStatus) {
         return consumeStatus == null ? ConsumeStatus.SUCCESS : consumeStatus;
     }

@@ -10,6 +10,9 @@ import java.util.concurrent.TimeUnit;
  */
 public class MessageDispatchWakeupCoordinator implements MessageDispatchWakeupService {
 
+    /**
+     * 派发线程唤醒信号
+     */
     private final Semaphore wakeupSignal = new Semaphore(0);
 
     @Override
