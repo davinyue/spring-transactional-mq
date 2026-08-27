@@ -1,7 +1,7 @@
 package org.rdlinux.transactionalmq.rabbitmq;
 
 import org.junit.Test;
-import org.rdlinux.transactionalmq.api.consumer.QueueMsgHandleRet;
+import org.rdlinux.transactionalmq.api.consumer.ConsumeHandleContext;
 import org.rdlinux.transactionalmq.api.consumer.TransactionalMessageConsumer;
 import org.rdlinux.transactionalmq.api.model.ConsumeContext;
 import org.rdlinux.transactionalmq.common.enums.MqType;
@@ -17,7 +17,8 @@ public class RabbitMqConsumerInvokerTest {
                 .setConsumerCode("consumer-3");
         RecordingConsumer consumer = new RecordingConsumer();
 
-        invoker.invoke(consumer, context, "payload-3");
+        ConsumeHandleContext handleContext = ConsumeHandleContext.DEFAULT();
+        invoker.invoke(consumer, context, handleContext, "payload-3");
 
         assertEquals(context, consumer.context);
         assertEquals("payload-3", consumer.payload);
@@ -44,10 +45,9 @@ public class RabbitMqConsumerInvokerTest {
         }
 
         @Override
-        public QueueMsgHandleRet consume(ConsumeContext context, String payload) {
+        public void consume(ConsumeContext context, ConsumeHandleContext handleContext, String payload) {
             this.context = context;
             this.payload = payload;
-            return QueueMsgHandleRet.DEFAULT();
         }
     }
 }

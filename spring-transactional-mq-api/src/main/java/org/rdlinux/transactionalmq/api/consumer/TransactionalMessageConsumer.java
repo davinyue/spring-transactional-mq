@@ -48,7 +48,7 @@ public interface TransactionalMessageConsumer<T> {
      * @return 消费失败重试策略
      */
     default ConsumeRetryPolicy getConsumeRetryPolicy() {
-        return ConsumeRetryPolicy.noRetry();
+        return ConsumeRetryPolicy.nativeNack();
     }
 
     /**
@@ -61,8 +61,9 @@ public interface TransactionalMessageConsumer<T> {
     /**
      * 消费事务消息事务已经开启
      *
-     * @param context 消费上下文
-     * @param payload 消息负载
+     * @param context       消费上下文
+     * @param handleContext 消费处理上下文
+     * @param payload       消息负载
      */
-    QueueMsgHandleRet consume(ConsumeContext context, T payload);
+    void consume(ConsumeContext context, ConsumeHandleContext handleContext, T payload);
 }

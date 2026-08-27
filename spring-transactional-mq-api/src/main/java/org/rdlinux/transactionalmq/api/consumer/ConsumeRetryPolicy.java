@@ -18,6 +18,10 @@ public final class ConsumeRetryPolicy {
      */
     private enum PolicyType {
         /**
+         * 使用 MQ 原生 nack 重试
+         */
+        NATIVE_NACK,
+        /**
          * 不重试
          */
         NO_RETRY,
@@ -37,6 +41,11 @@ public final class ConsumeRetryPolicy {
 
     private static final ConsumeRetryPolicy NO_RETRY = new ConsumeRetryPolicy(
             PolicyType.NO_RETRY, 0, null, Collections.emptyList());
+    /**
+     * 使用 MQ 原生 nack 重试策略
+     */
+    private static final ConsumeRetryPolicy NATIVE_NACK = new ConsumeRetryPolicy(
+            PolicyType.NATIVE_NACK, 0, null, Collections.emptyList());
 
     /**
      * 策略类型
@@ -129,6 +138,24 @@ public final class ConsumeRetryPolicy {
     }
 
     /**
+     * 获取 MQ 原生 nack 重试策略
+     *
+     * @return MQ 原生 nack 重试策略
+     */
+    public static ConsumeRetryPolicy nativeNack() {
+        return NATIVE_NACK;
+    }
+
+    /**
+     * 判断当前策略是否使用 MQ 原生 nack 重试
+     *
+     * @return 是则返回 true，否则返回 false
+     */
+    public boolean isNativeNack() {
+        return this.policyType == PolicyType.NATIVE_NACK;
+    }
+
+    /**
      * 获取下一次重试间隔
      *
      * <p>{@code retryCount=0} 表示原始消息首次消费失败，查询第一次重试间隔；
@@ -142,6 +169,8 @@ public final class ConsumeRetryPolicy {
             throw new IllegalArgumentException("retryCount must not be negative");
         }
         switch (this.policyType) {
+            case NATIVE_NACK:
+                return Optional.empty();
             case FIXED_DELAY:
                 return retryCount < this.maxRetryCount ? Optional.of(this.fixedDelay) : Optional.empty();
             case CUSTOM_DELAYS:

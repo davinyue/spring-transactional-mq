@@ -1,7 +1,7 @@
 package org.rdlinux.transactionalmq.rabbitmq;
 
 import org.junit.Test;
-import org.rdlinux.transactionalmq.api.consumer.QueueMsgHandleRet;
+import org.rdlinux.transactionalmq.api.consumer.ConsumeHandleContext;
 import org.rdlinux.transactionalmq.api.consumer.TransactionalMessageConsumer;
 import org.rdlinux.transactionalmq.api.model.ConsumeContext;
 import org.rdlinux.transactionalmq.api.serialize.MessagePayloadSerializer;
@@ -126,8 +126,7 @@ public class RabbitMqConsumerRegistrarTest {
         }
 
         @Override
-        public QueueMsgHandleRet consume(ConsumeContext context, String payload) {
-            return QueueMsgHandleRet.DEFAULT();
+        public void consume(ConsumeContext context, ConsumeHandleContext handleContext, String payload) {
         }
     }
 
@@ -149,8 +148,7 @@ public class RabbitMqConsumerRegistrarTest {
         }
 
         @Override
-        public QueueMsgHandleRet consume(ConsumeContext context, String payload) {
-            return QueueMsgHandleRet.DEFAULT();
+        public void consume(ConsumeContext context, ConsumeHandleContext handleContext, String payload) {
         }
     }
 }

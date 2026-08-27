@@ -56,6 +56,17 @@ public class ConsumeRetryPolicyTest {
     }
 
     /**
+     * 验证原生 nack 策略不创建延迟重试间隔
+     */
+    @Test
+    public void nativeNackShouldUseNativeMqRetry() {
+        ConsumeRetryPolicy policy = ConsumeRetryPolicy.nativeNack();
+
+        Assert.assertTrue(policy.isNativeNack());
+        Assert.assertFalse(policy.nextDelay(0).isPresent());
+    }
+
+    /**
      * 验证非法策略参数被拒绝
      */
     @Test

@@ -1,6 +1,6 @@
 package org.rdlinux.transactionalmq.rabbitmq;
 
-import org.rdlinux.transactionalmq.api.consumer.QueueMsgHandleRet;
+import org.rdlinux.transactionalmq.api.consumer.ConsumeHandleContext;
 import org.rdlinux.transactionalmq.api.consumer.TransactionalMessageConsumer;
 import org.rdlinux.transactionalmq.api.model.ConsumeContext;
 
@@ -14,11 +14,12 @@ public class RabbitMqConsumerInvoker {
      *
      * @param consumer 统一消费者
      * @param context  消费上下文
-     * @param payload  消息负载
-     * @param <T>      负载类型
-     * @return 消息处理结果
+     * @param handleContext 消费处理上下文
+     * @param payload       消息负载
+     * @param <T>           负载类型
      */
-    public <T> QueueMsgHandleRet invoke(TransactionalMessageConsumer<T> consumer, ConsumeContext context, T payload) {
-        return consumer.consume(context, payload);
+    public <T> void invoke(TransactionalMessageConsumer<T> consumer, ConsumeContext context,
+                           ConsumeHandleContext handleContext, T payload) {
+        consumer.consume(context, handleContext, payload);
     }
 }

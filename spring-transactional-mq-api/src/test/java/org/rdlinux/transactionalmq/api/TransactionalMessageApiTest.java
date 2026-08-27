@@ -2,7 +2,7 @@ package org.rdlinux.transactionalmq.api;
 
 import org.junit.Assert;
 import org.junit.Test;
-import org.rdlinux.transactionalmq.api.consumer.QueueMsgHandleRet;
+import org.rdlinux.transactionalmq.api.consumer.ConsumeHandleContext;
 import org.rdlinux.transactionalmq.api.consumer.TransactionalMessageConsumer;
 import org.rdlinux.transactionalmq.api.model.ConsumeContext;
 import org.rdlinux.transactionalmq.api.model.TransactionalMessage;
@@ -82,10 +82,9 @@ public class TransactionalMessageApiTest {
             }
 
             @Override
-            public QueueMsgHandleRet consume(ConsumeContext context, String payload) {
+            public void consume(ConsumeContext context, ConsumeHandleContext handleContext, String payload) {
                 observedConsumerCode[0] = context.getConsumerCode();
                 observedPayload[0] = payload;
-                return QueueMsgHandleRet.DEFAULT();
             }
         };
 
@@ -123,7 +122,7 @@ public class TransactionalMessageApiTest {
                 .setMessageKey("message-key-1")
                 .setConsumerCode(consumer.consumerCode());
 
-        consumer.consume(context, message.getPayload());
+        consumer.consume(context, ConsumeHandleContext.DEFAULT(), message.getPayload());
 
         String messageId = sender.send(MqType.RABBITMQ, message);
         String childMessageId = sender.sendWithParent(MqType.RABBITMQ, message, context);
@@ -134,6 +133,7 @@ public class TransactionalMessageApiTest {
         Assert.assertEquals(MqType.RABBITMQ, consumer.getSupportMqType());
         Assert.assertEquals(1, consumer.getMinConcurrency());
         Assert.assertEquals(1, consumer.getMaxConcurrency());
+        Assert.assertTrue(consumer.getConsumeRetryPolicy().isNativeNack());
         Assert.assertEquals("RABBITMQ-msg-2", messageId);
         Assert.assertEquals("RABBITMQ-msg-1-child", childMessageId);
         Assert.assertEquals("root-1", context.getRootId());
@@ -178,11 +178,11 @@ public class TransactionalMessageApiTest {
      * 验证消费后回调可获取消费处理异常。
      */
     @Test
-    public void queueMsgHandleRetShouldPassExceptionToFinallyCall() {
+    public void consumeHandleContextShouldPassExceptionToFinallyCall() {
         final Exception[] observedException = new Exception[1];
         IllegalStateException failure = new IllegalStateException("consume failed");
 
-        QueueMsgHandleRet.DEFAULT()
+        ConsumeHandleContext.DEFAULT()
                 .addFinallyCall(exception -> observedException[0] = exception)
                 .executeFinallyCall(failure);
 

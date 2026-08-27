@@ -3,8 +3,8 @@ package org.rdlinux.transactionalmq.rabbitmq;
 import com.rabbitmq.client.Channel;
 import lombok.extern.slf4j.Slf4j;
 import org.rdlinux.id.objectid.ObjectId;
+import org.rdlinux.transactionalmq.api.consumer.ConsumeHandleContext;
 import org.rdlinux.transactionalmq.api.consumer.ConsumeRetryPolicy;
-import org.rdlinux.transactionalmq.api.consumer.QueueMsgHandleRet;
 import org.rdlinux.transactionalmq.api.consumer.TransactionalMessageConsumer;
 import org.rdlinux.transactionalmq.api.model.ConsumeContext;
 import org.rdlinux.transactionalmq.api.model.TransactionalMessage;
@@ -132,7 +132,7 @@ class RabbitMqConsumerMessageListener implements ChannelAwareMessageListener {
                 return;
             }
             AtomicBoolean doAck = new AtomicBoolean(Boolean.FALSE);
-            AtomicReference<QueueMsgHandleRet> retRef = new AtomicReference<>();
+            ConsumeHandleContext handleContext = ConsumeHandleContext.DEFAULT();
             AtomicReference<String> failureMessageRef = new AtomicReference<>("consume failed");
             Exception exeException = null;
             try {
@@ -147,14 +147,10 @@ class RabbitMqConsumerMessageListener implements ChannelAwareMessageListener {
                     log.info("开始处理队列消息, 队列:{}, 消息id:{}, 上级消息id:{}, 根消息id:{}",
                             this.consumer.getQueueName(),
                             context.getId(), context.getParentId(), context.getRootId());
-                    QueueMsgHandleRet handleRet = this.invokeConsumer(context, payload);
-                    if (handleRet == null) {
-                        handleRet = QueueMsgHandleRet.DEFAULT();
-                    }
-                    retRef.set(handleRet);
-                    if (handleRet.isRollBack()) {
+                    this.invokeConsumer(context, handleContext, payload);
+                    if (handleContext.isRollBack()) {
                         //回滚前提交ack
-                        if (handleRet.isRollBackAck()) {
+                        if (handleContext.isRollBackAck()) {
                             doAck.set(true);
                         }
                         log.info("处理队列事务回滚, 队列:{}, 消息id:{}, 上级消息id:{}, 根消息id:{}",
@@ -164,7 +160,7 @@ class RabbitMqConsumerMessageListener implements ChannelAwareMessageListener {
                         throw new RuntimeException("处理队列事务回滚");
                     }
                     //事务提交前回调
-                    handleRet.executeCommitCall();
+                    handleContext.executeCommitCall();
                     //不回滚, 提交ack
                     doAck.set(true);
                 });
@@ -180,13 +176,10 @@ class RabbitMqConsumerMessageListener implements ChannelAwareMessageListener {
             } finally {
                 //执行finallyCall
                 try {
-                    QueueMsgHandleRet handleRet = retRef.get();
-                    if (handleRet != null) {
-                        log.info("执行事务提交或者回滚后回调, 队列:{}, 消息id:{}, 上级消息id:{}, 根消息id:{}",
-                                this.consumer.getQueueName(),
-                                context.getId(), context.getParentId(), context.getRootId());
-                        handleRet.executeFinallyCall(exeException);
-                    }
+                    log.info("执行事务提交或者回滚后回调, 队列:{}, 消息id:{}, 上级消息id:{}, 根消息id:{}",
+                            this.consumer.getQueueName(),
+                            context.getId(), context.getParentId(), context.getRootId());
+                    handleContext.executeFinallyCall(exeException);
                 } catch (Exception ex) {
                     log.error("执行事务提交或者回滚后回调异常, 队列:{}, 消息id:{}, 上级消息id:{}, 根消息id:{}",
                             this.consumer.getQueueName(),
@@ -259,14 +252,14 @@ class RabbitMqConsumerMessageListener implements ChannelAwareMessageListener {
     /**
      * 调用业务消费者
      *
-     * @param context 消费上下文
-     * @param payload 消息负载
-     * @return 消息处理结果
+     * @param context       消费上下文
+     * @param handleContext 消费处理上下文
+     * @param payload       消费负载
      */
     @SuppressWarnings("unchecked")
-    private QueueMsgHandleRet invokeConsumer(ConsumeContext context, Object payload) {
-        return this.rabbitMqConsumerInvoker.invoke((TransactionalMessageConsumer<Object>) this.consumer, context,
-                payload);
+    private void invokeConsumer(ConsumeContext context, ConsumeHandleContext handleContext, Object payload) {
+        this.rabbitMqConsumerInvoker.invoke((TransactionalMessageConsumer<Object>) this.consumer, context,
+                handleContext, payload);
     }
 
     /**
@@ -312,11 +305,14 @@ class RabbitMqConsumerMessageListener implements ChannelAwareMessageListener {
             return false;
         }
         try {
-            TransactionalMessage<Object> retryMessage = this.buildRetryMessage(message, context, payload);
             ConsumeRetryPolicy retryPolicy = this.consumer.getConsumeRetryPolicy();
             if (retryPolicy == null) {
                 throw new IllegalStateException("consume retry policy must not be null");
             }
+            if (retryPolicy.isNativeNack()) {
+                return false;
+            }
+            TransactionalMessage<Object> retryMessage = this.buildRetryMessage(message, context, payload);
             Optional<Duration> nextDelay = retryPolicy.nextDelay(context.getRetryCount());
             if (nextDelay.isPresent()) {
                 this.messagePublishService.scheduleConsumeRetry(MqType.RABBITMQ, retryMessage, context,

@@ -6,7 +6,7 @@
     <parent>
         <groupId>org.rdlinux</groupId>
         <artifactId>spring-transactional-mq-parent</artifactId>
-        <version>0.0.3</version>
+        <version>0.0.4</version>
     </parent>
 
     <artifactId>spring-transactional-mq-rabbitmq</artifactId>

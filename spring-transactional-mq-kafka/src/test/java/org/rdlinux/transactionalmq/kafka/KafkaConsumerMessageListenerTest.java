@@ -5,7 +5,7 @@ import org.apache.kafka.common.header.internals.RecordHeaders;
 import org.apache.kafka.common.record.TimestampType;
 import org.junit.Test;
 import org.rdlinux.transactionalmq.api.consumer.ConsumeRetryPolicy;
-import org.rdlinux.transactionalmq.api.consumer.QueueMsgHandleRet;
+import org.rdlinux.transactionalmq.api.consumer.ConsumeHandleContext;
 import org.rdlinux.transactionalmq.api.consumer.TransactionalMessageConsumer;
 import org.rdlinux.transactionalmq.api.model.ConsumeContext;
 import org.rdlinux.transactionalmq.api.model.TransactionalMessage;
@@ -80,6 +80,32 @@ public class KafkaConsumerMessageListenerTest {
         verify(acknowledgment).nack(Duration.ofMillis(10000L));
         verify(acknowledgment, never()).acknowledge();
         verifyNoInteractions(messagePublishService);
+    }
+
+    @Test
+    public void onMessageShouldNackWhenConsumerThrowsWithDefaultPolicy() {
+        KafkaConsumerInvoker invoker = new KafkaConsumerInvoker();
+        MessagePayloadSerializer serializer = mock(MessagePayloadSerializer.class);
+        ConsumeIdempotentService consumeIdempotentService = mock(ConsumeIdempotentService.class);
+        MessagePublishService messagePublishService = mock(MessagePublishService.class);
+        ExceptionConsumer consumer = new ExceptionConsumer();
+        KafkaConsumerMessageListener listener = new KafkaConsumerMessageListener(consumer, invoker, serializer,
+                consumeIdempotentService, new TxnMqTransactionalService(), messagePublishService);
+        Acknowledgment acknowledgment = mock(Acknowledgment.class);
+        ConsumerRecord<String, byte[]> record = this.buildRecord("msg-exception", "key-exception", null, null,
+                KafkaPayloadCodec.gzip("\"payload-exception\""));
+
+        when(consumeIdempotentService.recordIfAbsent(any(ConsumeContext.class))).thenReturn(true);
+        when(serializer.deserialize("\"payload-exception\"", (Type) String.class))
+                .thenReturn("payload-exception");
+
+        listener.onMessage(record, acknowledgment);
+
+        verify(acknowledgment).nack(Duration.ofMillis(10000L));
+        verify(acknowledgment, never()).acknowledge();
+        verifyNoInteractions(messagePublishService);
+        assertNotNull(consumer.handleContext);
+        assertNotNull(consumer.finallyException);
     }
 
     @Test
@@ -208,8 +234,36 @@ public class KafkaConsumerMessageListenerTest {
         }
 
         @Override
-        public QueueMsgHandleRet consume(ConsumeContext context, String payload) {
-            return QueueMsgHandleRet.DEFAULT().addFinallyCall(exception -> this.finallyException = exception);
+        public void consume(ConsumeContext context, ConsumeHandleContext handleContext, String payload) {
+            handleContext.addFinallyCall(exception -> this.finallyException = exception);
+        }
+    }
+
+    private static final class ExceptionConsumer implements TransactionalMessageConsumer<String> {
+
+        private ConsumeHandleContext handleContext;
+        private Exception finallyException;
+
+        @Override
+        public String getQueueName() {
+            return "topic.exception";
+        }
+
+        @Override
+        public MqType getSupportMqType() {
+            return MqType.KAFKA;
+        }
+
+        @Override
+        public String consumerCode() {
+            return "consumer-exception";
+        }
+
+        @Override
+        public void consume(ConsumeContext context, ConsumeHandleContext handleContext, String payload) {
+            this.handleContext = handleContext;
+            handleContext.addFinallyCall(exception -> this.finallyException = exception);
+            throw new IllegalStateException("consumer exception");
         }
     }
 
@@ -238,9 +292,8 @@ public class KafkaConsumerMessageListenerTest {
         }
 
         @Override
-        public QueueMsgHandleRet consume(ConsumeContext context, String payload) {
-            return QueueMsgHandleRet.DEFAULT()
-                    .setRollBack(true)
+        public void consume(ConsumeContext context, ConsumeHandleContext handleContext, String payload) {
+            handleContext.setRollBack(true)
                     .addFinallyCall(exception -> this.finallyException = exception);
         }
     }
@@ -266,8 +319,7 @@ public class KafkaConsumerMessageListenerTest {
     private static final class EarlyWarningConsumer extends AbstractParentConsumer<EarlyWarningMessage> {
 
         @Override
-        public QueueMsgHandleRet consume(ConsumeContext context, EarlyWarningMessage payload) {
-            return QueueMsgHandleRet.DEFAULT();
+        public void consume(ConsumeContext context, ConsumeHandleContext handleContext, EarlyWarningMessage payload) {
         }
     }
 

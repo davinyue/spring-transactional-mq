@@ -8,12 +8,12 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * 消费消息处理结果
+ * 消费处理上下文
  */
 @Getter
 @Setter
 @Accessors(chain = true)
-public class QueueMsgHandleRet {
+public class ConsumeHandleContext {
     /**
      * 事务提交或回滚后回调
      */
@@ -35,9 +35,9 @@ public class QueueMsgHandleRet {
      * 添加事务提交或回滚后回调
      *
      * @param unlockCall 事务提交或回滚后的回调
-     * @return 当前处理结果对象
+     * @return 当前消费处理上下文
      */
-    public QueueMsgHandleRet addFinallyCall(final FinallyCall unlockCall) {
+    public ConsumeHandleContext addFinallyCall(final FinallyCall unlockCall) {
         if (this.finallyCalls == null) {
             this.finallyCalls = new ArrayList<>();
         }
@@ -62,9 +62,9 @@ public class QueueMsgHandleRet {
      * 添加事务提交前回调
      *
      * @param commitCall 事务提交前的回调
-     * @return 当前处理结果对象
+     * @return 当前消费处理上下文
      */
-    public QueueMsgHandleRet addCommitBeforeCall(final Runnable commitCall) {
+    public ConsumeHandleContext addCommitBeforeCall(final Runnable commitCall) {
         if (this.commitBeforeCalls == null) {
             this.commitBeforeCalls = new ArrayList<>();
         }
@@ -84,11 +84,11 @@ public class QueueMsgHandleRet {
     }
 
     /**
-     * 创建默认提交结果
+     * 创建默认消费处理上下文
      *
-     * @return 默认提交结果
+     * @return 默认消费处理上下文
      */
-    public static QueueMsgHandleRet DEFAULT() {
-        return new QueueMsgHandleRet().setRollBack(false).setRollBackAck(false);
+    public static ConsumeHandleContext DEFAULT() {
+        return new ConsumeHandleContext().setRollBack(false).setRollBackAck(false);
     }
 }

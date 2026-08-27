@@ -5,7 +5,7 @@
 
     <groupId>org.rdlinux</groupId>
     <artifactId>spring-transactional-mq-parent</artifactId>
-    <version>0.0.3</version>
+    <version>0.0.4</version>
     <packaging>pom</packaging>
 
     <name>spring-transactional-mq-parent</name>
@@ -26,6 +26,7 @@
             <email>davinyue@gmail.com</email>
         </developer>
     </developers>
+    
 
     <scm>
         <tag>master</tag>

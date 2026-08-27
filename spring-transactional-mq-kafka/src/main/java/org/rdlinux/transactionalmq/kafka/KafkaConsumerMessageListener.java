@@ -4,8 +4,8 @@ import lombok.extern.slf4j.Slf4j;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.common.header.Header;
 import org.rdlinux.id.objectid.ObjectId;
+import org.rdlinux.transactionalmq.api.consumer.ConsumeHandleContext;
 import org.rdlinux.transactionalmq.api.consumer.ConsumeRetryPolicy;
-import org.rdlinux.transactionalmq.api.consumer.QueueMsgHandleRet;
 import org.rdlinux.transactionalmq.api.consumer.TransactionalMessageConsumer;
 import org.rdlinux.transactionalmq.api.model.ConsumeContext;
 import org.rdlinux.transactionalmq.api.model.TransactionalMessage;
@@ -105,7 +105,7 @@ class KafkaConsumerMessageListener implements AcknowledgingMessageListener<Strin
             }
             AtomicBoolean doAck = new AtomicBoolean(false);
             AtomicBoolean needRetry = new AtomicBoolean(false);
-            AtomicReference<QueueMsgHandleRet> retRef = new AtomicReference<>();
+            ConsumeHandleContext handleContext = ConsumeHandleContext.DEFAULT();
             AtomicReference<String> failureMessageRef = new AtomicReference<>("consume failed");
             Exception exeException = null;
             try {
@@ -114,17 +114,13 @@ class KafkaConsumerMessageListener implements AcknowledgingMessageListener<Strin
                         doAck.set(true);
                         return;
                     }
-                    QueueMsgHandleRet handleRet = this.invokeConsumer(context, payload);
-                    if (handleRet == null) {
-                        handleRet = QueueMsgHandleRet.DEFAULT();
-                    }
-                    retRef.set(handleRet);
-                    if (handleRet.isRollBack()) {
+                    this.invokeConsumer(context, handleContext, payload);
+                    if (handleContext.isRollBack()) {
                         needRetry.set(true);
                         failureMessageRef.set("consumer requested transaction rollback");
                         throw new RuntimeException("处理队列事务回滚");
                     }
-                    handleRet.executeCommitCall();
+                    handleContext.executeCommitCall();
                     doAck.set(true);
                 });
             } catch (UnexpectedRollbackException e) {
@@ -140,10 +136,7 @@ class KafkaConsumerMessageListener implements AcknowledgingMessageListener<Strin
                 failureMessageRef.set(this.describeFailure(e));
             } finally {
                 try {
-                    QueueMsgHandleRet handleRet = retRef.get();
-                    if (handleRet != null) {
-                        handleRet.executeFinallyCall(exeException);
-                    }
+                    handleContext.executeFinallyCall(exeException);
                 } catch (Exception ex) {
                     log.error("执行事务提交或者回滚后回调异常, topic:{}", this.consumer.getQueueName(), ex);
                     doAck.set(false);
@@ -192,6 +185,13 @@ class KafkaConsumerMessageListener implements AcknowledgingMessageListener<Strin
             return false;
         }
         try {
+            ConsumeRetryPolicy retryPolicy = this.consumer.getConsumeRetryPolicy();
+            if (retryPolicy == null) {
+                throw new IllegalStateException("consume retry policy must not be null");
+            }
+            if (retryPolicy.isNativeNack()) {
+                return false;
+            }
             TransactionalMessage<Object> retryMessage = new TransactionalMessage<>()
                     .setMessageKey(context.getMessageKey())
                     .setProducerCode(this.findHeader(record, "producerCode"))
@@ -201,10 +201,6 @@ class KafkaConsumerMessageListener implements AcknowledgingMessageListener<Strin
                     .setHeaders(this.toHeaders(record))
                     .setBizKey(this.findHeader(record, "bizKey"))
                     .setPayload(payload);
-            ConsumeRetryPolicy retryPolicy = this.consumer.getConsumeRetryPolicy();
-            if (retryPolicy == null) {
-                throw new IllegalStateException("consume retry policy must not be null");
-            }
             Optional<Duration> nextDelay = retryPolicy.nextDelay(context.getRetryCount());
             if (nextDelay.isPresent()) {
                 this.messagePublishService.scheduleConsumeRetry(MqType.KAFKA, retryMessage, context,
@@ -236,13 +232,14 @@ class KafkaConsumerMessageListener implements AcknowledgingMessageListener<Strin
     /**
      * 调用业务消费者
      *
-     * @param context 消费上下文
-     * @param payload 消息负载
-     * @return 消息处理结果
+     * @param context       消费上下文
+     * @param handleContext 消费处理上下文
+     * @param payload       消息负载
      */
     @SuppressWarnings("unchecked")
-    private QueueMsgHandleRet invokeConsumer(ConsumeContext context, Object payload) {
-        return this.kafkaConsumerInvoker.invoke((TransactionalMessageConsumer<Object>) this.consumer, context, payload);
+    private void invokeConsumer(ConsumeContext context, ConsumeHandleContext handleContext, Object payload) {
+        this.kafkaConsumerInvoker.invoke((TransactionalMessageConsumer<Object>) this.consumer, context, handleContext,
+                payload);
     }
 
     /**

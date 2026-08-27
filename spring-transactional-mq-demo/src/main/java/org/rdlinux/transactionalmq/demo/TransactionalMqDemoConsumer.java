@@ -1,6 +1,6 @@
 package org.rdlinux.transactionalmq.demo;
 
-import org.rdlinux.transactionalmq.api.consumer.QueueMsgHandleRet;
+import org.rdlinux.transactionalmq.api.consumer.ConsumeHandleContext;
 import org.rdlinux.transactionalmq.api.consumer.TransactionalMessageConsumer;
 import org.rdlinux.transactionalmq.api.model.ConsumeContext;
 import org.rdlinux.transactionalmq.common.enums.MqType;
@@ -64,9 +64,8 @@ public class TransactionalMqDemoConsumer implements TransactionalMessageConsumer
     }
 
     @Override
-    public QueueMsgHandleRet consume(ConsumeContext context, Map<?, ?> payload) {
+    public void consume(ConsumeContext context, ConsumeHandleContext handleContext, Map<?, ?> payload) {
         LOGGER.info("demo consumer received message, id={}, messageKey={}, payload={}",
                 context.getId(), context.getMessageKey(), payload);
-        return QueueMsgHandleRet.DEFAULT();
     }
 }

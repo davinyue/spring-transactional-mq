@@ -9,7 +9,7 @@ import org.rdlinux.ezmybatis.core.EzQuery;
 import org.rdlinux.ezmybatis.core.dao.EzDao;
 import org.rdlinux.ezmybatis.core.sqlstruct.Select;
 import org.rdlinux.ezmybatis.core.sqlstruct.table.EntityTable;
-import org.rdlinux.transactionalmq.api.consumer.QueueMsgHandleRet;
+import org.rdlinux.transactionalmq.api.consumer.ConsumeHandleContext;
 import org.rdlinux.transactionalmq.api.consumer.TransactionalMessageConsumer;
 import org.rdlinux.transactionalmq.api.model.ConsumeContext;
 import org.rdlinux.transactionalmq.api.model.TransactionalMessage;
@@ -292,10 +292,9 @@ public class TransactionalMqRealSendConsumeTest {
         }
 
         @Override
-        public QueueMsgHandleRet consume(ConsumeContext context, Map<?, ?> payload) {
+        public void consume(ConsumeContext context, ConsumeHandleContext handleContext, Map<?, ?> payload) {
             Assertions.assertNotNull(payload);
             this.consumedId = context.getId();
-            return QueueMsgHandleRet.DEFAULT();
         }
 
         private String getConsumedId() {

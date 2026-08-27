@@ -62,12 +62,12 @@ RabbitMQ 场景：
 <dependency>
     <groupId>org.rdlinux</groupId>
     <artifactId>spring-transactional-mq-spring-boot-starter</artifactId>
-    <version>0.0.3</version>
+    <version>0.0.4</version>
 </dependency>
 <dependency>
     <groupId>org.rdlinux</groupId>
     <artifactId>spring-transactional-mq-rabbitmq</artifactId>
-    <version>0.0.3</version>
+    <version>0.0.4</version>
 </dependency>
 ```
 
@@ -77,12 +77,12 @@ Kafka 场景：
 <dependency>
     <groupId>org.rdlinux</groupId>
     <artifactId>spring-transactional-mq-spring-boot-starter</artifactId>
-    <version>0.0.3</version>
+    <version>0.0.4</version>
 </dependency>
 <dependency>
     <groupId>org.rdlinux</groupId>
     <artifactId>spring-transactional-mq-kafka</artifactId>
-    <version>0.0.3</version>
+    <version>0.0.4</version>
 </dependency>
 ```
 
@@ -308,9 +308,9 @@ public class OrderCreatedConsumer implements TransactionalMessageConsumer<Map<St
     }
 
     @Override
-    public QueueMsgHandleRet consume(ConsumeContext context, Map<String, Object> payload) {
+    public void consume(ConsumeContext context, ConsumeHandleContext handleContext,
+                        Map<String, Object> payload) {
         // 处理业务逻辑
-        return QueueMsgHandleRet.DEFAULT();
     }
 }
 ```
@@ -337,8 +337,7 @@ public class UserCreatedConsumer implements TransactionalMessageConsumer<String>
     }
 
     @Override
-    public QueueMsgHandleRet consume(ConsumeContext context, String payload) {
-        return QueueMsgHandleRet.DEFAULT();
+    public void consume(ConsumeContext context, ConsumeHandleContext handleContext, String payload) {
     }
 }
 ```
@@ -348,7 +347,8 @@ public class UserCreatedConsumer implements TransactionalMessageConsumer<String>
 - `getQueueName()` 表示 RabbitMQ 的队列名，或 Kafka 的 topic 名
 - `getSupportMqType()` 用于声明该消费者属于哪个 MQ
 - 消费前框架会先记录消费记录，重复消息会被幂等逻辑拦截
-- 消费逻辑运行在事务中，返回 `QueueMsgHandleRet` 可控制提交或回滚
+- 消费逻辑运行在事务中，可通过 `ConsumeHandleContext` 控制提交或回滚
+- 消费者抛出异常时，默认使用 `ConsumeRetryPolicy.nativeNack()` 通过 MQ 原生机制重试
 
 ### 消费失败退避重试
 
@@ -369,17 +369,16 @@ public ConsumeRetryPolicy getConsumeRetryPolicy() {
 }
 ```
 
-消费方法抛出异常，或返回要求回滚且不提前确认 MQ 消息的结果时，会进入上述重试策略：
+消费方法抛出异常，或通过处理上下文要求回滚且不提前确认 MQ 消息时，会进入上述重试策略：
 
 ```java
 @Override
-public QueueMsgHandleRet consume(ConsumeContext context, OrderCreatedMessage payload) {
+public void consume(ConsumeContext context, ConsumeHandleContext handleContext,
+                    OrderCreatedMessage payload) {
     if (!orderService.create(payload)) {
-        return QueueMsgHandleRet.DEFAULT()
-                .setRollBack(true)
+        handleContext.setRollBack(true)
                 .setRollBackAck(false);
     }
-    return QueueMsgHandleRet.DEFAULT();
 }
 ```
 
@@ -387,9 +386,10 @@ public QueueMsgHandleRet consume(ConsumeContext context, OrderCreatedMessage pay
 
 也可以使用以下预置策略：
 
+- `ConsumeRetryPolicy.nativeNack()`：使用 Kafka nack 或 RabbitMQ requeue 进行原生重试，消费者接口默认使用该策略
 - `ConsumeRetryPolicy.fixedDelay(5, Duration.ofMinutes(1))`：最多重试 5 次，每次间隔 1 分钟
 - `ConsumeRetryPolicy.fixedDelayForever(Duration.ofMinutes(1))`：每分钟重试一次，不限制次数
-- `ConsumeRetryPolicy.noRetry()`：不重试，也是消费者接口的默认策略
+- `ConsumeRetryPolicy.noRetry()`：不重试，需要消费者显式配置
 
 自定义间隔的数量就是总重试次数，间隔不要求递增。业务失败后，框架先回滚业务事务，再用独立事务将下一轮消息保存到 `TXN_MESSAGE`，通过 `next_dispatch_time` 延迟派发；保存成功后才确认当前 MQ 消息，不会长时间占用消费线程。
 
