@@ -29,7 +29,7 @@ public class RabbitMqConsumerRegistrar implements SmartInitializingSingleton, Di
     private final ApplicationContext applicationContext;
     private final TxnMqTransactionalService txnMqTransactionalService;
     private final MessagePublishService messagePublishService;
-    private final List<SimpleMessageListenerContainer> containers = new ArrayList<SimpleMessageListenerContainer>();
+    private final List<SimpleMessageListenerContainer> containers = new ArrayList<>();
 
     public RabbitMqConsumerRegistrar(ConnectionFactory connectionFactory,
                                      RabbitMqConsumerInvoker rabbitMqConsumerInvoker, MessagePayloadSerializer messagePayloadSerializer,

@@ -45,7 +45,7 @@ public class DispatchMessage {
     /**
      * 扩展消息头
      */
-    private Map<String, String> headers = new HashMap<String, String>();
+    private Map<String, String> headers = new HashMap<>();
     /**
      * 业务键
      */
@@ -244,7 +244,7 @@ public class DispatchMessage {
      * @return 消息头
      */
     public Map<String, String> getHeaders() {
-        return new HashMap<String, String>(this.headers);
+        return new HashMap<>(this.headers);
     }
 
     /**
@@ -254,10 +254,10 @@ public class DispatchMessage {
      */
     public void setHeaders(Map<String, String> headers) {
         if (headers == null) {
-            this.headers = new HashMap<String, String>();
+            this.headers = new HashMap<>();
             return;
         }
-        this.headers = new HashMap<String, String>(headers);
+        this.headers = new HashMap<>(headers);
     }
 
     /**

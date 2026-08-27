@@ -48,7 +48,7 @@ public class EzMybatisMessageSendLogRepository implements MessageSendLogReposito
                 .page(1, limit)
                 .build();
         List<MessageSendLogEntity> entities = this.ezDao.query(query);
-        List<MessageSendLogRecord> records = new ArrayList<MessageSendLogRecord>(entities.size());
+        List<MessageSendLogRecord> records = new ArrayList<>(entities.size());
         for (MessageSendLogEntity entity : entities) {
             records.add(this.toRecord(entity));
         }

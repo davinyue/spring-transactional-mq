@@ -53,7 +53,7 @@ public class TransactionalMqRealDataRunner implements ApplicationRunner {
     }
 
     private Map<String, Object> buildPayload(String messageKey) {
-        Map<String, Object> payload = new LinkedHashMap<String, Object>();
+        Map<String, Object> payload = new LinkedHashMap<>();
         payload.put("messageKey", messageKey);
         payload.put("source", "spring-transactional-mq-demo");
         payload.put("timestamp", System.currentTimeMillis());

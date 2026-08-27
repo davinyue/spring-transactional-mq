@@ -46,7 +46,7 @@ public class TransactionalMessage<T> extends BaseEntity<TransactionalMessage<T>>
     /**
      * 扩展消息头
      */
-    private Map<String, String> headers = new HashMap<String, String>();
+    private Map<String, String> headers = new HashMap<>();
     /**
      * 业务键
      */
@@ -125,7 +125,7 @@ public class TransactionalMessage<T> extends BaseEntity<TransactionalMessage<T>>
      * @return 消息头
      */
     public Map<String, String> getHeaders() {
-        return new HashMap<String, String>(this.headers);
+        return new HashMap<>(this.headers);
     }
 
     /**
@@ -136,9 +136,9 @@ public class TransactionalMessage<T> extends BaseEntity<TransactionalMessage<T>>
      */
     public TransactionalMessage<T> setHeaders(Map<String, String> headers) {
         if (headers == null) {
-            this.headers = new HashMap<String, String>();
+            this.headers = new HashMap<>();
         } else {
-            this.headers = new HashMap<String, String>(headers);
+            this.headers = new HashMap<>(headers);
         }
         return this.castSelf();
     }

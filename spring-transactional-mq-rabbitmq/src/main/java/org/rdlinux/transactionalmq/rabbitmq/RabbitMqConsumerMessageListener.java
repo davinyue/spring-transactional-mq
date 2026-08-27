@@ -306,7 +306,7 @@ class RabbitMqConsumerMessageListener implements ChannelAwareMessageListener {
                 route = receivedRoutingKey;
             }
         }
-        return new TransactionalMessage<Object>()
+        return new TransactionalMessage<>()
                 .setMessageKey(context.getMessageKey())
                 .setProducerCode(this.headerValue(properties, "producerCode"))
                 .setDestination(destination)
@@ -361,7 +361,7 @@ class RabbitMqConsumerMessageListener implements ChannelAwareMessageListener {
     }
 
     private Map<String, String> toHeaders(MessageProperties properties) {
-        Map<String, String> headers = new HashMap<String, String>();
+        Map<String, String> headers = new HashMap<>();
         for (Map.Entry<String, Object> entry : properties.getHeaders().entrySet()) {
             headers.put(entry.getKey(), entry.getValue() == null ? null : String.valueOf(entry.getValue()));
         }

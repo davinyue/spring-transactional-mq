@@ -24,7 +24,7 @@ public final class ConsumeRetryPolicy {
     }
 
     private static final ConsumeRetryPolicy NO_RETRY = new ConsumeRetryPolicy(
-            PolicyType.NO_RETRY, 0, null, Collections.<Duration>emptyList());
+            PolicyType.NO_RETRY, 0, null, Collections.emptyList());
 
     /**
      * 策略类型
@@ -72,7 +72,7 @@ public final class ConsumeRetryPolicy {
         }
         validateDelay(delay);
         return new ConsumeRetryPolicy(PolicyType.FIXED_DELAY, maxRetryCount, delay,
-                Collections.<Duration>emptyList());
+                Collections.emptyList());
     }
 
     /**
@@ -104,7 +104,7 @@ public final class ConsumeRetryPolicy {
     public static ConsumeRetryPolicy fixedDelayForever(Duration delay) {
         validateDelay(delay);
         return new ConsumeRetryPolicy(PolicyType.FIXED_DELAY_FOREVER, Integer.MAX_VALUE, delay,
-                Collections.<Duration>emptyList());
+                Collections.emptyList());
     }
 
     /**
@@ -131,10 +131,10 @@ public final class ConsumeRetryPolicy {
         }
         switch (this.policyType) {
             case FIXED_DELAY:
-                return retryCount < this.maxRetryCount ? Optional.of(this.fixedDelay) : Optional.<Duration>empty();
+                return retryCount < this.maxRetryCount ? Optional.of(this.fixedDelay) : Optional.empty();
             case CUSTOM_DELAYS:
                 return retryCount < this.customDelays.size()
-                        ? Optional.of(this.customDelays.get(retryCount)) : Optional.<Duration>empty();
+                        ? Optional.of(this.customDelays.get(retryCount)) : Optional.empty();
             case FIXED_DELAY_FOREVER:
                 return Optional.of(this.fixedDelay);
             case NO_RETRY:

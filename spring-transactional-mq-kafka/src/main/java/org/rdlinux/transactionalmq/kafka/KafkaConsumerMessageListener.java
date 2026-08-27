@@ -85,7 +85,7 @@ class KafkaConsumerMessageListener implements AcknowledgingMessageListener<Strin
             AtomicBoolean doAck = new AtomicBoolean(false);
             AtomicBoolean needRetry = new AtomicBoolean(false);
             AtomicReference<QueueMsgHandleRet> retRef = new AtomicReference<>();
-            AtomicReference<String> failureMessageRef = new AtomicReference<String>("consume failed");
+            AtomicReference<String> failureMessageRef = new AtomicReference<>("consume failed");
             Exception exeException = null;
             try {
                 this.txnMqTransactionalService.required(() -> {
@@ -166,7 +166,7 @@ class KafkaConsumerMessageListener implements AcknowledgingMessageListener<Strin
             return false;
         }
         try {
-            TransactionalMessage<Object> retryMessage = new TransactionalMessage<Object>()
+            TransactionalMessage<Object> retryMessage = new TransactionalMessage<>()
                     .setMessageKey(context.getMessageKey())
                     .setProducerCode(this.findHeader(record, "producerCode"))
                     .setDestination(record.topic())

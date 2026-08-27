@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""检查 voucher-bridge 后端 Java 代码是否符合项目基础规范。"""
+"""检查 spring-transactional-mq Java 代码是否符合项目基础规范。"""
 
 import argparse
 import re
@@ -9,13 +9,11 @@ from typing import Dict, Iterable, List, Optional, Sequence, Tuple
 
 
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
-PROJECT_PACKAGE = "com.ynyc.vb"
-DEFAULT_SCAN_ROOTS = (
-    PROJECT_ROOT / "voucher-bridge-be" / "voucher-bridge-dto" / "src" / "main" / "java",
-    PROJECT_ROOT / "voucher-bridge-be" / "voucher-bridge-service" / "src" / "main" / "java",
+PROJECT_PACKAGE = "org.rdlinux.transactionalmq"
+DEFAULT_SCAN_ROOTS = tuple(
+    sorted(PROJECT_ROOT.glob("spring-transactional-mq-*/src/main/java"))
 )
 EXCLUDED_DIRECTORY_NAMES = {".git", "target", "node_modules"}
-DOMAIN_EVENT_COMPATIBILITY_FILE = "DomainEvent.java"
 
 Violation = Tuple[int, str]
 
@@ -317,46 +315,6 @@ def method_requires_return_doc(signature: str) -> bool:
     return bool(prefix) and not re.search(r"\bvoid\s*$", prefix)
 
 
-def find_field_injection_violations(lines: Sequence[str]) -> List[Violation]:
-    """检查 Spring Bean 字段注入。"""
-    violations: List[Violation] = []
-    injection_pattern = re.compile(r"@(?:Autowired|Resource|Inject|Value)\b")
-    pending_line: Optional[int] = None
-
-    for index, line in enumerate(lines):
-        stripped_line = line.strip()
-        if not stripped_line or stripped_line.startswith("//"):
-            continue
-        injection_match = injection_pattern.search(stripped_line)
-        if injection_match:
-            pending_line = index + 1
-            declaration = stripped_line[injection_match.end():].strip()
-            declaration = re.sub(r"^\([^)]*\)\s*", "", declaration)
-            if not declaration:
-                continue
-            stripped_line = declaration
-        elif pending_line is None:
-            continue
-        elif stripped_line.startswith("@"):
-            continue
-
-        first_parenthesis = stripped_line.find("(")
-        equals_sign = stripped_line.find("=")
-        is_field = stripped_line.endswith(";") and (
-            first_parenthesis < 0 or (equals_sign >= 0 and equals_sign < first_parenthesis)
-        )
-        if is_field:
-            violations.append(
-                (
-                    pending_line,
-                    "Spring Bean禁止字段注入，请使用@RequiredArgsConstructor和private final依赖。",
-                )
-            )
-        pending_line = None
-
-    return violations
-
-
 def check_jdk8_compatibility(line: str, line_number: int) -> List[Violation]:
     """检查项目明确禁止的 JDK 9 及以上语法和常见 API。"""
     rules = (
@@ -396,31 +354,14 @@ def check_file(file_path: Path) -> List[Violation]:
     lines = content.splitlines()
     violations.extend(find_extra_asterisk_javadoc_tags(lines))
     package_name = find_package_name(lines)
-    filename = file_path.name
-    path_parts = set(file_path.parts)
-    is_project_code = (
-        package_name == PROJECT_PACKAGE
-        or package_name.startswith(PROJECT_PACKAGE + ".")
-        or "voucher-bridge-be" in path_parts
-    )
-    is_dto_module = "voucher-bridge-dto" in path_parts
-    is_domain = package_name == PROJECT_PACKAGE + ".domain" or package_name.startswith(
-        PROJECT_PACKAGE + ".domain."
-    )
-    is_application = package_name == PROJECT_PACKAGE + ".application" or package_name.startswith(
-        PROJECT_PACKAGE + ".application."
-    )
-    is_interfaces = package_name == PROJECT_PACKAGE + ".interfaces" or package_name.startswith(
-        PROJECT_PACKAGE + ".interfaces."
-    )
-    is_controller = is_interfaces and (
-        ".controller." in package_name or package_name.endswith(".controller")
+    is_project_code = any(
+        is_relative_to(file_path, scan_root) for scan_root in DEFAULT_SCAN_ROOTS
     )
 
     if is_project_code and not (
         package_name == PROJECT_PACKAGE or package_name.startswith(PROJECT_PACKAGE + ".")
     ):
-        violations.append((1, "项目Java源码包名必须使用com.ynyc.vb根包。"))
+        violations.append((1, "项目Java源码包名必须使用org.rdlinux.transactionalmq根包。"))
 
     imports: Dict[str, int] = {}
     full_imports: Dict[str, str] = {}
@@ -463,9 +404,6 @@ def check_file(file_path: Path) -> List[Violation]:
         flags=re.MULTILINE,
     )
 
-    if is_project_code:
-        violations.extend(find_field_injection_violations(lines))
-
     for index, line in enumerate(lines):
         line_number = index + 1
         stripped_line = line.strip()
@@ -478,157 +416,6 @@ def check_file(file_path: Path) -> List[Violation]:
             if '"""' in stripped_line:
                 violations.append((line_number, "JDK 1.8不支持文本块。"))
             violations.extend(check_jdk8_compatibility(line_no_strings, line_number))
-
-            prohibited_database_imports = (
-                (
-                    r"import\s+org\.springframework\.jdbc\.core\.(?:JdbcTemplate|namedparam\.NamedParameterJdbcTemplate);",
-                    "禁止使用Spring JDBC Template，必须使用ez-mybatis。",
-                ),
-                (
-                    r"import\s+(?:com\.baomidou\.mybatisplus|org\.apache\.ibatis)\.",
-                    "禁止使用MyBatis/MyBatis-Plus，必须使用ez-mybatis。",
-                ),
-                (
-                    r"import\s+javax\.persistence\.(?:EntityManager|EntityTransaction|Query|TypedQuery|criteria)\b",
-                    "禁止使用JPA操作数据库，必须使用ez-mybatis。",
-                ),
-                (r"import\s+org\.hibernate\.", "禁止使用Hibernate，必须使用ez-mybatis。"),
-                (r"import\s+org\.jooq\.", "禁止使用jOOQ，必须使用ez-mybatis。"),
-                (
-                    r"import\s+(?:java\.sql\.(?:Connection|Statement|PreparedStatement|CallableStatement|ResultSet|DriverManager)|javax\.sql\.DataSource);",
-                    "禁止使用plain JDBC，必须使用ez-mybatis。",
-                ),
-            )
-            for pattern, message in prohibited_database_imports:
-                if re.search(pattern, stripped_line):
-                    violations.append((line_number, message))
-
-            if (
-                re.search(r"import\s+org\.redisson\.api\.RLock;", stripped_line)
-                and filename != "RedissonDistributedLockService.java"
-            ):
-                violations.append(
-                    (line_number, "不得直接操作Redisson RLock，统一使用DistributedLockService。")
-                )
-
-            if is_application and re.search(
-                r"(?:@Transactional\b|import\s+org\.springframework\.transaction\.annotation\.Transactional;)",
-                stripped_line,
-            ):
-                violations.append(
-                    (
-                        line_number,
-                        "应用服务不得使用@Transactional表达用例事务边界，统一使用TransactionalService。",
-                    )
-                )
-
-            if re.search(r"import\s+(?:grp\.fes|grp\.gfmis\.ocp|grp\.pt|com\.ctjsoft\.ocp)\.", stripped_line):
-                violations.append(
-                    (
-                        line_number,
-                        "项目新代码不得引用grp.fes、grp.gfmis.ocp、grp.pt或com.ctjsoft.ocp旧包。",
-                    )
-                )
-
-            if re.search(r"import\s+org\.mapstruct\.", stripped_line) or re.search(
-                r"\bMappers\.getMapper\s*\(", line_no_strings
-            ):
-                violations.append((line_number, "项目禁止使用MapStruct，请手工编写Converter或Assembler。"))
-
-            if is_dto_module:
-                if re.search(
-                    r"import\s+com\.ynyc\.vb\.(?:interfaces|application|domain|infrastructure)\.",
-                    stripped_line,
-                ):
-                    violations.append((line_number, "DTO模块不得依赖Service模块的DDD分层代码。"))
-                if re.search(
-                    r"import\s+(?:org\.springframework\.stereotype|org\.rdlinux\.ezmybatis)\.",
-                    stripped_line,
-                ):
-                    violations.append((line_number, "DTO模块不得承载Spring服务或数据库访问逻辑。"))
-
-            if is_domain:
-                if re.search(
-                    r"import\s+com\.ynyc\.vb\.(?:interfaces|application|infrastructure|request|response)\.",
-                    stripped_line,
-                ):
-                    violations.append(
-                        (line_number, "领域层不得依赖接口层、应用层、基础设施层或接口DTO。")
-                    )
-                if re.search(r"import\s+org\.springframework\.", stripped_line):
-                    is_compatibility_import = (
-                        package_name == PROJECT_PACKAGE + ".domain"
-                        and filename == DOMAIN_EVENT_COMPATIBILITY_FILE
-                        and stripped_line == "import org.springframework.context.ApplicationEvent;"
-                    )
-                    if not is_compatibility_import:
-                        violations.append((line_number, "领域层不得依赖Spring。"))
-                if re.search(
-                    r"import\s+(?:org\.rdlinux\.ezmybatis|javax\.servlet|org\.springframework\.web|"
-                    r"org\.apache\.http|feign|okhttp3|javax\.xml|org\.w3c\.dom|org\.xml\.sax|"
-                    r"org\.springframework\.data\.redis|org\.redisson)\b",
-                    stripped_line,
-                ):
-                    violations.append(
-                        (line_number, "领域层不得依赖数据库、HTTP、XML或Redis等技术实现。")
-                    )
-
-            if is_application and re.search(
-                r"import\s+com\.ynyc\.vb\.(?:interfaces|request|response|infrastructure)\.",
-                stripped_line,
-            ):
-                violations.append(
-                    (line_number, "应用层不得依赖接口层DTO或基础设施实现。")
-                )
-
-            if is_interfaces and re.search(
-                r"import\s+(?:com\.ynyc\.vb\.infrastructure|org\.rdlinux\.ezmybatis)\.",
-                stripped_line,
-            ):
-                violations.append(
-                    (line_number, "接口层不得依赖PO、ez-mybatis或Repository实现。")
-                )
-
-            if is_controller:
-                if re.search(r"\bCurrentUserService\b", line_no_strings):
-                    violations.append(
-                        (
-                            line_number,
-                            "Controller不得直接依赖CurrentUserService，当前用户上下文必须由应用层处理。",
-                        )
-                    )
-                if re.search(
-                    r"\b[A-Za-z_$][A-Za-z0-9_$]*Service\.(?:getCurrentTenant|getCurrentUser)\s*\(",
-                    line_no_strings,
-                ):
-                    violations.append(
-                        (
-                            line_number,
-                            "Controller不得从应用服务单独获取当前租户参与组装，应用层应返回包含展示上下文的用例结果。",
-                        )
-                    )
-                if re.search(
-                    r"(?:applicationService|queryService)\.[A-Za-z0-9_]+\s*\(\s*[A-Za-z0-9_]*[rR]equest\b",
-                    line_no_strings,
-                ):
-                    violations.append(
-                        (
-                            line_number,
-                            "Controller不得把Request直接传给应用服务，必须先转换为Command或Query。",
-                        )
-                    )
-                if re.search(r"public\s+Ret<[^>]*(?:DTO|PO|Plan)>", line_no_strings):
-                    violations.append(
-                        (line_number, "Controller不得直接返回DTO、PO或Plan，必须转换为Response。")
-                    )
-
-            if is_application and re.search(
-                r"public\s+(?:[A-Za-z0-9_]*Response|(?:List|Page|Set|Collection)<[A-Za-z0-9_]*Response>)\b",
-                line_no_strings,
-            ):
-                violations.append(
-                    (line_number, "应用服务不得返回接口层Response，应返回应用DTO或领域内部对象。")
-                )
 
             if (
                 not line_no_strings.startswith(("package ", "import ", "//", "*", "/*"))
@@ -783,6 +570,15 @@ def is_excluded(file_path: Path) -> bool:
     return any(part in EXCLUDED_DIRECTORY_NAMES for part in file_path.parts)
 
 
+def is_relative_to(file_path: Path, directory: Path) -> bool:
+    """判断文件是否位于指定目录内，兼容 Python 3.8。"""
+    try:
+        file_path.resolve().relative_to(directory.resolve())
+        return True
+    except ValueError:
+        return False
+
+
 def collect_java_files(paths: Iterable[Path]) -> List[Path]:
     """收集指定文件或目录下的 Java 文件。"""
     java_files = set()
@@ -806,11 +602,11 @@ def display_path(file_path: Path) -> str:
 
 def parse_args() -> argparse.Namespace:
     """解析命令行参数。"""
-    parser = argparse.ArgumentParser(description="检查voucher-bridge后端Java代码规范")
+    parser = argparse.ArgumentParser(description="检查spring-transactional-mq Java代码规范")
     parser.add_argument(
         "paths",
         nargs="*",
-        help="可选的Java文件或目录；默认扫描DTO和Service模块的src/main/java",
+        help="可选的Java文件或目录；默认扫描所有模块的src/main/java",
     )
     return parser.parse_args()
 

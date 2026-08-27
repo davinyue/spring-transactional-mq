@@ -84,7 +84,7 @@ public class EzMybatisTransactionalMessageRepository implements TransactionalMes
                 .page(1, limit)
                 .build();
         List<TransactionalMessageEntity> entities = this.ezDao.query(query);
-        List<TransactionalMessageRecord> records = new ArrayList<TransactionalMessageRecord>(entities.size());
+        List<TransactionalMessageRecord> records = new ArrayList<>(entities.size());
         for (TransactionalMessageEntity entity : entities) {
             records.add(TransactionalMessageEntityMapper.toRecord(entity));
         }

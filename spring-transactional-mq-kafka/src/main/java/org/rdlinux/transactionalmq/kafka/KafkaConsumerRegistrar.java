@@ -86,7 +86,7 @@ public class KafkaConsumerRegistrar implements SmartInitializingSingleton, Dispo
                     this.messagePublishService));
         }
         ConcurrentMessageListenerContainer<String, byte[]> container =
-                new ConcurrentMessageListenerContainer<String, byte[]>(this.consumerFactory, containerProperties);
+                new ConcurrentMessageListenerContainer<>(this.consumerFactory, containerProperties);
         container.setConcurrency(this.resolveConcurrency(consumer));
         container.setAutoStartup(false);
         container.getContainerProperties().setMissingTopicsFatal(false);

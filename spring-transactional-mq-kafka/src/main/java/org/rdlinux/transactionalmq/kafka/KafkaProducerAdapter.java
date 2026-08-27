@@ -33,7 +33,7 @@ public class KafkaProducerAdapter implements MqProducerAdapter {
             throw new IllegalArgumentException("destination must not be blank");
         }
         byte[] payloadBytes = KafkaPayloadCodec.gzip(message.getPayloadText());
-        ProducerRecord<String, byte[]> record = new ProducerRecord<String, byte[]>(topic.trim(),
+        ProducerRecord<String, byte[]> record = new ProducerRecord<>(topic.trim(),
                 message.getRoute(), payloadBytes);
         for (Map.Entry<String, String> entry : message.getHeaders().entrySet()) {
             this.addHeader(record, entry.getKey(), entry.getValue());

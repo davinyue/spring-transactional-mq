@@ -12,7 +12,7 @@ import java.util.Map;
  */
 public class MqProducerRouter {
 
-    private final Map<MqType, MqProducerAdapter> adapters = new LinkedHashMap<MqType, MqProducerAdapter>();
+    private final Map<MqType, MqProducerAdapter> adapters = new LinkedHashMap<>();
 
     /**
      * 构造 MQ 生产者路由器。

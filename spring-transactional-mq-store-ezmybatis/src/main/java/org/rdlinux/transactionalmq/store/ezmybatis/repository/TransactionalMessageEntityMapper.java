@@ -166,7 +166,7 @@ final class TransactionalMessageEntityMapper {
     }
 
     static Map<String, String> fromHeadersJson(String headersJson) {
-        Map<String, String> headers = new HashMap<String, String>();
+        Map<String, String> headers = new HashMap<>();
         if (headersJson == null) {
             return headers;
         }
