@@ -18,16 +18,21 @@ public class RabbitMqConsumerInvokerTest {
         RecordingConsumer consumer = new RecordingConsumer();
 
         ConsumeHandleContext handleContext = ConsumeHandleContext.DEFAULT();
+        invoker.invokeBeforeTransaction(consumer, context, handleContext, "payload-before");
         invoker.invoke(consumer, context, handleContext, "payload-3");
 
         assertEquals(context, consumer.context);
         assertEquals("payload-3", consumer.payload);
+        assertEquals(context, consumer.beforeContext);
+        assertEquals("payload-before", consumer.beforePayload);
     }
 
     private static final class RecordingConsumer implements TransactionalMessageConsumer<String> {
 
         private ConsumeContext context;
         private String payload;
+        private ConsumeContext beforeContext;
+        private String beforePayload;
 
         @Override
         public String getQueueName() {
@@ -42,6 +47,12 @@ public class RabbitMqConsumerInvokerTest {
         @Override
         public String consumerCode() {
             return "consumer-3";
+        }
+
+        @Override
+        public void beforeTransaction(ConsumeContext context, ConsumeHandleContext handleContext, String payload) {
+            this.beforeContext = context;
+            this.beforePayload = payload;
         }
 
         @Override

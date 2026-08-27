@@ -19,8 +19,12 @@ import org.springframework.kafka.support.Acknowledgment;
 import java.lang.reflect.Type;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Optional;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.mockito.ArgumentMatchers.*;
@@ -57,6 +61,60 @@ public class KafkaConsumerMessageListenerTest {
         verify(acknowledgment).acknowledge();
         verifyNoInteractions(messagePublishService);
         assertNull(consumer.finallyException);
+    }
+
+    @Test
+    public void onMessageShouldInvokeBeforeTransactionBeforeOpeningTransaction() {
+        KafkaConsumerInvoker invoker = new KafkaConsumerInvoker();
+        MessagePayloadSerializer serializer = mock(MessagePayloadSerializer.class);
+        ConsumeIdempotentService consumeIdempotentService = mock(ConsumeIdempotentService.class);
+        List<String> events = new ArrayList<String>();
+        BeforeTransactionConsumer consumer = new BeforeTransactionConsumer(events, false);
+        TxnMqTransactionalService txnService = mock(TxnMqTransactionalService.class);
+        doAnswer(invocation -> {
+            events.add("transaction");
+            ((Runnable) invocation.getArgument(0)).run();
+            return null;
+        }).when(txnService).required(any(Runnable.class));
+        KafkaConsumerMessageListener listener = new KafkaConsumerMessageListener(consumer, invoker, serializer,
+                consumeIdempotentService, txnService, null);
+        Acknowledgment acknowledgment = mock(Acknowledgment.class);
+        ConsumerRecord<String, byte[]> record = this.buildRecord("msg-before", "key-before", null, null,
+                KafkaPayloadCodec.gzip("\"payload-before\""));
+
+        when(consumeIdempotentService.recordIfAbsent(any(ConsumeContext.class))).thenReturn(true);
+        when(serializer.deserialize("\"payload-before\"", (Type) String.class)).thenReturn("payload-before");
+
+        listener.onMessage(record, acknowledgment);
+
+        assertEquals(3, events.size());
+        assertEquals("before", events.get(0));
+        assertEquals("transaction", events.get(1));
+        assertEquals("consume", events.get(2));
+        verify(acknowledgment).acknowledge();
+    }
+
+    @Test
+    public void onMessageShouldNackWhenBeforeTransactionThrows() {
+        KafkaConsumerInvoker invoker = new KafkaConsumerInvoker();
+        MessagePayloadSerializer serializer = mock(MessagePayloadSerializer.class);
+        ConsumeIdempotentService consumeIdempotentService = mock(ConsumeIdempotentService.class);
+        BeforeTransactionConsumer consumer = new BeforeTransactionConsumer(new ArrayList<String>(), true);
+        KafkaConsumerMessageListener listener = new KafkaConsumerMessageListener(consumer, invoker, serializer,
+                consumeIdempotentService, new TxnMqTransactionalService(), null);
+        Acknowledgment acknowledgment = mock(Acknowledgment.class);
+        ConsumerRecord<String, byte[]> record = this.buildRecord("msg-before-failed", "key-before-failed", null, null,
+                KafkaPayloadCodec.gzip("\"payload-before-failed\""));
+
+        when(serializer.deserialize("\"payload-before-failed\"", (Type) String.class))
+                .thenReturn("payload-before-failed");
+
+        listener.onMessage(record, acknowledgment);
+
+        verify(consumeIdempotentService, never()).recordIfAbsent(any(ConsumeContext.class));
+        verify(acknowledgment).nack(Duration.ofMillis(10000L));
+        verify(acknowledgment, never()).acknowledge();
+        assertFalse(consumer.consumeCalled);
     }
 
     @Test
@@ -236,6 +294,47 @@ public class KafkaConsumerMessageListenerTest {
         @Override
         public void consume(ConsumeContext context, ConsumeHandleContext handleContext, String payload) {
             handleContext.addFinallyCall(exception -> this.finallyException = exception);
+        }
+    }
+
+    private static final class BeforeTransactionConsumer implements TransactionalMessageConsumer<String> {
+
+        private final List<String> events;
+        private final boolean failBeforeTransaction;
+        private boolean consumeCalled;
+
+        private BeforeTransactionConsumer(List<String> events, boolean failBeforeTransaction) {
+            this.events = events;
+            this.failBeforeTransaction = failBeforeTransaction;
+        }
+
+        @Override
+        public String getQueueName() {
+            return "topic.before-transaction";
+        }
+
+        @Override
+        public MqType getSupportMqType() {
+            return MqType.KAFKA;
+        }
+
+        @Override
+        public String consumerCode() {
+            return "consumer-before-transaction";
+        }
+
+        @Override
+        public void beforeTransaction(ConsumeContext context, ConsumeHandleContext handleContext, String payload) {
+            this.events.add("before");
+            if (this.failBeforeTransaction) {
+                throw new IllegalStateException("before transaction failed");
+            }
+        }
+
+        @Override
+        public void consume(ConsumeContext context, ConsumeHandleContext handleContext, String payload) {
+            this.events.add("consume");
+            this.consumeCalled = true;
         }
     }
 

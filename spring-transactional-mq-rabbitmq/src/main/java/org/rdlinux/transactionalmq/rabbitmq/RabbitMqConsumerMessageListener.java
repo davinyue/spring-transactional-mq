@@ -136,6 +136,7 @@ class RabbitMqConsumerMessageListener implements ChannelAwareMessageListener {
             AtomicReference<String> failureMessageRef = new AtomicReference<>("consume failed");
             Exception exeException = null;
             try {
+                this.invokeBeforeTransaction(context, handleContext, payload);
                 this.txnMqTransactionalService.required(() -> {
                     if (!this.consumeIdempotentService.recordIfAbsent(context)) {
                         log.info("队列消息已被处理过, 队列:{}, 消息id:{}, 上级消息id:{}, 根消息id:{}",
@@ -260,6 +261,19 @@ class RabbitMqConsumerMessageListener implements ChannelAwareMessageListener {
     private void invokeConsumer(ConsumeContext context, ConsumeHandleContext handleContext, Object payload) {
         this.rabbitMqConsumerInvoker.invoke((TransactionalMessageConsumer<Object>) this.consumer, context,
                 handleContext, payload);
+    }
+
+    /**
+     * 调用事务开启前的消费者处理逻辑
+     *
+     * @param context       消费上下文
+     * @param handleContext 消费处理上下文
+     * @param payload       消息负载
+     */
+    @SuppressWarnings("unchecked")
+    private void invokeBeforeTransaction(ConsumeContext context, ConsumeHandleContext handleContext, Object payload) {
+        this.rabbitMqConsumerInvoker.invokeBeforeTransaction((TransactionalMessageConsumer<Object>) this.consumer,
+                context, handleContext, payload);
     }
 
     /**

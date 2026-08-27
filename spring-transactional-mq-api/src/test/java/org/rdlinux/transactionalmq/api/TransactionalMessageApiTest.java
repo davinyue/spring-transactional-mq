@@ -63,6 +63,7 @@ public class TransactionalMessageApiTest {
     @Test
     public void interfacesShouldCompileAndWork() {
         final String[] observedConsumerCode = new String[1];
+        final String[] observedBeforePayload = new String[1];
         final String[] observedPayload = new String[1];
 
         TransactionalMessageConsumer<String> consumer = new TransactionalMessageConsumer<String>() {
@@ -79,6 +80,11 @@ public class TransactionalMessageApiTest {
             @Override
             public String consumerCode() {
                 return "consumer-1";
+            }
+
+            @Override
+            public void beforeTransaction(ConsumeContext context, ConsumeHandleContext handleContext, String payload) {
+                observedBeforePayload[0] = payload;
             }
 
             @Override
@@ -122,12 +128,14 @@ public class TransactionalMessageApiTest {
                 .setMessageKey("message-key-1")
                 .setConsumerCode(consumer.consumerCode());
 
+        consumer.beforeTransaction(context, ConsumeHandleContext.DEFAULT(), message.getPayload());
         consumer.consume(context, ConsumeHandleContext.DEFAULT(), message.getPayload());
 
         String messageId = sender.send(MqType.RABBITMQ, message);
         String childMessageId = sender.sendWithParent(MqType.RABBITMQ, message, context);
 
         Assert.assertEquals("consumer-1", observedConsumerCode[0]);
+        Assert.assertEquals("payload-value", observedBeforePayload[0]);
         Assert.assertEquals("payload-value", observedPayload[0]);
         Assert.assertEquals("queue.consumer.1", consumer.getQueueName());
         Assert.assertEquals(MqType.RABBITMQ, consumer.getSupportMqType());

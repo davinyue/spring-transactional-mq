@@ -18,7 +18,11 @@ import org.springframework.amqp.core.MessageProperties;
 import java.lang.reflect.Type;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
+import java.util.ArrayList;
+import java.util.List;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.mockito.Mockito.*;
@@ -60,6 +64,66 @@ public class RabbitMqConsumerMessageListenerTest {
         verify(serializer).deserialize("\"payload-1\"", (Type) String.class);
         verify(channel).basicAck(7L, false);
         assertNull(consumer.finallyException);
+    }
+
+    @Test
+    public void onMessageShouldInvokeBeforeTransactionBeforeOpeningTransaction() throws Exception {
+        RabbitMqConsumerInvoker invoker = new RabbitMqConsumerInvoker();
+        MessagePayloadSerializer serializer = mock(MessagePayloadSerializer.class);
+        ConsumeIdempotentService consumeIdempotentService = mock(ConsumeIdempotentService.class);
+        List<String> events = new ArrayList<String>();
+        BeforeTransactionConsumer consumer = new BeforeTransactionConsumer(events, false);
+        TxnMqTransactionalService txnService = mock(TxnMqTransactionalService.class);
+        doAnswer(invocation -> {
+            events.add("transaction");
+            ((Runnable) invocation.getArgument(0)).run();
+            return null;
+        }).when(txnService).required(any(Runnable.class));
+        RabbitMqConsumerMessageListener listener = new RabbitMqConsumerMessageListener(consumer, invoker, serializer,
+                consumeIdempotentService, txnService);
+        Channel channel = mock(Channel.class);
+        MessageProperties properties = new MessageProperties();
+        properties.setMessageId("msg-before");
+        properties.setDeliveryTag(13L);
+        properties.setContentEncoding("gzip");
+        Message message = new Message(RabbitMqPayloadCodec.gzip("\"payload-before\""), properties);
+
+        when(consumeIdempotentService.recordIfAbsent(any(ConsumeContext.class))).thenReturn(true);
+        when(serializer.deserialize("\"payload-before\"", (Type) String.class)).thenReturn("payload-before");
+
+        listener.onMessage(message, channel);
+
+        assertEquals(3, events.size());
+        assertEquals("before", events.get(0));
+        assertEquals("transaction", events.get(1));
+        assertEquals("consume", events.get(2));
+        verify(channel).basicAck(13L, false);
+    }
+
+    @Test
+    public void onMessageShouldNackWhenBeforeTransactionThrows() throws Exception {
+        RabbitMqConsumerInvoker invoker = new RabbitMqConsumerInvoker();
+        MessagePayloadSerializer serializer = mock(MessagePayloadSerializer.class);
+        ConsumeIdempotentService consumeIdempotentService = mock(ConsumeIdempotentService.class);
+        BeforeTransactionConsumer consumer = new BeforeTransactionConsumer(new ArrayList<String>(), true);
+        RabbitMqConsumerMessageListener listener = new RabbitMqConsumerMessageListener(consumer, invoker, serializer,
+                consumeIdempotentService, new TxnMqTransactionalService());
+        Channel channel = mock(Channel.class);
+        MessageProperties properties = new MessageProperties();
+        properties.setMessageId("msg-before-failed");
+        properties.setDeliveryTag(14L);
+        properties.setContentEncoding("gzip");
+        Message message = new Message(RabbitMqPayloadCodec.gzip("\"payload-before-failed\""), properties);
+
+        when(serializer.deserialize("\"payload-before-failed\"", (Type) String.class))
+                .thenReturn("payload-before-failed");
+
+        listener.onMessage(message, channel);
+
+        verify(consumeIdempotentService, never()).recordIfAbsent(any(ConsumeContext.class));
+        verify(channel).basicNack(14L, false, true);
+        verify(channel, never()).basicAck(anyLong(), anyBoolean());
+        assertFalse(consumer.consumeCalled);
     }
 
     @Test
@@ -237,6 +301,47 @@ public class RabbitMqConsumerMessageListenerTest {
         @Override
         public void consume(ConsumeContext context, ConsumeHandleContext handleContext, String payload) {
             handleContext.addFinallyCall(exception -> this.finallyException = exception);
+        }
+    }
+
+    private static final class BeforeTransactionConsumer implements TransactionalMessageConsumer<String> {
+
+        private final List<String> events;
+        private final boolean failBeforeTransaction;
+        private boolean consumeCalled;
+
+        private BeforeTransactionConsumer(List<String> events, boolean failBeforeTransaction) {
+            this.events = events;
+            this.failBeforeTransaction = failBeforeTransaction;
+        }
+
+        @Override
+        public String getQueueName() {
+            return "queue.before-transaction";
+        }
+
+        @Override
+        public MqType getSupportMqType() {
+            return MqType.RABBITMQ;
+        }
+
+        @Override
+        public String consumerCode() {
+            return "consumer-before-transaction";
+        }
+
+        @Override
+        public void beforeTransaction(ConsumeContext context, ConsumeHandleContext handleContext, String payload) {
+            this.events.add("before");
+            if (this.failBeforeTransaction) {
+                throw new IllegalStateException("before transaction failed");
+            }
+        }
+
+        @Override
+        public void consume(ConsumeContext context, ConsumeHandleContext handleContext, String payload) {
+            this.events.add("consume");
+            this.consumeCalled = true;
         }
     }
 

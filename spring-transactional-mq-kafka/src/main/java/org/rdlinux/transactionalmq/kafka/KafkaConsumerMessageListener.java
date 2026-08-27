@@ -109,6 +109,7 @@ class KafkaConsumerMessageListener implements AcknowledgingMessageListener<Strin
             AtomicReference<String> failureMessageRef = new AtomicReference<>("consume failed");
             Exception exeException = null;
             try {
+                this.invokeBeforeTransaction(context, handleContext, payload);
                 this.txnMqTransactionalService.required(() -> {
                     if (!this.consumeIdempotentService.recordIfAbsent(context)) {
                         doAck.set(true);
@@ -240,6 +241,19 @@ class KafkaConsumerMessageListener implements AcknowledgingMessageListener<Strin
     private void invokeConsumer(ConsumeContext context, ConsumeHandleContext handleContext, Object payload) {
         this.kafkaConsumerInvoker.invoke((TransactionalMessageConsumer<Object>) this.consumer, context, handleContext,
                 payload);
+    }
+
+    /**
+     * 调用事务开启前的消费者处理逻辑
+     *
+     * @param context       消费上下文
+     * @param handleContext 消费处理上下文
+     * @param payload       消息负载
+     */
+    @SuppressWarnings("unchecked")
+    private void invokeBeforeTransaction(ConsumeContext context, ConsumeHandleContext handleContext, Object payload) {
+        this.kafkaConsumerInvoker.invokeBeforeTransaction((TransactionalMessageConsumer<Object>) this.consumer,
+                context, handleContext, payload);
     }
 
     /**

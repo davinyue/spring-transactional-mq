@@ -59,6 +59,18 @@ public interface TransactionalMessageConsumer<T> {
     String consumerCode();
 
     /**
+     * 事务开启前执行消费逻辑。
+     *
+     * <p>该方法在消费上下文和消息负载解析完成后、消费幂等记录及业务事务开启前执行。
+     *
+     * @param context       消费上下文
+     * @param handleContext 消费处理上下文
+     * @param payload       消息负载
+     */
+    default void beforeTransaction(ConsumeContext context, ConsumeHandleContext handleContext, T payload) {
+    }
+
+    /**
      * 消费事务消息事务已经开启
      *
      * @param context       消费上下文

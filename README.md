@@ -62,12 +62,12 @@ RabbitMQ 场景：
 <dependency>
     <groupId>org.rdlinux</groupId>
     <artifactId>spring-transactional-mq-spring-boot-starter</artifactId>
-    <version>0.0.4</version>
+    <version>0.0.5</version>
 </dependency>
 <dependency>
     <groupId>org.rdlinux</groupId>
     <artifactId>spring-transactional-mq-rabbitmq</artifactId>
-    <version>0.0.4</version>
+    <version>0.0.5</version>
 </dependency>
 ```
 
@@ -77,12 +77,12 @@ Kafka 场景：
 <dependency>
     <groupId>org.rdlinux</groupId>
     <artifactId>spring-transactional-mq-spring-boot-starter</artifactId>
-    <version>0.0.4</version>
+    <version>0.0.5</version>
 </dependency>
 <dependency>
     <groupId>org.rdlinux</groupId>
     <artifactId>spring-transactional-mq-kafka</artifactId>
-    <version>0.0.4</version>
+    <version>0.0.5</version>
 </dependency>
 ```
 
@@ -346,7 +346,9 @@ public class UserCreatedConsumer implements TransactionalMessageConsumer<String>
 
 - `getQueueName()` 表示 RabbitMQ 的队列名，或 Kafka 的 topic 名
 - `getSupportMqType()` 用于声明该消费者属于哪个 MQ
-- 消费前框架会先记录消费记录，重复消息会被幂等逻辑拦截
+- `beforeTransaction(...)` 在消费幂等记录和业务事务开启前执行，适合放置明确需要事务外语义的预处理逻辑
+- 进入消费事务后，框架会先记录消费记录，重复消息会被幂等逻辑拦截
+- `beforeTransaction(...)` 位于幂等判断之前，不能保证消费只触发一次；重复投递、重试或消费记录清理后再次投递时都可能再次执行，逻辑应具备幂等或可重复执行能力
 - 消费逻辑运行在事务中，可通过 `ConsumeHandleContext` 控制提交或回滚
 - 消费者抛出异常时，默认使用 `ConsumeRetryPolicy.nativeNack()` 通过 MQ 原生机制重试
 
