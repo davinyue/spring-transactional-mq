@@ -67,6 +67,7 @@ public class MessagePublishService implements TransactionalMessageSender {
     /**
      * 保存消息并返回消息 id
      *
+     * @param mqType  MQ 类型
      * @param message 事务消息
      * @param <T>     负载类型
      * @return 消息 id

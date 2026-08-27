@@ -79,12 +79,14 @@ def is_annotation_gap(
     return is_annotation_region(lines, start_index, end_index)
 
 
-def find_javadoc(lines: Sequence[str], current_index: int) -> Optional[str]:
-    """获取声明前的 JavaDoc；重写方法返回空字符串以表示无需重复注释。"""
+def find_javadoc(
+    lines: Sequence[str], current_index: int, include_override_javadoc: bool = False
+) -> Optional[str]:
+    """获取声明前的 JavaDoc；默认跳过重写方法，按需校验其已有注释。"""
     immediate_index = current_index - 1
     while immediate_index >= 0 and not lines[immediate_index].strip():
         immediate_index -= 1
-    if immediate_index >= 0 \
+    if not include_override_javadoc and immediate_index >= 0 \
             and lines[immediate_index].strip().startswith("@Override"):
         return ""
 
@@ -100,7 +102,7 @@ def find_javadoc(lines: Sequence[str], current_index: int) -> Optional[str]:
             return None
         if not is_annotation_gap(lines, index + 1, current_index):
             return None
-        if any(
+        if not include_override_javadoc and any(
             lines[annotation_index].strip().startswith("@Override")
             for annotation_index in range(index + 1, current_index)
         ):
@@ -313,6 +315,50 @@ def method_requires_return_doc(signature: str) -> bool:
     )
     prefix = re.sub(r"^<[^>]+>\s*", "", prefix)
     return bool(prefix) and not re.search(r"\bvoid\s*$", prefix)
+
+
+def method_returns_void(signature: str) -> bool:
+    """判断方法是否声明 void 返回类型。"""
+    method_name = extract_method_name(signature)
+    if not method_name:
+        return False
+    prefix = signature[:signature.find("(")]
+    prefix = prefix[:prefix.rfind(method_name)].strip()
+    modifiers = {
+        "public",
+        "protected",
+        "private",
+        "abstract",
+        "static",
+        "final",
+        "synchronized",
+        "native",
+        "strictfp",
+        "default",
+    }
+    if prefix and all(token in modifiers for token in prefix.split()):
+        return False
+    prefix = re.sub(
+        r"^(?:(?:public|protected|private|abstract|static|final|synchronized|native|strictfp|default)\s+)+",
+        "",
+        prefix,
+    )
+    prefix = re.sub(r"^<[^>]+>\s*", "", prefix)
+    return bool(re.search(r"\bvoid\s*$", prefix))
+
+
+def extract_javadoc_parameter_names(javadoc: str) -> List[str]:
+    """提取 JavaDoc 中声明的普通方法参数名。"""
+    return re.findall(
+        r"^\s*\*\s+@param\s+([A-Za-z_$][A-Za-z0-9_$]*)\b",
+        javadoc,
+        re.MULTILINE,
+    )
+
+
+def has_javadoc_return_tag(javadoc: str) -> bool:
+    """判断 JavaDoc 是否包含 @return 标签。"""
+    return bool(re.search(r"^\s*\*\s+@return\b", javadoc, re.MULTILINE))
 
 
 def check_jdk8_compatibility(line: str, line_number: int) -> List[Violation]:
@@ -613,6 +659,10 @@ def check_file(file_path: Path) -> List[Violation]:
         )
         if is_method:
             javadoc = find_javadoc(lines, index)
+            if not javadoc:
+                override_javadoc = find_javadoc(lines, index, include_override_javadoc=True)
+                if override_javadoc is not None:
+                    javadoc = override_javadoc
             if javadoc_after_annotation(lines, index):
                 violations.append(
                     (line_number, "方法JavaDoc必须置于全部注解上方。")
@@ -630,13 +680,12 @@ def check_file(file_path: Path) -> List[Violation]:
                     )
                 else:
                     signature = collect_method_signature(lines, index)
+                    parameter_names = extract_parameter_names(signature)
+                    documented_parameters = extract_javadoc_parameter_names(javadoc)
                     missing_parameters = [
                         parameter_name
-                        for parameter_name in extract_parameter_names(signature)
-                        if not re.search(
-                            r"@param\s+{}\b".format(re.escape(parameter_name)),
-                            javadoc,
-                        )
+                        for parameter_name in parameter_names
+                        if parameter_name not in documented_parameters
                     ]
                     if missing_parameters:
                         violations.append(
@@ -647,10 +696,29 @@ def check_file(file_path: Path) -> List[Violation]:
                                 ),
                             )
                         )
+                    invalid_parameters = [
+                        parameter_name
+                        for parameter_name in documented_parameters
+                        if parameter_name not in parameter_names
+                    ]
+                    if invalid_parameters:
+                        violations.append(
+                            (
+                                line_number,
+                                "方法JavaDoc包含不存在的参数说明: {}。".format(
+                                    ", ".join(invalid_parameters)
+                                ),
+                            )
+                        )
                     if method_requires_return_doc(signature) \
-                            and "@return" not in javadoc:
+                            and not has_javadoc_return_tag(javadoc):
                         violations.append(
                             (line_number, "方法JavaDoc缺少@return说明。")
+                        )
+                    if method_returns_void(signature) \
+                            and has_javadoc_return_tag(javadoc):
+                        violations.append(
+                            (line_number, "void方法JavaDoc不得包含@return说明。")
                         )
 
     for class_name, line_number in imports.items():

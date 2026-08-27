@@ -83,12 +83,6 @@ public class EzMybatisTransactionalMessageRepository implements TransactionalMes
      *
      * @param record 死信记录
      */
-    /**
-     * 查询待派发的事务消息
-     *
-     * @param limit 最大查询条数
-     * @return 待派发事务消息
-     */
     @Override
     @Transactional(rollbackFor = Exception.class, propagation = Propagation.REQUIRES_NEW)
     public void saveDeadConsumeRetry(TransactionalMessageRecord record) {
@@ -98,10 +92,10 @@ public class EzMybatisTransactionalMessageRepository implements TransactionalMes
     }
 
     /**
-     * 领取一条待派发消息并设置派发锁
+     * 查询待派发的事务消息
      *
-     * @param record 待领取消息
-     * @return 领取成功后的消息，领取失败时返回 null
+     * @param limit 最大查询条数
+     * @return 待派发事务消息
      */
     @Override
     public List<TransactionalMessageRecord> findDispatchCandidates(int limit) {
@@ -130,9 +124,10 @@ public class EzMybatisTransactionalMessageRepository implements TransactionalMes
     }
 
     /**
-     * 标记消息派发成功
+     * 领取一条待派发消息并设置派发锁
      *
-     * @param records 已成功派发的消息
+     * @param record 待领取消息
+     * @return 领取成功后的消息，领取失败时返回 null
      */
     @Override
     @Transactional(rollbackFor = Exception.class)
