@@ -2,7 +2,7 @@ ALTER TABLE TXN_MESSAGE ADD (
     original_message_id VARCHAR2(24) NULL,
     retry_count NUMBER(10) DEFAULT 0 NOT NULL,
     consumer_code VARCHAR2(64) NULL,
-    last_error VARCHAR2(1000) NULL
+    last_error VARCHAR2(2000) NULL
 );
 
 UPDATE TXN_MESSAGE
@@ -17,7 +17,7 @@ ALTER TABLE TXN_MESSAGE_HISTORY ADD (
     original_message_id VARCHAR2(24) NULL,
     retry_count NUMBER(10) DEFAULT 0 NOT NULL,
     consumer_code VARCHAR2(64) NULL,
-    last_error VARCHAR2(1000) NULL
+    last_error VARCHAR2(2000) NULL
 );
 
 UPDATE TXN_MESSAGE_HISTORY

@@ -2,7 +2,7 @@ ALTER TABLE TXN_MESSAGE
     ADD COLUMN original_message_id VARCHAR(24) NULL,
     ADD COLUMN retry_count INTEGER NOT NULL DEFAULT 0,
     ADD COLUMN consumer_code VARCHAR(64) NULL,
-    ADD COLUMN last_error VARCHAR(1000) NULL;
+    ADD COLUMN last_error VARCHAR(2000) NULL;
 
 UPDATE TXN_MESSAGE
 SET original_message_id = id
@@ -17,7 +17,7 @@ ALTER TABLE TXN_MESSAGE_HISTORY
     ADD COLUMN original_message_id VARCHAR(24) NULL,
     ADD COLUMN retry_count INTEGER NOT NULL DEFAULT 0,
     ADD COLUMN consumer_code VARCHAR(64) NULL,
-    ADD COLUMN last_error VARCHAR(1000) NULL;
+    ADD COLUMN last_error VARCHAR(2000) NULL;
 
 UPDATE TXN_MESSAGE_HISTORY
 SET original_message_id = id

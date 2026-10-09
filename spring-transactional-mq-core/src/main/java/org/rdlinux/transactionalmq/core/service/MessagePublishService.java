@@ -10,12 +10,14 @@ import org.rdlinux.transactionalmq.common.id.ObjectIdGenerator;
 import org.rdlinux.transactionalmq.core.model.TransactionalMessageRecord;
 import org.rdlinux.transactionalmq.core.mq.MqProducerRouter;
 import org.rdlinux.transactionalmq.core.repository.TransactionalMessageRepository;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.dao.DuplicateKeyException;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.support.TransactionSynchronization;
 import org.springframework.transaction.support.TransactionSynchronizationManager;
 
+import java.sql.SQLException;
 import java.time.Duration;
 import java.util.Date;
 
@@ -28,6 +30,11 @@ public class MessagePublishService implements TransactionalMessageSender {
      * 失败信息最大长度
      */
     private static final int MAX_ERROR_LENGTH = 1000;
+
+    /**
+     * 高斯和 PostgreSQL 兼容数据库的唯一键冲突 SQLState。
+     */
+    private static final String UNIQUE_VIOLATION_SQL_STATE = "23505";
 
     /**
      * 事务消息仓储
@@ -281,8 +288,11 @@ public class MessagePublishService implements TransactionalMessageSender {
         try {
             this.transactionalMessageRepository.saveConsumeRetry(record);
             return true;
-        } catch (DuplicateKeyException ex) {
-            return false;
+        } catch (DataIntegrityViolationException ex) {
+            if (this.isDuplicateKey(ex)) {
+                return false;
+            }
+            throw ex;
         }
     }
 
@@ -294,9 +304,35 @@ public class MessagePublishService implements TransactionalMessageSender {
     private void saveDeadConsumeRetryIfAbsent(TransactionalMessageRecord record) {
         try {
             this.transactionalMessageRepository.saveDeadConsumeRetry(record);
-        } catch (DuplicateKeyException ex) {
+        } catch (DataIntegrityViolationException ex) {
+            if (!this.isDuplicateKey(ex)) {
+                throw ex;
+            }
             // ACK 或 offset 提交失败可能导致原消息再次到达，历史表唯一键可证明死信已经归档
         }
+    }
+
+    /**
+     * 识别唯一键冲突，兼容驱动将唯一键异常转换为通用数据完整性异常的情况。
+     *
+     * @param exception 数据完整性异常
+     * @return 是否为 Spring 重复键异常或 JDBC SQLState 23505
+     */
+    private boolean isDuplicateKey(DataIntegrityViolationException exception) {
+        if (exception instanceof DuplicateKeyException) {
+            return true;
+        }
+        for (Throwable cause = exception.getCause(); cause != null; cause = cause.getCause()) {
+            if (cause instanceof SQLException) {
+                for (SQLException sqlException = (SQLException) cause; sqlException != null;
+                     sqlException = sqlException.getNextException()) {
+                    if (UNIQUE_VIOLATION_SQL_STATE.equals(sqlException.getSQLState())) {
+                        return true;
+                    }
+                }
+            }
+        }
+        return false;
     }
 
     /**

@@ -10,11 +10,13 @@ import org.rdlinux.transactionalmq.core.mq.MqProducerAdapter;
 import org.rdlinux.transactionalmq.core.mq.MqProducerRouter;
 import org.rdlinux.transactionalmq.core.model.TransactionalMessageRecord;
 import org.rdlinux.transactionalmq.core.repository.TransactionalMessageRepository;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.dao.DuplicateKeyException;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.lang.reflect.Method;
 import java.lang.reflect.Type;
+import java.sql.SQLException;
 import java.time.Duration;
 import java.util.Collections;
 import java.util.Date;
@@ -271,6 +273,87 @@ public class MessagePublishServiceTest {
     }
 
     /**
+     * 验证高斯通用完整性异常中的唯一键 SQLState 在重试和死信路径均可去重。
+     */
+    @Test
+    public void consumeRetryShouldIgnoreUniqueSqlState() {
+        this.assertConsumeRetryFailure(new DataIntegrityViolationException("gauss unique violation",
+                new SQLException("unique violation", "23505")), true);
+    }
+
+    /**
+     * 验证嵌套原因链中的唯一键异常可被识别。
+     */
+    @Test
+    public void consumeRetryShouldRecognizeNestedUniqueSqlState() {
+        this.assertConsumeRetryFailure(new DataIntegrityViolationException("wrapped",
+                new IllegalStateException(new SQLException("unique violation", "23505"))), true);
+    }
+
+    /**
+     * 验证 JDBC nextException 链中的唯一键异常可被识别。
+     */
+    @Test
+    public void consumeRetryShouldRecognizeChainedUniqueSqlState() {
+        SQLException batchException = new SQLException("batch failed");
+        batchException.setNextException(new SQLException("unique violation", "23505"));
+        this.assertConsumeRetryFailure(new DataIntegrityViolationException("batch failed", batchException), true);
+    }
+
+    /**
+     * 验证其他完整性错误原样抛出，不能误确认当前消息。
+     */
+    @Test
+    public void consumeRetryShouldPropagateOtherIntegrityViolations() {
+        for (String sqlState : new String[]{"23502", "23503", "23514", "23000", "22001", null}) {
+            this.assertConsumeRetryFailure(new DataIntegrityViolationException("integrity violation",
+                    new SQLException("integrity violation", sqlState)), false);
+        }
+    }
+
+    /**
+     * 验证异常文案不能作为唯一键冲突依据。
+     */
+    @Test
+    public void consumeRetryShouldNotInferDuplicateFromErrorText() {
+        this.assertConsumeRetryFailure(new DataIntegrityViolationException(
+                "Duplicate key value violates unique constraint uk_txn_message_original_retry"), false);
+    }
+
+    /**
+     * 检查两条重试保存路径对数据库异常的处理。
+     *
+     * @param failure 模拟数据库异常
+     * @param duplicate 是否为可忽略的唯一键冲突
+     */
+    private void assertConsumeRetryFailure(DataIntegrityViolationException failure, boolean duplicate) {
+        CapturingTransactionalMessageRepository repository = new CapturingTransactionalMessageRepository();
+        repository.consumeRetryFailure = failure;
+        MessagePublishService service = new MessagePublishService(repository, this.buildSerializer(), null,
+                this.buildRouter(MqType.RABBITMQ));
+        TransactionalMessage<String> message = new TransactionalMessage<String>()
+                .setDestination("queue.retry").setPayload("payload-retry");
+        ConsumeContext context = new ConsumeContext().setId("attempt-1").setOriginalMessageId("original-1");
+        try {
+            Assert.assertFalse(service.scheduleConsumeRetry(MqType.RABBITMQ, message, context,
+                    Duration.ofMinutes(1), "business failed"));
+            Assert.assertTrue("non-duplicate retry failure must propagate", duplicate);
+        } catch (DataIntegrityViolationException ex) {
+            Assert.assertFalse("duplicate retry failure must be ignored", duplicate);
+            Assert.assertSame(failure, ex);
+        }
+        try {
+            service.recordConsumeRetryStopped(MqType.RABBITMQ, message, context, "stop retry");
+            Assert.assertTrue("non-duplicate history failure must propagate", duplicate);
+        } catch (DataIntegrityViolationException ex) {
+            Assert.assertFalse("duplicate history failure must be ignored", duplicate);
+            Assert.assertSame(failure, ex);
+        }
+        Assert.assertNull(repository.retryRecord);
+        Assert.assertNull(repository.deadRetryRecord);
+    }
+
+    /**
      * 构建测试序列化器
      *
      * @return 测试序列化器
@@ -316,14 +399,27 @@ public class MessagePublishServiceTest {
          */
         private boolean duplicateDeadConsumeRetry;
 
+        /**
+         * 模拟重试主表和死信历史表的数据完整性异常。
+         */
+        private DataIntegrityViolationException consumeRetryFailure;
+
         @Override
         public TransactionalMessageRecord save(TransactionalMessageRecord record) {
             this.savedRecord = record;
             return record;
         }
 
+        /**
+         * 捕获消费重试记录，或模拟数据库保存异常。
+         *
+         * @param record 消费重试记录
+         */
         @Override
         public void saveConsumeRetry(TransactionalMessageRecord record) {
+            if (this.consumeRetryFailure != null) {
+                throw this.consumeRetryFailure;
+            }
             if (this.duplicateConsumeRetry) {
                 throw new DuplicateKeyException("duplicate consume retry");
             }
@@ -337,6 +433,9 @@ public class MessagePublishServiceTest {
          */
         @Override
         public void saveDeadConsumeRetry(TransactionalMessageRecord record) {
+            if (this.consumeRetryFailure != null) {
+                throw this.consumeRetryFailure;
+            }
             if (this.duplicateDeadConsumeRetry) {
                 throw new DuplicateKeyException("duplicate dead consume retry");
             }
