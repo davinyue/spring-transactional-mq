@@ -50,6 +50,17 @@ public interface TransactionalMessageRepository {
     List<TransactionalMessageRecord> findDispatchCandidates(int limit);
 
     /**
+     * 查询最近一条待派发消息的未来派发时间
+     *
+     * <p>默认实现返回 {@code null}，自定义仓储可覆盖该方法启用到期时间唤醒</p>
+     *
+     * @return 最近的未来派发时间；没有未来待派发消息时返回 {@code null}
+     */
+    default Date findNextDispatchTime() {
+        return null;
+    }
+
+    /**
      * 尝试抢占单条待派发消息
      *
      * @param record 消息记录

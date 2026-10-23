@@ -124,6 +124,29 @@ public class EzMybatisTransactionalMessageRepository implements TransactionalMes
     }
 
     /**
+     * 查询最近一条待派发消息的未来派发时间
+     *
+     * @return 最近的未来派发时间；没有未来待派发消息时返回 {@code null}
+     */
+    @Override
+    public Date findNextDispatchTime() {
+        Date now = new Date();
+        EzQuery<Date> query = EzQuery.builder(Date.class)
+                .from(TABLE)
+                .select(s -> s.add(TABLE.field(TransactionalMessageEntity.Fields.nextDispatchTime)))
+                .where(w -> w
+                        .add(TABLE.field(TransactionalMessageEntity.Fields.messageStatus).in(MessageStatus.INIT,
+                                MessageStatus.RETRYING, MessageStatus.SENDING))
+                        .add(TABLE.field(TransactionalMessageEntity.Fields.nextDispatchTime).gt(now)))
+                .orderBy(o -> o
+                        .add(TABLE.field(TransactionalMessageEntity.Fields.nextDispatchTime))
+                        .add(TABLE.field(BaseEntity.Fields.id)))
+                .page(1, 1)
+                .build();
+        return this.ezDao.queryOne(query);
+    }
+
+    /**
      * 领取一条待派发消息并设置派发锁
      *
      * @param record 待领取消息

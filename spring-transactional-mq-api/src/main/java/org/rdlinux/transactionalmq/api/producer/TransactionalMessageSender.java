@@ -4,6 +4,8 @@ import org.rdlinux.transactionalmq.api.model.ConsumeContext;
 import org.rdlinux.transactionalmq.api.model.TransactionalMessage;
 import org.rdlinux.transactionalmq.common.enums.MqType;
 
+import java.time.Duration;
+
 /**
  * 事务消息发送器
  */
@@ -20,6 +22,22 @@ public interface TransactionalMessageSender {
     <T> String send(MqType mqType, TransactionalMessage<T> message);
 
     /**
+     * 延迟一段时间后发送事务消息
+     *
+     * <p>延迟从调用该方法时开始计算，消息最早在指定时间后派发；实际派发时间受后台调度周期影响</p>
+     *
+     * @param mqType  MQ 类型
+     * @param message 事务消息
+     * @param delay   延迟时长，必须至少为 1 毫秒
+     * @param <T>     消息负载类型
+     * @return 消息 id
+     * @throws UnsupportedOperationException 发送器未实现延迟发送时抛出
+     */
+    default <T> String sendAfter(MqType mqType, TransactionalMessage<T> message, Duration delay) {
+        throw new UnsupportedOperationException("delayed message sending is not supported");
+    }
+
+    /**
      * 基于父消息链路信息发送新的事务消息
      *
      * <p>该方法只续接链路字段，不会复制父消息的业务内容调用方应自行构造新的
@@ -33,4 +51,24 @@ public interface TransactionalMessageSender {
      * @return 新消息 id
      */
     <T> String sendWithParent(MqType mqType, TransactionalMessage<T> message, ConsumeContext parentContext);
+
+    /**
+     * 基于父消息链路信息延迟发送新的事务消息
+     *
+     * <p>该方法只续接链路字段，不会复制父消息的业务内容调用方应自行构造新的
+     * {@link TransactionalMessage}，框架会根据父上下文自动补齐 {@code parentId} 和
+     * {@code rootId}。延迟从调用该方法时开始计算，实际派发时间受后台调度周期影响</p>
+     *
+     * @param mqType        MQ 类型
+     * @param message       新的事务消息
+     * @param parentContext 父消息消费上下文
+     * @param delay         延迟时长，必须至少为 1 毫秒
+     * @param <T>           消息负载类型
+     * @return 新消息 id
+     * @throws UnsupportedOperationException 发送器未实现延迟发送时抛出
+     */
+    default <T> String sendWithParentAfter(MqType mqType, TransactionalMessage<T> message,
+                                           ConsumeContext parentContext, Duration delay) {
+        throw new UnsupportedOperationException("delayed message sending is not supported");
+    }
 }

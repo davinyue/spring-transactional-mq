@@ -4,15 +4,22 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.DisposableBean;
 import org.springframework.beans.factory.InitializingBean;
 
+import java.util.Date;
+
 /**
  * 事务消息后台派发线程
  *
- * <p>该线程持续轮询数据库中的待发送消息当没有候选消息时会进入休眠；
- * 发送服务在事务提交成功后会通过 {@link MessageDispatchWakeupService#wakeup()} 提前唤醒它，
- * 减少新消息入库后的等待时间</p>
+ * <p>该线程持续轮询数据库中的待发送消息；没有到期候选时会按最近的未来派发时间休眠，
+ * 且休眠不超过最大空闲间隔。发送服务在事务提交成功后会通过
+ * {@link MessageDispatchWakeupService#wakeup()} 提前唤醒它</p>
  */
 @Slf4j
 public class TransactionalMessageDispatchScheduler implements InitializingBean, DisposableBean {
+    /**
+     * 遇到已经到期但暂时未被领取的消息时，最短休眠时间（毫秒）
+     */
+    private static final long MIN_IDLE_RETRY_SLEEP_MILLIS = 100L;
+
     /**
      * 消息派发服务
      */
@@ -22,7 +29,7 @@ public class TransactionalMessageDispatchScheduler implements InitializingBean, 
      */
     private final int dispatchBatchSize;
     /**
-     * 空闲睡眠毫秒数
+     * 最大空闲睡眠毫秒数
      */
     private final long dispatchIdleSleepMillis;
     /**
@@ -44,7 +51,7 @@ public class TransactionalMessageDispatchScheduler implements InitializingBean, 
      *
      * @param messageDispatchService       消息派发服务
      * @param dispatchBatchSize            单次派发批量大小
-     * @param dispatchIdleSleepMillis      空闲睡眠毫秒数
+     * @param dispatchIdleSleepMillis      最大空闲睡眠毫秒数
      * @param messageDispatchWakeupService 派发线程唤醒器
      */
     public TransactionalMessageDispatchScheduler(MessageDispatchService messageDispatchService,
@@ -73,7 +80,7 @@ public class TransactionalMessageDispatchScheduler implements InitializingBean, 
                 if (dispatched > 0) {
                     continue;
                 }
-                this.waitForNextRound(this.dispatchIdleSleepMillis);
+                this.waitForNextRound(this.calculateIdleSleepMillis());
             } catch (InterruptedException ex) {
                 Thread.currentThread().interrupt();
                 return;
@@ -96,6 +103,24 @@ public class TransactionalMessageDispatchScheduler implements InitializingBean, 
      */
     public int dispatchNow() {
         return this.messageDispatchService.dispatchPendingMessages(this.dispatchBatchSize);
+    }
+
+    /**
+     * 计算下一轮派发前的休眠时间
+     *
+     * @return 休眠毫秒数
+     */
+    private long calculateIdleSleepMillis() {
+        long maxSleepMillis = this.dispatchIdleSleepMillis < 1L ? 1000L : this.dispatchIdleSleepMillis;
+        Date nextDispatchTime = this.messageDispatchService.findNextDispatchTime();
+        if (nextDispatchTime == null) {
+            return maxSleepMillis;
+        }
+        long delayMillis = nextDispatchTime.getTime() - System.currentTimeMillis();
+        if (delayMillis <= 0L) {
+            return Math.min(maxSleepMillis, MIN_IDLE_RETRY_SLEEP_MILLIS);
+        }
+        return Math.min(maxSleepMillis, delayMillis);
     }
 
     /**

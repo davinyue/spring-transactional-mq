@@ -79,6 +79,24 @@ public class MessageDispatchServiceTest {
         Assert.assertTrue(repository.failedRecords.isEmpty());
     }
 
+    /**
+     * 验证派发服务从仓储获取最近的未来派发时间。
+     */
+    @Test
+    public void findNextDispatchTimeShouldDelegateToRepository() {
+        Date expectedTime = new Date(System.currentTimeMillis() + 5000L);
+        CapturingTransactionalMessageRepository repository = new CapturingTransactionalMessageRepository();
+        repository.nextDispatchTime = expectedTime;
+        MessageDispatchService service = new MessageDispatchService(repository,
+                new MqProducerRouter(java.util.Collections.<MqProducerAdapter>singletonList(
+                        new CapturingMqProducerAdapter())));
+
+        Date actualTime = service.findNextDispatchTime();
+
+        Assert.assertSame(expectedTime, actualTime);
+        Assert.assertEquals(1, repository.nextDispatchTimeCalls);
+    }
+
     private static TransactionalMessageRecord buildRecord(String id) {
         TransactionalMessageRecord record = new TransactionalMessageRecord();
         record.setId(id);
@@ -99,6 +117,14 @@ public class MessageDispatchServiceTest {
         private int findCalls;
         private int claimLimit;
         private String skippedId;
+        /**
+         * 模拟仓储返回的最近派发时间。
+         */
+        private Date nextDispatchTime;
+        /**
+         * 最近派发时间查询次数。
+         */
+        private int nextDispatchTimeCalls;
         private final List<String> claimedIds = new ArrayList<String>();
         private final List<TransactionalMessageRecord> successRecords = new ArrayList<TransactionalMessageRecord>();
         private final List<TransactionalMessageRecord> failedRecords = new ArrayList<TransactionalMessageRecord>();
@@ -117,6 +143,12 @@ public class MessageDispatchServiceTest {
             this.findCalls++;
             this.claimLimit = limit;
             return this.records;
+        }
+
+        @Override
+        public Date findNextDispatchTime() {
+            this.nextDispatchTimeCalls++;
+            return this.nextDispatchTime;
         }
 
         @Override

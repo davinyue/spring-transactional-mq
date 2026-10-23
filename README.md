@@ -59,30 +59,32 @@ MQ；消费侧在执行业务逻辑前记录消费记录，通过数据库唯一
 RabbitMQ 场景：
 
 ```xml
+
 <dependency>
     <groupId>org.rdlinux</groupId>
     <artifactId>spring-transactional-mq-spring-boot-starter</artifactId>
-    <version>0.0.6</version>
+    <version>0.0.7</version>
 </dependency>
 <dependency>
-    <groupId>org.rdlinux</groupId>
-    <artifactId>spring-transactional-mq-rabbitmq</artifactId>
-    <version>0.0.6</version>
+<groupId>org.rdlinux</groupId>
+<artifactId>spring-transactional-mq-rabbitmq</artifactId>
+<version>0.0.7</version>
 </dependency>
 ```
 
 Kafka 场景：
 
 ```xml
+
 <dependency>
     <groupId>org.rdlinux</groupId>
     <artifactId>spring-transactional-mq-spring-boot-starter</artifactId>
-    <version>0.0.6</version>
+    <version>0.0.7</version>
 </dependency>
 <dependency>
-    <groupId>org.rdlinux</groupId>
-    <artifactId>spring-transactional-mq-kafka</artifactId>
-    <version>0.0.6</version>
+<groupId>org.rdlinux</groupId>
+<artifactId>spring-transactional-mq-kafka</artifactId>
+<version>0.0.7</version>
 </dependency>
 ```
 
@@ -95,31 +97,37 @@ Kafka 场景：
 
 ### 2. starter 自动执行 Flyway 数据库迁移
 
-starter 内置 Flyway 依赖。开启 `transactionalmq.auto-init-schema` 后，starter 会在应用启动时内部创建事务消息专用 Flyway 并执行未完成的迁移；迁移失败会阻止应用启动，不再吞掉异常。该 Flyway 不注册为 Spring Bean，因此不会覆盖业务工程自己的 Flyway。关闭时不会执行事务消息迁移。
+starter 内置 Flyway 依赖。开启 `transactionalmq.auto-init-schema` 后，starter 会在应用启动时内部创建事务消息专用 Flyway
+并执行未完成的迁移；迁移失败会阻止应用启动，不再吞掉异常。该 Flyway 不注册为 Spring Bean，因此不会覆盖业务工程自己的
+Flyway。关闭时不会执行事务消息迁移。
 
-迁移脚本位于 `spring-transactional-mq-store-ezmybatis/src/main/resources/transactionalmq/db/migration`，不使用 Spring Boot 默认的 `classpath:db/migration`：
+迁移脚本位于 `spring-transactional-mq-store-ezmybatis/src/main/resources/transactionalmq/db/migration`，不使用 Spring
+Boot 默认的 `classpath:db/migration`：
 
-| 数据库 | Flyway location |
-| --- | --- |
-| MySQL | `classpath:transactionalmq/db/migration/mysql` |
-| Oracle | `classpath:transactionalmq/db/migration/oracle` |
-| DM | `classpath:transactionalmq/db/migration/dm` |
+| 数据库        | Flyway location                                     |
+|------------|-----------------------------------------------------|
+| MySQL      | `classpath:transactionalmq/db/migration/mysql`      |
+| Oracle     | `classpath:transactionalmq/db/migration/oracle`     |
+| DM         | `classpath:transactionalmq/db/migration/dm`         |
 | PostgreSQL | `classpath:transactionalmq/db/migration/postgresql` |
-| SQL Server | `classpath:transactionalmq/db/migration/sqlserver` |
+| SQL Server | `classpath:transactionalmq/db/migration/sqlserver`  |
 
 每个目录使用相同的不可变版本序列：
 
 - `V1__init.sql`：事务消息表初始结构。
 - `V2__consume_retry.sql`：消费重试字段、数据回填及唯一键。
 
-starter 使用 `ez-mybatis` 识别当前数据库类型，并自动选择表中的唯一一个 location；业务工程无需额外配置 `spring.flyway.locations`。自动初始化默认关闭，启用 Oracle 示例：
+starter 使用 `ez-mybatis` 识别当前数据库类型，并自动选择表中的唯一一个 location；业务工程无需额外配置
+`spring.flyway.locations`。自动初始化默认关闭，启用 Oracle 示例：
 
 ```yaml
 transactionalmq:
   auto-init-schema: true
 ```
 
-事务消息使用独立历史表 `txn_mq_flyway_schema_history`，可通过 `schema-history-table` 修改。空库会按 V1、V2 顺序创建到最新结构。已有非空数据库且尚未有该历史表时，必须显式声明基线版本：未创建事务消息表配置 `schema-baseline-version: "0"`，未包含消费重试字段配置 `"1"`，已包含该字段配置 `"2"`。baseline 仅在配置该项时启用。
+事务消息使用独立历史表 `txn_mq_flyway_schema_history`，可通过 `schema-history-table` 修改。空库会按 V1、V2
+顺序创建到最新结构。已有非空数据库且尚未有该历史表时，必须显式声明基线版本：未创建事务消息表配置
+`schema-baseline-version: "0"`，未包含消费重试字段配置 `"1"`，已包含该字段配置 `"2"`。baseline 仅在配置该项时启用。
 
 核心表如下：
 
@@ -143,6 +151,7 @@ transactionalmq:
   # schema-baseline-version: "2"
   # schema-history-table: txn_mq_flyway_schema_history
   dispatch-batch-size: 100
+  # 派发线程最大空闲等待时间及跨实例状态重查间隔
   dispatch-idle-sleep-millis: 30000
   success-message-retention-days: 7
   consume-record-retention-days: 7
@@ -204,12 +213,16 @@ spring:
 
 ## 数据库迁移说明
 
-- starter 内部创建的事务消息 Flyway 使用 `classpath:transactionalmq/db/migration/<数据库>` 和独立历史表 `txn_mq_flyway_schema_history`，不会注册为 Spring `Flyway` Bean，也不会读取 `spring.flyway.*`。
-- starter 在业务工程没有显式配置 `spring.flyway.enabled` 时，默认关闭 Spring Boot 的 Flyway 自动配置，避免仅引入 starter 就启动一条空的默认迁移链。业务工程自身使用 Flyway 时，设置 `spring.flyway.enabled=true`，并按原有方式配置 `spring.flyway.locations`、默认历史表等；两条迁移链可同时运行。
+- starter 内部创建的事务消息 Flyway 使用 `classpath:transactionalmq/db/migration/<数据库>` 和独立历史表
+  `txn_mq_flyway_schema_history`，不会注册为 Spring `Flyway` Bean，也不会读取 `spring.flyway.*`。
+- starter 在业务工程没有显式配置 `spring.flyway.enabled` 时，默认关闭 Spring Boot 的 Flyway 自动配置，避免仅引入 starter
+  就启动一条空的默认迁移链。业务工程自身使用 Flyway 时，设置 `spring.flyway.enabled=true`，并按原有方式配置
+  `spring.flyway.locations`、默认历史表等；两条迁移链可同时运行。
 - 业务工程仍需要正常接入 `ez-mybatis`，使容器中存在 `EzDao`。
 - `transactionalmq.auto-init-schema` 默认值为 `false`；开启后应确保当前数据库可被所使用 Flyway 版本识别。
 - 多数据库场景下，starter 仅使用当前数据源对应的一个 migration location，不会同时加载不同方言的目录。
-- 当前 Spring Boot 2.7 管理的 Flyway 8.5.13 核心包不包含达梦适配器；使用 DM 时需要在应用中额外提供与该 Flyway 版本兼容的达梦 Flyway 扩展及 JDBC 驱动。
+- 当前 Spring Boot 2.7 管理的 Flyway 8.5.13 核心包不包含达梦适配器；使用 DM 时需要在应用中额外提供与该 Flyway 版本兼容的达梦
+  Flyway 扩展及 JDBC 驱动。
 - 已发布的迁移脚本不可修改；后续结构变更必须新增更高版本的脚本。
 
 ## 发送消息
@@ -219,6 +232,7 @@ spring:
 RabbitMQ 示例：
 
 ```java
+
 @Service
 public class OrderEventPublisher {
 
@@ -269,6 +283,24 @@ public String publishUserCreated(String userId) {
 - 真正投递由后台派发线程完成
 - 如果当前 `MqType` 没有对应适配器，会抛出 `unsupported mqType`
 
+### 延迟发送
+
+使用 `sendAfter` 延迟发送；延迟从调用方法时开始计算，必须至少为 1 毫秒。带父消息链路时使用 `sendWithParentAfter`：
+
+```java
+String messageId = messagePublishService.sendAfter(
+        MqType.RABBITMQ, message, Duration.ofMinutes(5));
+
+String childMessageId = messagePublishService.sendWithParentAfter(
+        MqType.RABBITMQ, childMessage, parentContext, Duration.ofSeconds(30));
+```
+
+延迟消息和普通事务消息一样先写入事务消息表，并在业务事务提交后等待派发。计划时间是最早派发时间，不保证 MQ
+在该时刻精确收到消息；派发积压、发送失败重试和调度开销都可能使实际投递更晚。
+
+`dispatch-idle-sleep-millis` 默认是 30000
+毫秒，表示派发线程一次空闲等待的最大时长和跨实例状态重查间隔。线程已查到下一条消息的计划时间时，会按剩余延迟等待，但最多等待该配置时长；没有未来消息时，也会在该间隔后重新查询。本实例提交新消息后会立即唤醒本实例的派发线程。该配置不是端到端投递时延保证。
+
 ### destination / route 约定
 
 RabbitMQ：
@@ -289,6 +321,7 @@ Kafka：
 RabbitMQ 消费者示例：
 
 ```java
+
 @Component
 public class OrderCreatedConsumer implements TransactionalMessageConsumer<Map<String, Object>> {
 
@@ -318,6 +351,7 @@ public class OrderCreatedConsumer implements TransactionalMessageConsumer<Map<St
 Kafka 消费者示例：
 
 ```java
+
 @Component
 public class UserCreatedConsumer implements TransactionalMessageConsumer<String> {
 
@@ -357,6 +391,7 @@ public class UserCreatedConsumer implements TransactionalMessageConsumer<String>
 消费者可覆盖 `getConsumeRetryPolicy()`，为当前消费者单独声明重试策略。例如首次失败后依次等待 2、4、8、16、32 分钟和 1、2、4 小时：
 
 ```java
+
 @Override
 public ConsumeRetryPolicy getConsumeRetryPolicy() {
     return ConsumeRetryPolicy.customDelays(
@@ -374,6 +409,7 @@ public ConsumeRetryPolicy getConsumeRetryPolicy() {
 消费方法抛出异常，或通过处理上下文要求回滚且不提前确认 MQ 消息时，会进入上述重试策略：
 
 ```java
+
 @Override
 public void consume(ConsumeContext context, ConsumeHandleContext handleContext,
                     OrderCreatedMessage payload) {
@@ -384,7 +420,8 @@ public void consume(ConsumeContext context, ConsumeHandleContext handleContext,
 }
 ```
 
-`ConsumeContext#getRetryCount()` 表示当前消息已经执行过的消费重试次数：原始消息为 `0`，第一次重试消息为 `1`。策略根据该值选择下一段等待时间，业务代码不需要自行累加。
+`ConsumeContext#getRetryCount()` 表示当前消息已经执行过的消费重试次数：原始消息为 `0`，第一次重试消息为 `1`
+。策略根据该值选择下一段等待时间，业务代码不需要自行累加。
 
 也可以使用以下预置策略：
 
@@ -393,11 +430,15 @@ public void consume(ConsumeContext context, ConsumeHandleContext handleContext,
 - `ConsumeRetryPolicy.fixedDelayForever(Duration.ofMinutes(1))`：每分钟重试一次，不限制次数
 - `ConsumeRetryPolicy.noRetry()`：不重试，需要消费者显式配置
 
-自定义间隔的数量就是总重试次数，间隔不要求递增。业务失败后，框架先回滚业务事务，再用独立事务将下一轮消息保存到 `TXN_MESSAGE`，通过 `next_dispatch_time` 延迟派发；保存成功后才确认当前 MQ 消息，不会长时间占用消费线程。
+自定义间隔的数量就是总重试次数，间隔不要求递增。业务失败后，框架先回滚业务事务，再用独立事务将下一轮消息保存到 `TXN_MESSAGE`
+，通过 `next_dispatch_time` 延迟派发；保存成功后才确认当前 MQ 消息，不会长时间占用消费线程。
 
-当策略返回停止重试时，框架不会在 `TXN_MESSAGE` 创建 `DEAD` 记录，而是直接在独立事务中写入 `TXN_MESSAGE_HISTORY`。死信历史保留 `original_message_id`、`retry_count`、`consumer_code` 和 `last_error`，并通过 `(original_message_id, retry_count)` 唯一键避免 ACK 或 offset 提交失败造成重复归档。死信历史写入成功或已经存在后，框架才确认当前 MQ 消息。
+当策略返回停止重试时，框架不会在 `TXN_MESSAGE` 创建 `DEAD` 记录，而是直接在独立事务中写入 `TXN_MESSAGE_HISTORY`。死信历史保留
+`original_message_id`、`retry_count`、`consumer_code` 和 `last_error`，并通过 `(original_message_id, retry_count)` 唯一键避免
+ACK 或 offset 提交失败造成重复归档。死信历史写入成功或已经存在后，框架才确认当前 MQ 消息。
 
-context 或 payload 无法解析时不会盲目重建消息，而是使用 MQ 原生 nack/requeue。当前组件尚未提供死信报警和人工重放接口，业务系统需要监控历史表中的 `message_status = 5`（`MessageStatus.DEAD`）记录并建立相应处置流程。
+context 或 payload 无法解析时不会盲目重建消息，而是使用 MQ 原生 nack/requeue。当前组件尚未提供死信报警和人工重放接口，业务系统需要监控历史表中的
+`message_status = 5`（`MessageStatus.DEAD`）记录并建立相应处置流程。
 
 ## 消息链路能力
 

@@ -97,6 +97,15 @@ public class MessageDispatchService {
     }
 
     /**
+     * 查询最近一条待派发消息的未来派发时间
+     *
+     * @return 最近的未来派发时间；没有未来待派发消息时返回 {@code null}
+     */
+    public Date findNextDispatchTime() {
+        return this.transactionalMessageRepository.findNextDispatchTime();
+    }
+
+    /**
      * 保存消息发送日志
      *
      * @param record 消息记录

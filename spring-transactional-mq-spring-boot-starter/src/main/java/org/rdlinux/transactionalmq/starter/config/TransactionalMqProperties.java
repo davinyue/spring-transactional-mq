@@ -37,7 +37,7 @@ public class TransactionalMqProperties {
      */
     private int dispatchBatchSize = 100;
     /**
-     * 派发线程空闲睡眠毫秒数
+     * 派发线程最大空闲睡眠毫秒数
      */
     private long dispatchIdleSleepMillis = 30000L;
     /**

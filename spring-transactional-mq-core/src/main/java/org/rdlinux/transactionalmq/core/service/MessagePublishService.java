@@ -82,7 +82,22 @@ public class MessagePublishService implements TransactionalMessageSender {
     @Override
     @Transactional(rollbackFor = Exception.class)
     public <T> String send(MqType mqType, TransactionalMessage<T> message) {
-        return this.doSave(mqType, message, null);
+        return this.doSave(mqType, message, null, null);
+    }
+
+    /**
+     * 保存延迟发送消息并返回消息 id
+     *
+     * @param mqType  MQ 类型
+     * @param message 事务消息
+     * @param delay   延迟时长
+     * @param <T>     负载类型
+     * @return 消息 id
+     */
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public <T> String sendAfter(MqType mqType, TransactionalMessage<T> message, Duration delay) {
+        return this.doSave(mqType, message, null, this.calculateNextDispatchTime(delay));
     }
 
     /**
@@ -97,7 +112,24 @@ public class MessagePublishService implements TransactionalMessageSender {
     @Override
     @Transactional(rollbackFor = Exception.class)
     public <T> String sendWithParent(MqType mqType, TransactionalMessage<T> message, ConsumeContext parentContext) {
-        return this.doSave(mqType, message, parentContext);
+        return this.doSave(mqType, message, parentContext, null);
+    }
+
+    /**
+     * 保存带父消息上下文的延迟消息并返回消息 id
+     *
+     * @param mqType        MQ 类型
+     * @param message       新的事务消息
+     * @param parentContext 父消息上下文
+     * @param delay         延迟时长
+     * @param <T>           负载类型
+     * @return 新消息 id
+     */
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public <T> String sendWithParentAfter(MqType mqType, TransactionalMessage<T> message,
+                                         ConsumeContext parentContext, Duration delay) {
+        return this.doSave(mqType, message, parentContext, this.calculateNextDispatchTime(delay));
     }
 
     /**
@@ -119,7 +151,7 @@ public class MessagePublishService implements TransactionalMessageSender {
         TransactionalMessageRecord record = this.buildConsumeRetryRecord(mqType, message, consumeContext,
                 failureMessage);
         record.setMessageStatus(MessageStatus.INIT);
-        record.setNextDispatchTime(new Date(Math.addExact(System.currentTimeMillis(), delay.toMillis())));
+        record.setNextDispatchTime(this.calculateNextDispatchTime(delay));
         boolean saved = this.saveConsumeRetryIfAbsent(record);
         if (saved) {
             this.notifyDispatchAfterCommit();
@@ -149,18 +181,23 @@ public class MessagePublishService implements TransactionalMessageSender {
     /**
      * 保存消息记录
      *
-     * @param mqType       MQ 类型
-     * @param message      事务消息
-     * @param parentContext 父消息上下文
-     * @param <T>           负载类型
+     * @param mqType            MQ 类型
+     * @param message           事务消息
+     * @param parentContext     父消息上下文
+     * @param nextDispatchTime 最早派发时间；为 {@code null} 时保留记录的默认立即派发时间
+     * @param <T>               负载类型
      * @return 保存后的消息 id
      */
-    private <T> String doSave(MqType mqType, TransactionalMessage<T> message, ConsumeContext parentContext) {
+    private <T> String doSave(MqType mqType, TransactionalMessage<T> message, ConsumeContext parentContext,
+                              Date nextDispatchTime) {
         this.validateMqType(mqType);
         String payloadText = this.messagePayloadSerializer.serialize(message.getPayload());
         TransactionalMessageRecord record = parentContext == null
                 ? TransactionalMessageRecord.from(mqType, message, payloadText)
                 : TransactionalMessageRecord.from(mqType, message, payloadText, parentContext);
+        if (nextDispatchTime != null) {
+            record.setNextDispatchTime(nextDispatchTime);
+        }
         this.ensureIds(record);
         TransactionalMessageRecord saved = this.transactionalMessageRepository.save(record);
         this.notifyDispatchAfterCommit();
@@ -259,6 +296,30 @@ public class MessagePublishService implements TransactionalMessageSender {
     private void validateDelay(Duration delay) {
         if (delay == null || delay.isZero() || delay.isNegative()) {
             throw new IllegalArgumentException("delay must be greater than zero");
+        }
+    }
+
+    /**
+     * 计算消息最早派发时间
+     *
+     * @param delay 延迟时长
+     * @return 最早派发时间
+     */
+    private Date calculateNextDispatchTime(Duration delay) {
+        this.validateDelay(delay);
+        long delayMillis;
+        try {
+            delayMillis = delay.toMillis();
+        } catch (ArithmeticException ex) {
+            throw new IllegalArgumentException("delay is too large", ex);
+        }
+        if (delayMillis < 1L) {
+            throw new IllegalArgumentException("delay must be at least 1 millisecond");
+        }
+        try {
+            return new Date(Math.addExact(System.currentTimeMillis(), delayMillis));
+        } catch (ArithmeticException ex) {
+            throw new IllegalArgumentException("delay is too large", ex);
         }
     }
 

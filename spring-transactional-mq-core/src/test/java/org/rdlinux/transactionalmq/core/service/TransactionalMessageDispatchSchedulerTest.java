@@ -11,6 +11,8 @@ import org.rdlinux.transactionalmq.core.service.impl.MessageDispatchWakeupCoordi
 import java.util.Collections;
 import java.util.Date;
 import java.util.List;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
 
 /**
  * 事务消息派发调度器测试
@@ -29,9 +31,91 @@ public class TransactionalMessageDispatchSchedulerTest {
         Assert.assertEquals(16, messageDispatchService.lastBatchSize);
     }
 
+    /**
+     * 验证调度线程按最近消息的剩余延迟时间等待。
+     *
+     * @throws Exception 等待后台线程进入休眠失败
+     */
+    @Test
+    public void idleLoopShouldWaitUntilNextDispatchTime() throws Exception {
+        CapturingMessageDispatchService messageDispatchService = new CapturingMessageDispatchService();
+        messageDispatchService.dispatchResult = 0;
+        messageDispatchService.nextDispatchTime = new Date(System.currentTimeMillis() + 15000L);
+        long requestedWaitMillis = messageDispatchService.nextDispatchTime.getTime() - System.currentTimeMillis();
+        CapturingWakeupService wakeupService = new CapturingWakeupService();
+        TransactionalMessageDispatchScheduler scheduler = new TransactionalMessageDispatchScheduler(
+                messageDispatchService, 16, 30000L, wakeupService);
+
+        try {
+            scheduler.afterPropertiesSet();
+
+            Assert.assertTrue(wakeupService.awaitStarted.await(5L, TimeUnit.SECONDS));
+            Assert.assertTrue(wakeupService.timeoutMillis > 0L);
+            Assert.assertTrue(wakeupService.timeoutMillis < 30000L);
+            Assert.assertTrue(wakeupService.timeoutMillis <= requestedWaitMillis);
+        } finally {
+            scheduler.destroy();
+        }
+    }
+
+    /**
+     * 验证到期时间较远时等待时长受配置的空闲上限约束。
+     *
+     * @throws Exception 等待后台线程进入休眠失败
+     */
+    @Test
+    public void idleLoopShouldCapWaitAtConfiguredIdleInterval() throws Exception {
+        CapturingMessageDispatchService messageDispatchService = new CapturingMessageDispatchService();
+        messageDispatchService.dispatchResult = 0;
+        messageDispatchService.nextDispatchTime = new Date(System.currentTimeMillis() + 120000L);
+        CapturingWakeupService wakeupService = new CapturingWakeupService();
+        TransactionalMessageDispatchScheduler scheduler = new TransactionalMessageDispatchScheduler(
+                messageDispatchService, 16, 2000L, wakeupService);
+
+        try {
+            scheduler.afterPropertiesSet();
+
+            Assert.assertTrue(wakeupService.awaitStarted.await(5L, TimeUnit.SECONDS));
+            Assert.assertEquals(2000L, wakeupService.timeoutMillis);
+        } finally {
+            scheduler.destroy();
+        }
+    }
+
+    /**
+     * 验证没有未来待派发消息时仍使用配置的空闲等待上限。
+     *
+     * @throws Exception 等待后台线程进入休眠失败
+     */
+    @Test
+    public void idleLoopShouldUseConfiguredIntervalWhenNoNextDispatchTime() throws Exception {
+        CapturingMessageDispatchService messageDispatchService = new CapturingMessageDispatchService();
+        messageDispatchService.dispatchResult = 0;
+        CapturingWakeupService wakeupService = new CapturingWakeupService();
+        TransactionalMessageDispatchScheduler scheduler = new TransactionalMessageDispatchScheduler(
+                messageDispatchService, 16, 2345L, wakeupService);
+
+        try {
+            scheduler.afterPropertiesSet();
+
+            Assert.assertTrue(wakeupService.awaitStarted.await(5L, TimeUnit.SECONDS));
+            Assert.assertEquals(2345L, wakeupService.timeoutMillis);
+        } finally {
+            scheduler.destroy();
+        }
+    }
+
     private static class CapturingMessageDispatchService extends MessageDispatchService {
 
         private int lastBatchSize;
+        /**
+         * 模拟本轮派发数量。
+         */
+        private int dispatchResult = 3;
+        /**
+         * 模拟仓储返回的最近派发时间。
+         */
+        private Date nextDispatchTime;
 
         private CapturingMessageDispatchService() {
             super(new NoopTransactionalMessageRepository(),
@@ -42,7 +126,47 @@ public class TransactionalMessageDispatchSchedulerTest {
         @Override
         public int dispatchPendingMessages(int limit) {
             this.lastBatchSize = limit;
-            return 3;
+            return this.dispatchResult;
+        }
+
+        @Override
+        public Date findNextDispatchTime() {
+            return this.nextDispatchTime;
+        }
+    }
+
+    /**
+     * 捕获调度器等待时长并允许测试结束时释放后台线程。
+     */
+    private static class CapturingWakeupService implements MessageDispatchWakeupService {
+
+        /**
+         * 后台线程进入等待时释放的信号。
+         */
+        private final CountDownLatch awaitStarted = new CountDownLatch(1);
+        /**
+         * 测试结束时释放后台线程的信号。
+         */
+        private final CountDownLatch releaseAwait = new CountDownLatch(1);
+        /**
+         * 捕获到的等待时长。
+         */
+        private volatile long timeoutMillis;
+
+        @Override
+        public void wakeup() {
+            this.releaseAwait.countDown();
+        }
+
+        @Override
+        public void await(long timeoutMillis) {
+            this.timeoutMillis = timeoutMillis;
+            this.awaitStarted.countDown();
+            try {
+                this.releaseAwait.await();
+            } catch (InterruptedException ex) {
+                Thread.currentThread().interrupt();
+            }
         }
     }
 

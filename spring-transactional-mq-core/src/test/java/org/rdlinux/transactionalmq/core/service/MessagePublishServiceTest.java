@@ -69,6 +69,84 @@ public class MessagePublishServiceTest {
         Assert.assertEquals("order-1", repository.savedRecord.getShardingKey());
     }
 
+    /**
+     * 验证延迟发送会保存最早派发时间并返回消息 id。
+     */
+    @Test
+    public void sendAfterShouldSaveNextDispatchTimeAndReturnMessageId() {
+        CapturingTransactionalMessageRepository repository = new CapturingTransactionalMessageRepository();
+        MessagePublishService service = new MessagePublishService(repository, this.buildSerializer(), null,
+                this.buildRouter(MqType.RABBITMQ));
+        TransactionalMessage<String> message = new TransactionalMessage<String>()
+                .setMessageKey("message-key-delay")
+                .setPayload("payload-delay");
+        Duration delay = Duration.ofSeconds(5L);
+        long requestTimeMillis = System.currentTimeMillis();
+
+        String messageId = service.sendAfter(MqType.RABBITMQ, message, delay);
+
+        long completionTimeMillis = System.currentTimeMillis();
+        Assert.assertNotNull(messageId);
+        Assert.assertEquals(messageId, repository.savedRecord.getId());
+        Assert.assertTrue(repository.savedRecord.getNextDispatchTime().getTime()
+                >= requestTimeMillis + delay.toMillis());
+        Assert.assertTrue(repository.savedRecord.getNextDispatchTime().getTime()
+                <= completionTimeMillis + delay.toMillis());
+    }
+
+    /**
+     * 验证延迟发送会拒绝无效、精度不足和超出可表示范围的延迟。
+     */
+    @Test
+    public void sendAfterShouldRejectInvalidDelayBeforeSaving() {
+        CapturingTransactionalMessageRepository repository = new CapturingTransactionalMessageRepository();
+        MessagePublishService service = new MessagePublishService(repository, this.buildSerializer(), null,
+                this.buildRouter(MqType.RABBITMQ));
+        TransactionalMessage<String> message = new TransactionalMessage<String>()
+                .setMessageKey("message-key-invalid-delay")
+                .setPayload("payload-invalid-delay");
+        Duration[] invalidDelays = new Duration[]{null, Duration.ZERO, Duration.ofMillis(-1L),
+                Duration.ofNanos(1L), Duration.ofSeconds(Long.MAX_VALUE)};
+
+        for (Duration delay : invalidDelays) {
+            try {
+                service.sendAfter(MqType.RABBITMQ, message, delay);
+                Assert.fail("expected IllegalArgumentException for delay: " + delay);
+            } catch (IllegalArgumentException expected) {
+                Assert.assertNull(repository.savedRecord);
+            }
+        }
+    }
+
+    /**
+     * 验证带父消息的延迟发送会保存链路标识和最早派发时间。
+     */
+    @Test
+    public void sendWithParentAfterShouldSaveParentChainAndNextDispatchTime() {
+        CapturingTransactionalMessageRepository repository = new CapturingTransactionalMessageRepository();
+        MessagePublishService service = new MessagePublishService(repository, this.buildSerializer(), null,
+                this.buildRouter(MqType.RABBITMQ));
+        TransactionalMessage<String> message = new TransactionalMessage<String>()
+                .setMessageKey("message-key-parent-delay")
+                .setPayload("payload-parent-delay");
+        ConsumeContext parentContext = new ConsumeContext()
+                .setId("parent-delay-1")
+                .setRootId("root-delay-1");
+        Duration delay = Duration.ofSeconds(4L);
+        long requestTimeMillis = System.currentTimeMillis();
+
+        String messageId = service.sendWithParentAfter(MqType.RABBITMQ, message, parentContext, delay);
+
+        long completionTimeMillis = System.currentTimeMillis();
+        Assert.assertEquals("parent-delay-1", repository.savedRecord.getParentId());
+        Assert.assertEquals("root-delay-1", repository.savedRecord.getRootId());
+        Assert.assertEquals(messageId, repository.savedRecord.getId());
+        Assert.assertTrue(repository.savedRecord.getNextDispatchTime().getTime()
+                >= requestTimeMillis + delay.toMillis());
+        Assert.assertTrue(repository.savedRecord.getNextDispatchTime().getTime()
+                <= completionTimeMillis + delay.toMillis());
+    }
+
     @Test
     public void transactionalMessageRecordFromShouldNotGenerateSeparateMessageIdentifier() {
         TransactionalMessage<String> message = new TransactionalMessage<String>()
