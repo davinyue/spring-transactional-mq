@@ -63,12 +63,12 @@ RabbitMQ 场景：
 <dependency>
     <groupId>org.rdlinux</groupId>
     <artifactId>spring-transactional-mq-spring-boot-starter</artifactId>
-    <version>0.0.7</version>
+    <version>0.0.8</version>
 </dependency>
 <dependency>
 <groupId>org.rdlinux</groupId>
 <artifactId>spring-transactional-mq-rabbitmq</artifactId>
-<version>0.0.7</version>
+<version>0.0.8</version>
 </dependency>
 ```
 
@@ -79,12 +79,12 @@ Kafka 场景：
 <dependency>
     <groupId>org.rdlinux</groupId>
     <artifactId>spring-transactional-mq-spring-boot-starter</artifactId>
-    <version>0.0.7</version>
+    <version>0.0.8</version>
 </dependency>
 <dependency>
 <groupId>org.rdlinux</groupId>
 <artifactId>spring-transactional-mq-kafka</artifactId>
-<version>0.0.7</version>
+<version>0.0.8</version>
 </dependency>
 ```
 

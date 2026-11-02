@@ -9,7 +9,7 @@ import org.rdlinux.transactionalmq.core.model.TransactionalMessageRecord;
 import org.rdlinux.transactionalmq.core.mq.MqProducerRouter;
 import org.rdlinux.transactionalmq.core.repository.MessageSendLogRepository;
 import org.rdlinux.transactionalmq.core.repository.TransactionalMessageRepository;
-import org.springframework.dao.DuplicateKeyException;
+import org.springframework.dao.DataIntegrityViolationException;
 
 import java.util.ArrayList;
 import java.util.Comparator;
@@ -129,7 +129,10 @@ public class MessageDispatchService {
         logRecord.setDescription(this.truncateDescription(description));
         try {
             this.messageSendLogRepository.save(logRecord);
-        } catch (DuplicateKeyException ex) {
+        } catch (DataIntegrityViolationException ex) {
+            if (!DuplicateKeyDetector.isDuplicate(ex)) {
+                throw ex;
+            }
             log.debug("Ignore duplicate message send log, messageId={}", record.getId());
         }
     }

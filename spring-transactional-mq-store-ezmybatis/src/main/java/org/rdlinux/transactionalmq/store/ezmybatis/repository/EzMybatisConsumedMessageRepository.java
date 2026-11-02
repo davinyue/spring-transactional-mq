@@ -11,8 +11,8 @@ import org.rdlinux.transactionalmq.core.model.ConsumedMessageRecord;
 import org.rdlinux.transactionalmq.core.repository.ConsumedMessageRepository;
 import org.rdlinux.transactionalmq.store.ezmybatis.entity.ConsumedMessageEntity;
 import org.rdlinux.transactionalmq.store.ezmybatis.entity.ConsumedMessageHistoryEntity;
-import org.springframework.dao.DuplicateKeyException;
 import org.springframework.stereotype.Repository;
+import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 import javax.annotation.Resource;
@@ -28,6 +28,10 @@ public class EzMybatisConsumedMessageRepository implements ConsumedMessageReposi
      * 已消费消息实体表
      */
     private static final EntityTable TABLE = EntityTable.of(ConsumedMessageEntity.class);
+    /**
+     * 已消费消息历史表。
+     */
+    private static final EntityTable HISTORY_TABLE = EntityTable.of(ConsumedMessageHistoryEntity.class);
 
     /**
      * ez-mybatis 数据访问对象
@@ -42,24 +46,45 @@ public class EzMybatisConsumedMessageRepository implements ConsumedMessageReposi
      * @return 是否首次保存成功
      */
     @Override
-    @Transactional(rollbackFor = Exception.class)
+    @Transactional(propagation = Propagation.NESTED, rollbackFor = Exception.class)
     public boolean saveIfAbsent(ConsumedMessageRecord record) {
         ConsumedMessageEntity entity = this.toEntity(record);
-        try {
-            this.ezDao.insert(entity);
-            this.applyGeneratedIdentity(record, entity);
-            this.ezDao.insert(this.toHistoryEntity(record, new Date()));
+        this.ezDao.insert(entity);
+        this.applyGeneratedIdentity(record, entity);
+        this.ezDao.insert(this.toHistoryEntity(record, new Date()));
+        return true;
+    }
+
+    /**
+     * 核验消费主表或历史表中是否存在同一消息和消费者。
+     *
+     * @param record 消费记录身份
+     * @return 是否已存在匹配记录
+     */
+    @Override
+    public boolean exists(ConsumedMessageRecord record) {
+        EzQuery<ConsumedMessageEntity> query = EzQuery.builder(ConsumedMessageEntity.class)
+                .from(TABLE).select(Select.EzSelectBuilder::addAll)
+                .where(w -> w.add(TABLE.field(BaseEntity.Fields.id).eq(record.getId()))
+                        .add(TABLE.field(ConsumedMessageEntity.Fields.consumerCode).eq(record.getConsumerCode())))
+                .page(1, 1).build();
+        if (!this.ezDao.query(query).isEmpty()) {
             return true;
-        } catch (DuplicateKeyException ex) {
-            return false;
         }
+        EzQuery<ConsumedMessageHistoryEntity> historyQuery = EzQuery.builder(ConsumedMessageHistoryEntity.class)
+                .from(HISTORY_TABLE).select(Select.EzSelectBuilder::addAll)
+                .where(w -> w.add(HISTORY_TABLE.field(BaseEntity.Fields.id).eq(record.getId()))
+                        .add(HISTORY_TABLE.field(ConsumedMessageHistoryEntity.Fields.consumerCode)
+                                .eq(record.getConsumerCode())))
+                .page(1, 1).build();
+        return !this.ezDao.query(historyQuery).isEmpty();
     }
 
     /**
      * 查询待归档的消费记录
      *
      * @param archiveBefore 归档截止时间
-     * @param limit 最大查询条数
+     * @param limit         最大查询条数
      * @return 待归档消费记录
      */
     @Override
@@ -134,7 +159,7 @@ public class EzMybatisConsumedMessageRepository implements ConsumedMessageReposi
     /**
      * 将消费记录转换为历史实体
      *
-     * @param record 消费记录
+     * @param record      消费记录
      * @param archiveTime 归档时间
      * @return 消费历史实体
      */
@@ -185,7 +210,7 @@ public class EzMybatisConsumedMessageRepository implements ConsumedMessageReposi
     /**
      * 使用默认时间填充空值
      *
-     * @param date 原始时间
+     * @param date        原始时间
      * @param defaultDate 默认时间
      * @return 原始时间或默认时间
      */

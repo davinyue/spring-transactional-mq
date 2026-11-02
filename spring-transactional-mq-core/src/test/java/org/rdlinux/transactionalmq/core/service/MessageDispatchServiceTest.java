@@ -12,7 +12,9 @@ import org.rdlinux.transactionalmq.core.mq.MqProducerRouter;
 import org.rdlinux.transactionalmq.core.repository.MessageSendLogRepository;
 import org.rdlinux.transactionalmq.core.repository.TransactionalMessageRepository;
 import org.springframework.dao.DuplicateKeyException;
+import org.springframework.dao.DataIntegrityViolationException;
 
+import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Date;
@@ -22,6 +24,26 @@ import java.util.List;
  * 消息派发服务测试
  */
 public class MessageDispatchServiceTest {
+
+    /** 验证 GaussDB 重复键不阻断派发，其他完整性错误仍然抛出。 */
+    @Test
+    public void dispatchShouldOnlyIgnoreDuplicateSqlState() {
+        CapturingTransactionalMessageRepository repository = new CapturingTransactionalMessageRepository(buildRecord("msg"));
+        FailingMessageSendLogRepository logs = new FailingMessageSendLogRepository();
+        logs.failure = new DataIntegrityViolationException("duplicate", new SQLException("duplicate", "23505"));
+        MessageDispatchService service = new MessageDispatchService(repository,
+                new MqProducerRouter(java.util.Collections.<MqProducerAdapter>singletonList(
+                        new CapturingMqProducerAdapter())), logs);
+        Assert.assertEquals(1, service.dispatchPendingMessages(1));
+        Assert.assertEquals(1, repository.successRecords.size());
+        logs.failure = new DataIntegrityViolationException("other", new SQLException("not null", "23502"));
+        try {
+            service.dispatchPendingMessages(1);
+            Assert.fail("其他完整性错误必须抛出");
+        } catch (DataIntegrityViolationException ex) {
+            Assert.assertSame(logs.failure, ex);
+        }
+    }
 
     @Test
     public void dispatchPendingMessagesShouldSendEachMessageToAdapter() {
@@ -219,9 +241,12 @@ public class MessageDispatchServiceTest {
 
     private static class FailingMessageSendLogRepository implements MessageSendLogRepository {
 
+        /** 模拟的发送日志异常。 */
+        private DataIntegrityViolationException failure = new DuplicateKeyException("duplicate");
+
         @Override
         public MessageSendLogRecord save(MessageSendLogRecord record) {
-            throw new DuplicateKeyException("duplicate");
+            throw this.failure;
         }
 
         @Override

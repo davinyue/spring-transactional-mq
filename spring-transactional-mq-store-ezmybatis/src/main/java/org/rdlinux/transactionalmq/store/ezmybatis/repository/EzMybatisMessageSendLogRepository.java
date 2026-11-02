@@ -9,6 +9,8 @@ import org.rdlinux.transactionalmq.core.model.MessageSendLogRecord;
 import org.rdlinux.transactionalmq.core.repository.MessageSendLogRepository;
 import org.rdlinux.transactionalmq.store.ezmybatis.entity.MessageSendLogEntity;
 import org.springframework.stereotype.Repository;
+import org.springframework.transaction.annotation.Propagation;
+import org.springframework.transaction.annotation.Transactional;
 
 import javax.annotation.Resource;
 import java.util.ArrayList;
@@ -33,7 +35,14 @@ public class EzMybatisMessageSendLogRepository implements MessageSendLogReposito
     @Resource
     private EzDao ezDao;
 
+    /**
+     * 保存发送日志，外层事务存在时使用保存点处理失败。
+     *
+     * @param record 发送日志
+     * @return 保存的发送日志
+     */
     @Override
+    @Transactional(propagation = Propagation.NESTED, rollbackFor = Exception.class)
     public MessageSendLogRecord save(MessageSendLogRecord record) {
         MessageSendLogEntity entity = this.toEntity(record);
         this.ezDao.insert(entity);
@@ -105,7 +114,7 @@ public class EzMybatisMessageSendLogRepository implements MessageSendLogReposito
     /**
      * 使用默认时间填充空值
      *
-     * @param date 原始时间
+     * @param date        原始时间
      * @param defaultDate 默认时间
      * @return 原始时间或默认时间
      */

@@ -3,6 +3,7 @@ package org.rdlinux.transactionalmq.core.service;
 import org.rdlinux.transactionalmq.api.model.ConsumeContext;
 import org.rdlinux.transactionalmq.core.model.ConsumedMessageRecord;
 import org.rdlinux.transactionalmq.core.repository.ConsumedMessageRepository;
+import org.springframework.dao.DataIntegrityViolationException;
 
 /**
  * 消费幂等服务骨架
@@ -30,6 +31,14 @@ public class ConsumeIdempotentService {
      * @return 是否成功记录
      */
     public boolean recordIfAbsent(ConsumeContext context) {
-        return this.consumedMessageRepository.saveIfAbsent(ConsumedMessageRecord.from(context));
+        ConsumedMessageRecord record = ConsumedMessageRecord.from(context);
+        try {
+            return this.consumedMessageRepository.saveIfAbsent(record);
+        } catch (DataIntegrityViolationException ex) {
+            if (DuplicateKeyDetector.isDuplicate(ex) && this.consumedMessageRepository.exists(record)) {
+                return false;
+            }
+            throw ex;
+        }
     }
 }

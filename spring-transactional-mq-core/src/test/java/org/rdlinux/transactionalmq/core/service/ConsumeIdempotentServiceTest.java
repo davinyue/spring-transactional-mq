@@ -5,7 +5,9 @@ import org.junit.Test;
 import org.rdlinux.transactionalmq.api.model.ConsumeContext;
 import org.rdlinux.transactionalmq.core.model.ConsumedMessageRecord;
 import org.rdlinux.transactionalmq.core.repository.ConsumedMessageRepository;
+import org.springframework.dao.DataIntegrityViolationException;
 
+import java.sql.SQLException;
 import java.util.Collections;
 import java.util.Date;
 import java.util.List;
@@ -14,6 +16,34 @@ import java.util.List;
  * 消费幂等服务测试
  */
 public class ConsumeIdempotentServiceTest {
+
+    /** 验证 GaussDB 重复键只在消息和消费者匹配时被视为已消费。 */
+    @Test
+    public void duplicateSqlStateRequiresMatchingConsumedRecord() {
+        CapturingConsumedMessageRepository repository = new CapturingConsumedMessageRepository(true);
+        repository.failure = new DataIntegrityViolationException("duplicate", new SQLException("duplicate", "23505"));
+        repository.exists = true;
+        ConsumeIdempotentService service = new ConsumeIdempotentService(repository);
+        ConsumeContext context = new ConsumeContext().setId("retry").setOriginalMessageId("original")
+                .setConsumerCode("consumer");
+        Assert.assertFalse(service.recordIfAbsent(context));
+        Assert.assertEquals("original", repository.savedRecord.getId());
+        repository.exists = false;
+        try {
+            service.recordIfAbsent(context);
+            Assert.fail("未匹配的冲突必须抛出");
+        } catch (DataIntegrityViolationException ex) {
+            Assert.assertSame(repository.failure, ex);
+        }
+        repository.exists = true;
+        repository.failure = new DataIntegrityViolationException("other", new SQLException("not null", "23502"));
+        try {
+            service.recordIfAbsent(context);
+            Assert.fail("其他完整性异常必须抛出");
+        } catch (DataIntegrityViolationException ex) {
+            Assert.assertSame(repository.failure, ex);
+        }
+    }
 
     @Test
     public void recordIfAbsentShouldUseAtomicSaveIfAbsent() {
@@ -81,6 +111,10 @@ public class ConsumeIdempotentServiceTest {
         private final boolean saveResult;
         private int saveIfAbsentCalls;
         private ConsumedMessageRecord savedRecord;
+        /** 模拟持久化异常。 */
+        private DataIntegrityViolationException failure;
+        /** 是否存在相同消费记录。 */
+        private boolean exists;
 
         private CapturingConsumedMessageRepository(boolean saveResult) {
             this.saveResult = saveResult;
@@ -90,7 +124,15 @@ public class ConsumeIdempotentServiceTest {
         public boolean saveIfAbsent(ConsumedMessageRecord record) {
             this.saveIfAbsentCalls++;
             this.savedRecord = record;
+            if (this.failure != null) {
+                throw this.failure;
+            }
             return this.saveResult;
+        }
+
+        @Override
+        public boolean exists(ConsumedMessageRecord record) {
+            return this.exists;
         }
 
         @Override

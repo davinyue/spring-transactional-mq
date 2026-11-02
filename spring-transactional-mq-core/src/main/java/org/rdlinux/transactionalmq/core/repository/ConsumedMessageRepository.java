@@ -19,6 +19,16 @@ public interface ConsumedMessageRepository {
     boolean saveIfAbsent(ConsumedMessageRecord record);
 
     /**
+     * 判断同一消费者是否已处理原始消息。
+     *
+     * @param record 消费记录身份
+     * @return 是否存在匹配的消费记录
+     */
+    default boolean exists(ConsumedMessageRecord record) {
+        return false;
+    }
+
+    /**
      * 获取待归档消费记录
      *
      * @param archiveBefore 归档阈值时间
