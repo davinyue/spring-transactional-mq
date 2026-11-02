@@ -29,6 +29,71 @@ import static org.mockito.Mockito.*;
 
 public class RabbitMqConsumerMessageListenerTest {
 
+    /** 验证消费或重复消息处理后事务提交失败均不会直接确认。 */
+    @Test
+    public void commitFailureShouldNackForConsumedAndDuplicateMessages() throws Exception {
+        for (boolean firstConsumption : new boolean[]{true, false}) {
+            MessagePayloadSerializer serializer = mock(MessagePayloadSerializer.class);
+            ConsumeIdempotentService idempotent = mock(ConsumeIdempotentService.class);
+            TxnMqTransactionalService transaction = mock(TxnMqTransactionalService.class);
+            doAnswer(invocation -> {
+                ((Runnable) invocation.getArgument(0)).run();
+                throw new IllegalStateException("commit failed");
+            }).when(transaction).required(any(Runnable.class));
+            when(idempotent.recordIfAbsent(any(ConsumeContext.class))).thenReturn(firstConsumption);
+            when(serializer.deserialize("\"payload\"", (Type) String.class)).thenReturn("payload");
+            RabbitMqConsumerMessageListener listener = new RabbitMqConsumerMessageListener(new RecordingConsumer(),
+                    new RabbitMqConsumerInvoker(), serializer, idempotent, transaction);
+            Channel channel = mock(Channel.class);
+            MessageProperties properties = new MessageProperties();
+            properties.setMessageId("message");
+            properties.setDeliveryTag(30L);
+            properties.setContentEncoding("gzip");
+            listener.onMessage(new Message(RabbitMqPayloadCodec.gzip("\"payload\""), properties), channel);
+            verify(channel, never()).basicAck(anyLong(), anyBoolean());
+            verify(channel).basicNack(30L, false, true);
+        }
+    }
+
+    /** 验证明确请求回滚后确认时，仅正常完成回滚才确认。 */
+    @Test
+    public void rollbackAckRequiresSuccessfulRollback() throws Exception {
+        for (boolean rollbackFails : new boolean[]{false, true}) {
+            MessagePayloadSerializer serializer = mock(MessagePayloadSerializer.class);
+            ConsumeIdempotentService idempotent = mock(ConsumeIdempotentService.class);
+            TxnMqTransactionalService transaction = mock(TxnMqTransactionalService.class);
+            doAnswer(invocation -> {
+                try {
+                    ((Runnable) invocation.getArgument(0)).run();
+                } catch (RuntimeException ex) {
+                    if (rollbackFails) {
+                        throw new IllegalStateException("rollback failed", ex);
+                    }
+                    throw ex;
+                }
+                return null;
+            }).when(transaction).required(any(Runnable.class));
+            InterruptRollbackConsumer consumer = new InterruptRollbackConsumer();
+            consumer.rollbackAck = true;
+            when(idempotent.recordIfAbsent(any(ConsumeContext.class))).thenReturn(true);
+            when(serializer.deserialize("\"payload\"", (Type) String.class)).thenReturn("payload");
+            RabbitMqConsumerMessageListener listener = new RabbitMqConsumerMessageListener(consumer,
+                    new RabbitMqConsumerInvoker(), serializer, idempotent, transaction);
+            Channel channel = mock(Channel.class);
+            MessageProperties properties = new MessageProperties();
+            properties.setMessageId("message");
+            properties.setDeliveryTag(31L);
+            properties.setContentEncoding("gzip");
+            listener.onMessage(new Message(RabbitMqPayloadCodec.gzip("\"payload\""), properties), channel);
+            if (rollbackFails) {
+                verify(channel, never()).basicAck(anyLong(), anyBoolean());
+                verify(channel).basicNack(31L, false, true);
+            } else {
+                verify(channel).basicAck(31L, false);
+            }
+        }
+    }
+
     @Test
     public void onMessageShouldRecordDeserializeInvokeAndAck() throws Exception {
         RabbitMqConsumerInvoker invoker = new RabbitMqConsumerInvoker();
@@ -248,7 +313,7 @@ public class RabbitMqConsumerMessageListenerTest {
                                 && context.getRetryCount() == 1
                                 && "parent-5".equals(context.getParentId())
                                 && "root-5".equals(context.getRootId())),
-                eq(Duration.ofMinutes(4L)), contains("RuntimeException"));
+                eq(Duration.ofMinutes(4L)), contains("处理队列事务回滚"));
         verify(channel).basicAck(11L, false);
         verify(channel, never()).basicNack(anyLong(), anyBoolean(), anyBoolean());
     }
@@ -376,6 +441,8 @@ public class RabbitMqConsumerMessageListenerTest {
     private static final class InterruptRollbackConsumer implements TransactionalMessageConsumer<String> {
 
         private Exception finallyException;
+        /** 是否在主动回滚后确认。 */
+        private boolean rollbackAck;
 
         @Override
         public String getQueueName() {
@@ -395,7 +462,7 @@ public class RabbitMqConsumerMessageListenerTest {
         @Override
         public void consume(ConsumeContext context, ConsumeHandleContext handleContext, String payload) {
             handleContext.setRollBack(true)
-                    .setRollBackAck(false)
+                    .setRollBackAck(this.rollbackAck)
                     .addFinallyCall(exception -> this.finallyException = exception);
         }
     }

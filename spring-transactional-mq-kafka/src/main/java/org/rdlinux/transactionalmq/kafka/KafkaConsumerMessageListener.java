@@ -112,7 +112,6 @@ class KafkaConsumerMessageListener implements AcknowledgingMessageListener<Strin
                 this.invokeBeforeTransaction(context, handleContext, payload);
                 this.txnMqTransactionalService.required(() -> {
                     if (!this.consumeIdempotentService.recordIfAbsent(context)) {
-                        doAck.set(true);
                         return;
                     }
                     this.invokeConsumer(context, handleContext, payload);
@@ -122,8 +121,8 @@ class KafkaConsumerMessageListener implements AcknowledgingMessageListener<Strin
                         throw new RuntimeException("处理队列事务回滚");
                     }
                     handleContext.executeCommitCall();
-                    doAck.set(true);
                 });
+                doAck.set(true);
             } catch (UnexpectedRollbackException e) {
                 exeException = e;
                 log.error("topic 消息处理失败, 事务意外回滚, topic:{}", this.consumer.getQueueName(), e);

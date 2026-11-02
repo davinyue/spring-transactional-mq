@@ -142,7 +142,6 @@ class RabbitMqConsumerMessageListener implements ChannelAwareMessageListener {
                         log.info("队列消息已被处理过, 队列:{}, 消息id:{}, 上级消息id:{}, 根消息id:{}",
                                 this.consumer.getQueueName(),
                                 context.getId(), context.getParentId(), context.getRootId());
-                        doAck.set(true);
                         return;
                     }
                     log.info("开始处理队列消息, 队列:{}, 消息id:{}, 上级消息id:{}, 根消息id:{}",
@@ -150,21 +149,20 @@ class RabbitMqConsumerMessageListener implements ChannelAwareMessageListener {
                             context.getId(), context.getParentId(), context.getRootId());
                     this.invokeConsumer(context, handleContext, payload);
                     if (handleContext.isRollBack()) {
-                        //回滚前提交ack
-                        if (handleContext.isRollBackAck()) {
-                            doAck.set(true);
-                        }
                         log.info("处理队列事务回滚, 队列:{}, 消息id:{}, 上级消息id:{}, 根消息id:{}",
                                 this.consumer.getQueueName(),
                                 context.getId(), context.getParentId(), context.getRootId());
                         failureMessageRef.set("consumer requested transaction rollback");
-                        throw new RuntimeException("处理队列事务回滚");
+                        throw new ConsumerRollbackException();
                     }
                     //事务提交前回调
                     handleContext.executeCommitCall();
-                    //不回滚, 提交ack
-                    doAck.set(true);
                 });
+                doAck.set(true);
+            } catch (ConsumerRollbackException e) {
+                exeException = e;
+                doAck.set(handleContext.isRollBackAck());
+                failureMessageRef.set(this.describeFailure(e));
             } catch (UnexpectedRollbackException e) {
                 exeException = e;
                 log.error("队列消息处理失败, 事务意外回滚, 队列:{}", this.consumer.getQueueName(), e);
@@ -459,5 +457,17 @@ class RabbitMqConsumerMessageListener implements ChannelAwareMessageListener {
             current = current.getSuperclass();
         }
         throw new IllegalArgumentException("unable to resolve consumer payload type: " + consumer.getClass().getName());
+    }
+
+    /**
+     * 消费者主动要求回滚事务。
+     */
+    private static final class ConsumerRollbackException extends RuntimeException {
+        /**
+         * 创建主动回滚异常。
+         */
+        private ConsumerRollbackException() {
+            super("处理队列事务回滚");
+        }
     }
 }

@@ -33,6 +33,30 @@ import static org.mockito.Mockito.anyString;
 
 public class KafkaConsumerMessageListenerTest {
 
+    /** 验证消费或重复消息处理后事务提交失败均不会直接确认。 */
+    @Test
+    public void commitFailureShouldNackForConsumedAndDuplicateMessages() {
+        for (boolean firstConsumption : new boolean[]{true, false}) {
+            MessagePayloadSerializer serializer = mock(MessagePayloadSerializer.class);
+            ConsumeIdempotentService idempotent = mock(ConsumeIdempotentService.class);
+            TxnMqTransactionalService transaction = mock(TxnMqTransactionalService.class);
+            doAnswer(invocation -> {
+                ((Runnable) invocation.getArgument(0)).run();
+                throw new IllegalStateException("commit failed");
+            }).when(transaction).required(any(Runnable.class));
+            when(idempotent.recordIfAbsent(any(ConsumeContext.class))).thenReturn(firstConsumption);
+            when(serializer.deserialize("\"payload\"", (Type) String.class)).thenReturn("payload");
+            KafkaConsumerMessageListener listener = new KafkaConsumerMessageListener(new RecordingConsumer(),
+                    new KafkaConsumerInvoker(), serializer, idempotent, transaction, null);
+            Acknowledgment acknowledgment = mock(Acknowledgment.class);
+            ConsumerRecord<String, byte[]> record = this.buildRecord("message", "key", null, null,
+                    KafkaPayloadCodec.gzip("\"payload\""));
+            listener.onMessage(record, acknowledgment);
+            verify(acknowledgment, never()).acknowledge();
+            verify(acknowledgment).nack(Duration.ofMillis(10000L));
+        }
+    }
+
     @Test
     public void onMessageShouldRecordDeserializeInvokeAndAck() {
         KafkaConsumerInvoker invoker = new KafkaConsumerInvoker();
